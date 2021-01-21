@@ -1,0 +1,18 @@
+doc: |
+  A demonstration of using Javascript to generate a string.
+
+  Also shows bindings substitution within a string.
+labels:
+  - selftest
+bindings:
+  '?WORLD': world
+  '?DATE': "Tue Dec  1 17:22:12 CST 2020"
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '!!"Hello, " + "{?WORLD}, it is "  + "{?DATE}"'
+        - recv:
+            pattern: '"Hello, {?WORLD}, it is {?DATE}"'

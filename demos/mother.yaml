@@ -1,0 +1,193 @@
+doc: |
+  You start with a single channel named "mother".  Send a message to
+  this channel to make another channel.
+
+  There's a new channel type: 'cmd'.  A 'cmd' channel is an interface
+  to a subprocess.  You can 'recv' lines (hopefully JSON) from a
+  subprocess, so you can parse those lines to make bindings in the
+  usual way.  (You can also 'pub' lines to the subprocess's stdin.)
+
+  So the old 'start', 'initially', and 'finally' clauses are no longer
+  needed.
+
+  Bindings now have some magic properties.  If a binding variable
+  starts with '?*', then that binding is cleared before each 'recv'.
+  So if you have a '?*' pattern variable in a 'recv', the resulting
+  binding cannot conflict when used in a subsequent 'recv'.
+
+  Additionally, a binding for a variable that starts with '?!' also
+  has a special property.  A 'recv' step can have a 'clearbindings'
+  property, which (when true) will remove all bindings except those
+  for variables that start with '?!'.  In other words, '?!' bindings
+  survive 'clearbindings'.
+
+  No more parameters!  Instead, we just use bindings.  Consider using
+  bindings for variables starting with '?!' (to survive any
+  'clearbindings' in 'recv' steps).  You can set bindings on the Plax
+  command line almost as you did for parameters.  The typical
+  difference is that you don't want the braces.  Example:
+
+    plax -test demos/mother.yaml -p '?!WANT=chips'
+
+  That invocation will establish the binding of '?!WANT', and that
+  binding will override the default value specified in the 'bindings'
+  section below.
+
+bindings:
+  '?!WANT': tacos
+spec:
+  initialphase: mock-demo
+  phases:
+    mock-demo:
+      doc: |
+        We ask Mother to make us a mock channel.  Then we test that
+        channel.
+      steps:
+        - pub:
+            doc: Please make a mock channel.
+            payload:
+              make:
+                name: mock1
+                type: mock
+        - recv:
+            doc: Check that our request succeeded.
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            payload:
+              hello: world
+        - recv:
+            pattern:
+              hello: world
+        - goto: cmd-demo
+    cmd-demo:
+      doc: |
+        Start a subprocess and then listen to it.
+
+        This subprocess will emit some JSON, and that JSON will
+        include the binding for '?!WANT'.
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: cmd1
+                type: cmd
+                config:
+                  command: bash
+                  doc: This command just emits one line.
+                  args:
+                    - '-c'
+                    - 'echo "{\"want\":\"{?!WANT}\"}"'
+        - recv:
+            doc: Check that our request succeeded.
+            chan: mother
+            pattern:
+              success: true
+        - recv:
+            doc: |
+              Get what we expected (more or less).
+
+              We'll use a pattern variable starting with '?*' so that
+              we won't get a subsequent bindings conflict if we do a
+              subsequent 'recv' that happens to use the same variable
+              incidentally.
+            chan: cmd1
+            pattern:
+              want: '?*wanted'
+        - goto: mqtt-demo
+    mqtt-demo:
+      doc: |
+        Create and test an MQTT client channel.
+
+        This channel expects a local MQTT broker that allows anonymous
+        access.
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: mqtt1
+                type: mqtt
+                config:
+                  clientid: plax1
+                  brokerurl: tcp://localhost:1883
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - sub:
+            chan: mqtt1
+            topic: want
+        - pub:
+            doc: |
+              Publish a message about what we '?!WANT'.
+            chan: mqtt1
+            topic: want
+            payload:
+              what: '?!WANT'
+              when: now
+        - recv:
+            doc: |
+              Receive our message and bind some variables that we
+              might use (intentionally) in a subsequent 'recv'.
+            chan: mqtt1
+            pattern:
+              what: "?what"
+              when: "?when"
+        - goto: echo-demo
+    echo-demo:
+      doc: |
+        Create a cmd (subprocess) channel that echos what we 'pub' to
+        it.
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: echo
+                type: cmd
+                config:
+                  command: bash
+                  doc: Just echo stdin to stdout.
+                  args:
+                    - '-c'
+                    - 'while true; do read line; echo $line; done'
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: Send a message to the subprocess.
+            chan: echo
+            payload:
+              please: work
+        - recv:
+            doc: |
+              Verify we hear what we want, and establish a binding.
+            chan: echo
+            pattern:
+              please: "?work"
+        - run: |
+            // Check that we really have a binding for '?work'.
+            return test.Bindings["?work"] ? true : Failure("no '?work'");
+        - pub:
+            doc: |
+              For fun, we use the previous binding for '?when'.
+            chan: echo
+            payload:
+              please: 'work again'
+              when: "?when"
+        - recv:
+            doc: |
+              Verify that we hear what we want.
+
+              Note that we are clearing bindings so that we have an
+              unbound '?work' going into the pattern matching.  If we
+              didn't 'clearbindings', then this step would fail.
+            chan: echo
+            clearbindings: true
+            pattern:
+              please: "?work"
+              when: now

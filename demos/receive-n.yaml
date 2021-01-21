@@ -1,0 +1,45 @@
+doc: |
+  An example of an new feature that supports (conditional) phase
+  branching.
+  
+  In this example, we use the new 'branch' step.  The value of a
+  'branch' is Javascript code that should return the (name) of the
+  next phase or the empty string (to continue with the current phase).
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - ingest:
+            payload: '{"sending":2}'
+        - ingest:
+            payload: '{"want":"chips"}'
+        - ingest:
+            payload: '{"want":"kale"}'
+        - ingest:
+            payload: '{"want":"queso"}'
+        - ingest:
+            payload: '{"want":"margarita"}'
+        - goto: listen-for-n
+    listen-for-n:
+      steps:
+        - recv:
+            pattern: '{"sending":"?n"}'
+        - run: |
+            test.State.sending = test.Bindings["?n"];
+        - goto: listen-for-msgs
+    listen-for-msgs:
+      steps:
+        - recv:
+            pattern: '{"want":"?*y"}'
+            doc: |
+              We only count certain messages.
+            guard: |
+              return "kale" != bs["?*y"];
+            timeout: 1s
+        - branch: |
+            // Decrement our counter, and return the next phase.
+            test.State.sending--;
+            return 0 == test.State.sending ? "done" : "listen-for-msgs";

@@ -1,0 +1,14 @@
+spec:
+  chans:
+    app: mock
+  phases:
+    phase1:
+      steps:
+        - "$include<include/mock.yaml>"
+        - sub:
+            pattern: test
+        - pub:
+            topic: test
+            payload: '{"want":"queso"}'
+        - goto: receive
+    receive: '#include<include/receive.yaml>'

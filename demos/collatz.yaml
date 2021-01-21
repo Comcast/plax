@@ -1,0 +1,33 @@
+doc: |
+  An example using a Javascript library.
+
+  See https://en.wikipedia.org/wiki/Collatz_conjecture.
+libraries:
+  - "library.js"
+labels:
+  - selftest
+bindings:
+  '?!N': 13
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - run: |
+            // Compute the Collatz sequence, and store it as a
+            // binding.
+            test.Bindings["?ns"] = collatz({?!N});
+        - pub:
+            doc: Publish the Collatz sequence we just computed.
+            payload:
+              collatz:
+                "?ns"
+        - recv:
+            doc: Receive the message we just sent.
+            pattern:
+              collatz:
+                "?x"
+        - run: |
+            // For fun, we can store the sequence to be emitted if we
+            // use the -json flag on the Plax command line.
+            test.State["collatz"] = test.Bindings["?x"];

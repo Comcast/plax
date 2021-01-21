@@ -1,0 +1,120 @@
+name: waitrun
+version: 0.0.1
+
+tests:
+  wait:
+    path: test-wait.yaml
+    version: github.com/Comcast/plax
+    params:
+      - 'WAIT'
+      - 'MARGIN'
+
+groups:
+  wait-prompt:
+    tests:        
+      - name: wait
+
+  wait-no-prompt:
+    params:
+      'WAIT': 600
+      'MARGIN': 200
+    tests:        
+      - name: wait
+
+  wait-iterate:
+    iterate:
+      dependsOn:
+        - WAIT_LIST
+      params: "{WAIT_LIST}"
+    tests:
+      - name: wait
+
+  wait-groups:
+    groups:
+      - name: wait-prompt
+      - name: wait-no-prompt
+      - name: wait-iterate
+
+  wait-guard-test:
+    iterate:
+      dependsOn:
+        - WAIT_LIST
+        - ILLEGAL_WAIT
+      params: "{WAIT_LIST}"
+    tests:
+      - name: wait
+        guard:
+          src: |
+            return bs["WAIT"] != bs["ILLEGAL_WAIT"];
+
+  wait-guard-group:
+    groups:
+      - name: wait-prompt
+        guard:
+          dependsOn:
+            - DO_NOT_PROMPT
+          libraries:
+            - include/libs/boolean.js
+          src: |
+            return isFalse(bs["DO_NOT_PROMPT"]);
+      - name: wait-no-prompt
+      - name: wait-iterate
+
+  wait-guard-iterate:
+    iterate:
+      dependsOn:
+        - WAIT_LIST
+        - ILLEGAL_WAIT
+      params: "{WAIT_LIST}"
+      guard:
+          src: |
+            return bs["WAIT"] != bs["ILLEGAL_WAIT"];
+    tests:
+      - name: wait
+
+  wait-test-group:
+    groups:
+      - name: wait-iterate
+      - name: wait-guard-test
+      - name: wait-guard-group
+      - name: wait-guard-iterate       
+params:
+  WAIT:
+    include: include/commands/prompt.yaml
+    envs:
+      PROMPT: Enter wait
+      DEFAULT: 300
+  
+  MARGIN:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: 100
+  
+  WAIT_LIST:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: |
+        [
+          {
+            "WAIT": 300,
+            "MARGIN": 100
+          },
+          {
+            "WAIT": 600,
+            "MARGIN": 200
+          },
+          {
+            "WAIT": 900,
+            "MARGIN": 300
+          }
+        ]
+  ILLEGAL_WAIT:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: 900
+
+  DO_NOT_PROMPT:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: true
+    

@@ -1,0 +1,29 @@
+# Description
+# 
+# This command either returns the existing envionment variable value or execute the given command to fetch the value
+#
+# Usage
+#
+# include: include/commands/command.yaml
+# envs:
+#   COMMAND: ["My Command Here"]
+#
+# Notes: 
+#   COMMAND is required when an environment variable matching the $KEY is not set
+
+cmd: bash
+args:
+  - -c
+  - |
+    if [ -n "${!KEY}" ]; then
+      echo $KEY=${!KEY}
+    else
+      : "${COMMAND:?Variable is not set or empty}"
+
+      VALUE=`eval "${COMMAND}" || exit 1 >&2`
+      ret=$?
+      if [ $ret -ne 0 ]; then
+          exit $ret
+      fi
+      echo $KEY=$VALUE
+    fi

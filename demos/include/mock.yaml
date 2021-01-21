@@ -1,0 +1,13 @@
+# Ask Mother to make a mock channel.
+- pub:
+    doc: Please make a mock channel.
+    chan: mother
+    payload:
+      make:
+        name: mock
+        type: mock
+- recv:
+    doc: Check that our request succeeded.
+    chan: mother
+    pattern:
+      success: true

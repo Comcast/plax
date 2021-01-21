@@ -1,0 +1,51 @@
+doc: |
+  Just a very pub/recv simple test.
+
+  We ask the mother channel to make a "mock" channel, which just emits
+  what it receives.  Then we test that mock channel.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: |
+              Ask Mother to make a mock channel.
+
+              The only channel that exists is the Mother channel, so
+              we don't have to specify 'chan: mother'.
+            payload:
+              make:
+                name: mock
+                type: mock
+        - recv:
+            doc: |
+              Check that our request succeeded.
+
+              We now (hopefully) have two channels, and the default
+              channel is that one non-mother channel.  We want to
+              example the output of the mother channel, so we have to
+              specify that.
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: |
+              Default channel is (now) the only non-mother channel, so
+              we don't have to specific 'chan: mock' here.
+
+              Let's send our new channel a message.  In the next step,
+              we'll check what the channel emits.
+            payload: '{"want":"queso"}'
+        - recv:
+            doc: |
+              Check that we hear a message that has a reasonable
+              structure.
+
+              The pattern matching will binding the variable '?x', but
+              this test won't do anything with that binding.  Note
+              that we could receive a message that's not what we sent,
+              so this test isn't very precise.
+            pattern: '{"want":"?x"}'
+

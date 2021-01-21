@@ -1,0 +1,30 @@
+doc: |
+  Pub to and Recv from an SQS Queue
+
+  Requires an SQS queue '123456789/plaxtest' at a mock/local service
+  endpoint of http://localhost:4100.
+  
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: queue
+                type: sqs
+                config:
+                  Endpoint: "http://localhost:4100"
+                  QueueURL: "http://localhost:4100/123456789/plaxtest"
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            chan: queue
+            payload: '{"want":"queso"}'
+        - recv:
+            chan: queue
+            pattern: '{"want":"?"}'
+

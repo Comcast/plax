@@ -1,0 +1,15 @@
+doc: Simple demo of using a guard.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"tacos","n":3}'
+        - recv:
+            pattern: '{"n":"?n"}'
+            guard: |
+              // Need more than one.
+              return 1 < bs["?n"];

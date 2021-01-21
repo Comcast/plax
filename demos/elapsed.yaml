@@ -1,0 +1,43 @@
+doc: |
+  Check out how fast your machine (and Plax) is.
+
+  Publish and receive some messages.  Then emit the elapsed time.
+
+  Example:
+
+    (for I in {1..10}; do
+       plax -test demos/example-elapsed.yaml -json 2> /dev/null;
+     done) |
+    jq -r --slurp 'map(.[1].State.elapsed) | add/length'
+    
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - run: |
+            // Remember the current time(stamp).
+            test.State.then = now();
+        - pub:
+            payload: '{"want":"queso"}'
+        - recv:
+            pattern: '{"want":"?*x"}'
+        - pub:
+            payload: '{"want":"chips"}'
+        - recv:
+            pattern: '{"want":"?*x"}'
+        - pub:
+            payload: '{"want":"tacos"}'
+        - recv:
+            pattern: '{"want":"?*x"}'
+        - pub:
+            payload: '{"want":"guacamole"}'
+        - recv:
+            pattern: '{"want":"?*x"}'
+        - run: |
+            // Compute the elapsed time in milliseconds.
+            var elapsed = tsMs(now()) - tsMs(test.State.then);
+            // test.State will be printed when using the -json CLI flag.
+            test.State["elapsed"] = elapsed;

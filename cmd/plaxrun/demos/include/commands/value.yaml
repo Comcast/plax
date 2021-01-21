@@ -1,0 +1,24 @@
+# Description
+# 
+# This command either returns the existing envionment variable value or return a default value
+#
+# Usage
+#
+# include: include/commands/prompt.yaml
+# envs:
+#   VALUE: ["My Value"]
+#
+# Notes:
+#   DEFAULT is required if ${KEY} environment variable is not set
+
+cmd: bash
+args:
+  - -c
+  - |
+    if [ -n "${!KEY}" ]; then
+      echo $KEY=${!KEY}
+    else
+      : "${VALUE:?Variable is not set or empty}"
+
+      echo $KEY=$VALUE
+    fi

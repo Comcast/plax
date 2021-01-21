@@ -1,0 +1,381 @@
+# The `plaxrun` Manual
+
+## Table of Contents
+
+- [Running](#running)
+- [Writing a Specification](#writing-a-specification)
+  - [General properties](#general-properties)
+  - [Tests Definition Section](#tests-definition-section)
+  - [Test Groups Section](#test-groups-section)
+  - [Test reference(s)](#test-references)
+  - [Group reference(s)](#group-references)
+  - [Test Group Parameters](#test-group-parameters)
+  - [Iteration](#iteration)
+  - [Guards](#guards)
+  - [Parameters definition section](#parameters-definition-section)
+- [Output](#output)
+- [References](#references)
+
+
+## Using `plaxrun`
+
+### Running
+
+To get help, run:
+
+`plaxrun -h`
+
+```
+Usage of plaxrun:
+  -I value
+        YAML include directories
+  -dir string
+        Directory containing test files (default ".")
+  -g value
+        Groups to execute: Test Group Name
+  -json
+        Emit JSON test output; instead of JUnit XML
+  -log string
+        Log level (info, debug, none) (default "info")
+  -p value
+        Parameter Bindings: PARAM=VALUE
+  -run string
+        Filename for test run specification (default "spec.yaml")
+  -t value
+        Tests to execute: Test Name
+  -v    Verbosity (default true)
+```
+
+Use `-run` to specifiy the the path to the test run specification file
+
+Use `-dir` to specifiy the path to the root of the test files directory
+
+To run a single test group, use -g once:
+
+`plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -g basic`
+
+To run multiple test groups, specify -g multipe times:
+
+`plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -g basic -g inclusion`
+
+To run a single test or set of tests, specifiy -t:
+
+`plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -t basic`
+
+*Note:* A combination of `-g` an `-t` is allowed
+
+Use `-json` to output a JSON respresentation of the test results instead of the Junit XML format.  This output includes `test.State` as the key `State` for each test case.
+
+Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-p` multiple times:
+
+`plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -p '?WAIT=600' -p '?MARGIN=200'`
+
+### Writing a Specification
+A plaxrun specification is a `.yaml` file which contains the following major elements:
+
+- `name` - The name of the test specification prefixed to all output test suite names
+- `version` - The version of the test specification appended to the name
+- `tests` - The set of defined tests referenced in test groups
+- `groups` - The set of defined test groups referenced from other groups or the command line `-g` option(s)
+- `params` - The set of parameters to be bound via shell command execution if values are not already bound via `-p` option(s) 
+
+Here is an [example specification file](../cmd/plaxrun/demos/waitrun.yaml)
+
+Let's start by breaking it down:
+
+#### General properties
+The general properties provided to uniquely identify test run executions
+
+```yaml
+name: waitrun
+version: 0.0.1
+```
+
+- `name: waitrun` of the  specification which serves as the prefix of the test output suite name along with the `version`
+- `version: 0.0.1` of the specification which serves as the the prefix of the test output suite name following the `name`
+
+#### Tests Definition Section
+The `tests:` section defines a set of tests, either test suites or test files, to be references by test groups.
+
+```yaml
+tests:
+  wait:
+    path: test-wait.yaml
+    version: github.com/Comcast/plax
+    params:
+      - 'WAIT'
+      - 'MARGIN'
+```
+
+- `wait:` is the test name used to reference the test from a test group
+  - `path:` is the relative path to the test directory (Suite) or file (Test) based on `.` or the `-dir` option
+  - `version: github.com/Comcast/plax` represents the name of the module that implements the plax plugin compatible with the plax execution engine test syntax.  This is optional if the default version `github.com/Comcast/plax` is being targetted
+  - `params:` is the list of parameter name dependencies referencing the parameters defined in the `params` section.  All listed parameters will be evaluated for parameter binded values
+    - `- 'WAIT'` is a parameter required by the `test-wait.yaml` test
+    - `- 'MARGIN'` is a parameter required by the `test-wait.yaml` test
+
+#### Test Groups Section
+The `groups:` section defines a set of test groups which organize tests and nested test groups for execution.
+
+##### Test reference(s)
+Test groups can references defined tests as follows:
+```yaml
+groups:
+  wait-prompt:
+    tests:        
+      - name: wait
+```
+ 
+- `wait-prompt:` is the group name. It is used to reference the test group from other test groups and the `-g` option; It shows how to define tests that likely require a prompt to enter tests paramater values not already bound
+  - `params:` is the set of parameter key/value binding for the test group
+    - `'WAIT': 600` is a parameter bound with the value `600`
+    - `'MARGIN': 600` is a parameter bound with the value `200`
+  - `tests` is the list of test references where the test `name` matches a test name defined in the `tests` section; each test is executed in sequence
+    - `name: wait` is a test `name` reference to a test named `wait`
+  
+##### Group reference(s)
+Test gruops can reference nesed test groups that have been defined as follows:
+```yaml
+ wait-group:
+    groups:
+      - name: wait-prompt
+      - name: wait-no-prompt
+      - name: wait-iterate
+```
+- `wait-group`: is the group name. it is used to reference the test group from other test groups and the `-g` option. It shows how to group test groups together inside a single test group
+  - `groups:` is the list of group references where the group `name` matches a group name defined in the `groups` section; each group is executed in sequence
+    - `name: wait-prompt` is a group `name` reference to a group named `wait-prompt`
+    - `name: wait-no-prompt` is a group `name` reference to a group named `wait-no-prompt`
+    - `name: wait-iterate` is a group `name` reference to a group named `wait-iterate`
+
+##### Test Group Parameters
+Test groups can have parameter bindings inherited by the referenced tests and groups as follows:
+```yaml
+  wait-no-prompt:
+    params:
+      'WAIT': 600
+      'MARGIN': 200
+    tests:        
+      - name: wait
+```
+- `wait-no-prompt:` is the group name. It is used to reference the test group from other test groups and the `-g` option;  It shows how to define tests that do not required a prompt by binding all the necessary parameters with values
+  - `params:` is the set of parameter key/value binding for the test group
+    - `'WAIT': 600` is a parameter bound with the value `600`
+    - `'MARGIN': 600` is a parameter bound with the value `200`
+  - `tests:` is the list of test references where the test `name` matches a test name defined in the `tests` section; each test is executed in sequence
+    - `name: wait` is a test `name` reference to a test named `wait`
+
+##### Iteration
+Test groups can iterate over a the referenced tests and groups as follows:
+```yaml
+  wait-iterate:
+    iterate:
+      params: |
+        [
+          {
+            "WAIT": 300,
+            "MARGIN": 100
+          },
+          {
+            "WAIT": 600,
+            "MARGIN": 200
+          },
+          {
+            "WAIT": 900,
+            "MARGIN": 300
+          }
+        ]
+    tests:
+      - name: wait
+```
+
+- `wait-iterate`: is the group name.  It is used to reference the test group from other test groups and the `-g` option.  It shows how to iterate through a set of tests or test groups
+  - `iterate:` is the instruction to iterate over the test(s) or group(s) reference by this group
+    - `params:` is the set of parameter object (key/value) bindings for each iteration of the test group
+    - `'WAIT': 600` is a parameter bound with the value `600`
+    - `'MARGIN': 600` is a parameter bound with the value `200`
+  - `tests:` is the list of test references where the test `name` matches a test name defined in the  `tests` section; each test is executed in sequence
+    - `name: wait` is a test `name` reference to a test named `wait`
+
+##### Guards
+Test groups can define a guard against test, group, or iteration execution.
+```yaml
+groups:
+  wait-guard-test:
+    iterate:
+      dependsOn:
+        - WAIT_LIST
+        - ILLEGAL_WAIT
+      params: "{WAIT_LIST}"
+    tests:
+      - name: wait
+        guard:
+          src: |
+            return bs["WAIT"] != bs["ILLEGAL_WAIT"];
+
+  wait-guard-group:
+    groups:
+      - name: wait-prompt
+        guard:
+          dependsOn:
+            - DO_NOT_PROMPT
+          libraries:
+            - include/libs/boolean.js
+          src: |
+            return isFalse(bs["DO_NOT_PROMPT"]);
+      - name: wait-no-prompt
+      - name: wait-iterate
+
+  wait-guard-iterate:
+    iterate:
+      dependsOn:
+        - WAIT_LIST
+        - ILLEGAL_WAIT
+      params: "{WAIT_LIST}"
+      guard:
+          src: |
+            return bs["WAIT"] != bs["ILLEGAL_WAIT"];
+    tests:
+      - name: wait
+```
+  - `guard:` is the instruction for a guard
+    - `dependsOn:` evaulate the list of defined parameter references
+    - `libraries:` import the listed Javascript libraries
+    - `src:` execute the Javascript code to evalutate the guard; must return boolean [true|false]
+#### Parameters definition section
+The `params:` paramter definition section defines the parameter names to be bound to a value or set of values returned by a shell command
+
+```yaml
+params:
+  'WAIT':
+    include: include/commands/prompt.yaml
+    envs:
+      PROMPT: Enter wait
+      DEFAULT: 300
+  'MARGIN':
+    include: include/commands/value.yaml
+    envs:
+      DEFAULT: 100
+```
+- `'WAIT':` is the first parameter name
+  - `include: include/commands/prompt.yaml` is the macro inclusion of the `prompt.yaml`) command meant for re-use by other paramter bindings
+  - `envs:` is the section that defines the environment variables for the `prompt.yaml` command
+      - `PROMPT:` is an optional environment variable for the prompt command; provides a default prompt
+      - `DEFAULT:` is an optional environment variable for the prompt command; no value by default
+- `'MARGIN':` is the second parameter name
+  - `include: include/commands/prompt.yaml` is the macro inclusion of the `value.yaml` command meant for re-use by other paramter bindings
+  - `envs:` is the section that defines the environment variables for the `value.yaml` command
+    - `DEFAULT: 100` is a required environment variable for the `value.yaml` command if the environment variable is not already set
+
+  *Note:* Each command has a different set of required or optional environemnt variables.  See each respective command `.yaml` file for additional information.
+
+  *Note:* To run the test specification described above
+
+  - The following command runs just the `wait-no-prompt` test group
+    ```
+    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -json | jq .
+    ```
+  - The following command runs just the `wait-prompt` test group
+    ```
+    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -json | jq .
+    ```
+  - The following command runs both the `wait-no-prmopt` and `wait-prompt` test group
+    ```
+    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -g wait-prompt -json | jq .
+    ```
+  - The following command runs the `wait` test group which combines the `wait-no-prompt` and `wait-prompt` test groups
+    ```
+    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait -json | jq .
+    ```
+
+### Output
+
+After test execution, `plax` (or [`plaxrun`](plaxrun.md)) will output
+results in JUnit XML:
+
+```xml
+<testsuite tests="1" failures="0" errors="0">
+  <testcase name="tests/discovery-1.yaml" status="executed" time="11"></testcase>
+</testsuite>
+```
+
+For `plax`, use `-test-suite NAME` to specify the suite's `name`.  For
+`plaxrun` a suite name will be generated.
+
+For `plax` and `plaxrun` use `-json` to output a JSON respresentation
+of test result objects.  This output includes the following for each
+test case:
+
+```json
+[
+  {
+    "Type": "suite",
+    "Time": "2020-12-02T21:33:09.0728586Z",
+    "Tests": 1,
+    "Passed": 1,
+    "Failed": 0,
+    "Errors": 0
+  },
+  {
+    "Name": "/.../plax/demos/test-wait.yaml",
+    "Status": "executed",
+    "Skipped": null,
+    "Error": null,
+    "Failure": null,
+    "Timestamp": "2020-12-02T21:33:09.077102Z",
+    "Suite": "waitrun-0.0.1:wait-no-prompt:wait",
+    "N": 0,
+    "Type": "case",
+    "State": {
+      "then": "2020-12-02T21:33:09.0781375Z"
+    }
+  }
+]
+```
+
+### Output
+
+After test execution, `plaxrun` will output results in JUnit XML:
+
+```xml
+<testsuite tests="1" failures="0" errors="0">
+  <testcase name="tests/discovery-1.yaml" status="executed" time="11"></testcase>
+</testsuite>
+```
+
+`plaxrun` will generate a suite name.
+
+Use `-json` to output a JSON respresentation of test result objects.
+This output includes the following for each test case:
+
+```json
+[
+  {
+    "Type": "suite",
+    "Time": "2020-12-02T21:33:09.0728586Z",
+    "Tests": 1,
+    "Passed": 1,
+    "Failed": 0,
+    "Errors": 0
+  },
+  {
+    "Name": "/.../plax/demos/test-wait.yaml",
+    "Status": "executed",
+    "Skipped": null,
+    "Error": null,
+    "Failure": null,
+    "Timestamp": "2020-12-02T21:33:09.077102Z",
+    "Suite": "waitrun-0.0.1:wait-no-prompt:wait",
+    "N": 0,
+    "Type": "case",
+    "State": {
+      "then": "2020-12-02T21:33:09.0781375Z"
+    }
+  }
+]
+```
+
+## References
+
+1. [The `plax` manual](manual.md)
+

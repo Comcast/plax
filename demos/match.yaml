@@ -1,0 +1,27 @@
+doc: |
+  An example of using 'match' in Javascript.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - "$include<include/mock.yaml>"
+        - sub:
+            pattern: test
+        - pub:
+            topic: test
+            payload: '{"want":"queso","when":"now"}'
+        - recv:
+            pattern: '{"want":"?x"}'
+            timeout: '2s'
+            guard: |
+              // Silly to do this 'match' here when we could have done it
+              // with the 'recv' pattern.  But at least shows calling 'match'
+              // from Javascript.
+              print("msg", msg);
+              var pat = {"when":"?w"}; // Our pattern
+              var bs0 = {}; // Input bindings for 'match'.
+              var bss = match(pat, msg.Payload, bs0);
+              var w = bss[0]["?w"];
+              return w == "now";

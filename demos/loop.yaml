@@ -1,0 +1,13 @@
+doc: |
+  This test creates an infinite loop, which a circuit breaker should
+  stop.
+labels:
+  - selftest
+negative: true  
+spec:
+  phases:
+    phase1:
+      steps:
+      - branch: |
+          // Infinite loop!
+          return "phase1";

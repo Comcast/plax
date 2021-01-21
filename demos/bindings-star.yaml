@@ -1,0 +1,27 @@
+doc: |
+  Demonstration of using "star" variables to prevent one recv's
+  bindings conflicting with a subsequent recv.  Also see
+  bindings-conflict.yaml, bindings-deconflict.yaml,
+  and bindings-clear.yaml.
+
+  There are other ways to accomplish the same thing.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"queso"}'
+        - recv:
+            doc: |
+              We'll bind the pattern variable '?*x'.
+            pattern: '{"want":"?*x"}'
+        - pub:
+            payload: '{"want":"chips"}'
+        - doc: |
+            Befor each 'recv', Plax will drop bindings for variables
+            that start with '?*'.
+        - recv:
+            pattern: '{"want":"?*x"}'

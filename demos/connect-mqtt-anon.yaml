@@ -1,0 +1,48 @@
+doc: |
+  Connect anonymously to a local MQTT broker and try to sub, pub, and
+  recv.
+labels:
+  - mqtt
+bindings:
+  '?!ENDPOINT': 'tcp://localhost:1883'
+  '?!CLIENT_ID': simpsons
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: Ask Mother to make an MQTT client.
+            chan: mother
+            payload:
+              make:
+                name: mqtt
+                type: mqtt
+                config:
+                  brokerurl: '?!ENDPOINT'
+                  clientid: '?!CLIENT_ID'
+        - recv:
+            doc: Check that the MQTT client is ready.
+            chan: mother
+            pattern:
+              success: true
+            timeout: 1s
+        - goto: exercise
+    exercise:
+      doc: A quick sub, pub, and recv test.
+      steps:
+        - sub:
+            chan: mqtt
+            topic: orders
+        - pub:
+            chan: mqtt
+            topic: orders
+            payload:
+              need: tacos
+              n: 3
+        - recv:
+            chan: mqtt
+            topic: orders
+            pattern:
+              need: "tacos"
+              n: "?n"
+            guard: 'return bs["?n"] > 0'

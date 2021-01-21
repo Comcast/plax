@@ -1,0 +1,24 @@
+doc: |
+  A demonstration of having one binding's value reference another
+  binding's value.
+
+  Also demonstrates bindings substitution within a string.
+labels:
+  - selftest
+bindings:
+  '?A': 'I like {?B}.'
+  '?B': '{?C} tacos'
+  '?C': 'almost all'
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"tacos"}'
+        - recv:
+            pattern: '{"want":"?wanted"}'
+        - pub:
+            payload: '{"said":"{?A}"}'
+        - recv:
+            pattern: '{"said":"I like almost all {?wanted}."}'

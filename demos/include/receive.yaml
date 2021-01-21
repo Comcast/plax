@@ -1,0 +1,4 @@
+steps:
+  - recv:
+      pattern: '{"want":"?x"}'
+      timeout: '2s'

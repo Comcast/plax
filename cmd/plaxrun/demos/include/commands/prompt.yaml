@@ -1,0 +1,32 @@
+# Description
+# 
+# This command either returns the existing envionment variable value or prompt the user for a command with an optional default value
+#
+# Usage
+#
+# include: include/commands/prompt.yaml
+# envs:
+#   PROMPT: ["My Prompt Here"]
+#   DEFAULT: [Default value]
+# Notes:
+#   PROMPT is optional
+#   DEFAULT is optional
+
+cmd: bash
+args:
+  - -c
+  - |
+    : "${PROMPT:=Enter $KEY value}"
+
+    if [ -n "${!KEY}" ]; then
+      echo $KEY=${!KEY}
+    else
+      read -p "$PROMPT [$DEFAULT]: " VALUE
+      if [ -n "$DEFAULT" ]; then
+          echo $KEY=${VALUE:-$DEFAULT}
+      elif [ -n "$VALUE" ]; then
+        echo $KEY=$VALUE
+      else
+        echo "$KEY requires a value" >&2
+      fi
+    fi

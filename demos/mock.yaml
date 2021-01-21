@@ -1,0 +1,22 @@
+doc: Just a very simple test.
+labels:
+  - selftest
+spec:
+  initialphase: sub-and-pub
+  phases:
+    sub-and-pub:
+      steps:
+        - "$include<include/mock.yaml>"
+        - sub:
+            pattern: test
+        - pub:
+            topic: test
+            payload: '{"want":"queso"}'
+            run: |
+              print("Hello, world.");
+        - goto: receive
+    receive:
+      steps:
+        - recv:
+            pattern: '{"want":"?x"}'
+            timeout: '2s'

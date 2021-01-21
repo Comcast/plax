@@ -1,0 +1,41 @@
+doc: |
+  Exercise final phases.
+
+  After the test runs, check that there is no 'problem' in the State
+  and that State["n"] == 3.
+labels:
+  - selftest
+negative: true
+spec:
+  finalphases:
+    - this
+    - that
+  phases:
+    phase1:
+      steps:
+        - run:
+            test.State["n"] = 0;
+        - recv:
+            timeout: 1ms
+        - run:
+            # This code shouldn't get executed.
+            test.State["problem"] = "phase1.3"
+    this:
+      steps:
+        - run:
+            test.State["n"] = 1;
+        - goto: more-this
+    more-this:
+      steps:
+        - run:
+            test.State["n"] = 2;
+        - recv:
+            timeout: 1ms
+        - run:
+            # This code shouldn't get executed.
+            test.State["problem"] = "more-this.3"
+    that:
+      steps:
+        - run:
+            test.State["n"] = 3
+

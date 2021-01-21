@@ -1,0 +1,31 @@
+doc: |
+  Just connect via MQTT with a certificate.
+
+  This test requires a provisioned cert and key files.
+
+labels:
+  - auth
+  - mqtt
+bindings:
+  '?!ENDPOINT': 'tcps://localhost:1883'
+  '?!CLIENT_ID': simpsons
+  '?!CERT': cert.pem
+  '?!KEY': priv.pem
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            make:
+              name: mqtt
+              type: mqtt
+              config:
+                certfile: '{?!CERT}'
+                keyfile: '{?!KEY}'
+                brokerurl: '{?!ENDPOINT}'
+                clientid: '{?!CLIENT_ID}'
+        - recv:
+            chan: mother
+            pattern:
+              success: true

@@ -1,0 +1,30 @@
+doc: |
+  Demonstration of a technique to prevent one recv's bindings
+  conflicting with a subsequent recv.  Also see bindings-clear.yaml,
+  bindings-conflict.yaml, and bindings-star.yaml.
+
+  There are other ways to accomplish the same thing.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"queso"}'
+        - recv:
+            doc: |
+              We'll bind the pattern variable '?x'.
+            pattern: '{"want":"?x"}'
+        - pub:
+            payload: '{"want":"chips"}'
+        - doc: |
+            Before we do the next recv, let's drop the binding for
+            '?x' that the previous recv established.  We could also
+            run this same code in a guard for the previous recv or in
+            a 'run' in the previous pub.
+        - run: |
+            delete(test.Bindings["?x"]);
+        - recv:
+            pattern: '{"want":"?x"}'

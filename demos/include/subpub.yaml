@@ -1,0 +1,5 @@
+- sub:
+    topic: test
+- pub:
+    topic: test
+    payload: '{"want":"queso"}'

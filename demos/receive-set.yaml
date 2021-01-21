@@ -1,0 +1,44 @@
+doc: |
+  An example of checking for a set of messages without regard for
+  order or duplicates.
+
+  Say you want to verify that you receive a set of n messages, but you
+  do not care about their order or if there are duplicates.  This
+  example sketches on approach.
+
+  In this test, we want to receive messages regarding tacos, queso,
+  and a margarita.  We need to receive at least one message for each.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - ingest:
+            payload: '{"want":"tacos"}'
+        - ingest:
+            payload: '{"want":"kale","who":"nobody"}'
+        - ingest:
+            payload: '{"want":"salad"}'
+        - ingest:
+            payload: '{"want":"queso"}'
+        - ingest:
+            payload: '{"want":"queso"}'
+        - ingest:
+            payload: '{"want":"mango margarita"}'
+        - ingest:
+            payload: '{"want":"margarita"}'
+        - ingest:
+            payload: '{"want":"margarita"}'
+        - goto: listen
+    listen:
+      steps:
+        - run: |
+            test.State["things"] = {};
+        - recv:
+            pattern: '{"want":"?*x"}'
+            guard: |
+              var things = test.State["things"];
+              things[bs["?*x"]] = true;
+              return Object.keys(things).length == 3;

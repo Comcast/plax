@@ -1,0 +1,37 @@
+doc: |
+  Check out how fast your machine (and Plax) is.
+
+  Publish a message, wait for 300ms, recv a message, and check the
+  elapsed time since the publish.
+
+  Note that we use a special 'Failure' function to return an immediate
+  test failure (and not an error) from Javascript in a 'run' step.
+labels:
+  - example
+  - selftest
+bindings:
+  '?WAIT': '300'
+  '?MARGIN': '100'
+spec:
+  chans:
+    app: mock
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"queso"}'
+            run: |
+              // Remember the current time.
+              test.State.then = now();
+        - wait: '{?WAIT}ms'
+        - recv:
+            pattern: '{"want":"?x"}'
+        - run: |
+            // Compute the elapsed time in milliseconds.
+            var elapsed = tsMs(now()) - tsMs(test.State.then);
+            print("elapsed (ms)", elapsed);
+            var max = {?WAIT} + {?MARGIN};
+            if (max < elapsed) {
+               return Failure("too slow: " + elapsed);
+            }

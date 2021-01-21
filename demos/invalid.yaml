@@ -1,0 +1,9 @@
+doc: |
+  For testing Plax: an invalid test.
+
+  The target of the 'goto' step doesn't exist.
+spec:
+  phases:
+    phase1:
+      steps:
+        - goto: nowhere

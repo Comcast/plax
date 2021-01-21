@@ -1,0 +1,137 @@
+name: demosrun
+version: 0.0.1
+
+# Test Suites and Tests
+tests:
+  basic:
+    path: basic.yaml
+
+  inclusion:
+    path: include.yaml
+
+  js-strings:
+    path: js-strings.yaml
+    params:
+      - 'WORLD'
+      - 'DATE'
+
+  demos:
+    path: .
+    version: github.com/Comcast/plax
+
+  wait:
+    path: test-wait.yaml
+    params:
+      - 'WAIT'
+      - 'MARGIN'
+
+groups:
+  nested:
+    groups:
+      - name: basic
+    tests:
+      - name: wait
+        params:
+          'WAIT': 600
+          'MARGIN': 200
+  multi-tests:
+    tests:
+      - name: basic
+      - name: inclusion
+      - name: js-strings
+  
+  basic:
+    tests:
+      - name: basic
+
+  inclusion:
+    tests:
+      - name: inclusion
+
+  js-strings:
+    tests:
+      - name: js-strings
+
+  js-strings-with-date:
+    params:
+      'DATE': 'Tue Dec  1 18:49:53 CST 2020'
+    tests:
+      - name: js-strings
+
+  js-strings-iterate:
+    iterate:
+      param: "WORLD"
+      params: '["queso", "tacos"]'
+    tests:
+      - name: js-strings
+
+  selftest:
+    params:
+      'WAIT': 600
+      'MARGIN': 200
+    tests:
+      - name: demos
+        labels:
+          - selftest
+
+  wait-no-prompt:
+    params:
+      'WAIT': 600
+      'MARGIN': 200
+    tests:        
+      - name: wait
+
+  wait-prompt:
+    tests:        
+      - name: wait
+
+  wait-iterate:
+    iterate:
+      params: |
+        [
+          {
+            "WAIT": 300,
+            "MARGIN": 100
+          },
+          {
+            "WAIT": 600,
+            "MARGIN": 200
+          },
+          {
+            "WAIT": 900,
+            "MARGIN": 300
+          }
+        ]
+    tests:
+      - name: wait
+
+  mqtt:
+    tests:
+      - name: demos
+        labels:
+          - mqtt
+
+params:
+  'WAIT':
+    include: include/commands/prompt.yaml
+    envs:
+      KEY: WAIT
+      PROMPT: Enter wait
+      DEFAULT: 300
+
+  'MARGIN':
+    include: include/commands/prompt.yaml
+    envs:
+      KEY: MARGIN
+      PROMPT: Enter margin
+      DEFAULT: 100
+
+  'WORLD':
+    include: include/commands/value.yaml
+    envs:
+      VALUE: universe
+
+  'DATE':
+    include: include/commands/command.yaml
+    envs:
+      COMMAND: date

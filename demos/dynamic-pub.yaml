@@ -1,0 +1,35 @@
+doc: |
+  A bindings example that generates a message based on runtime input.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            doc: |
+              Publish a message to ourself to simulate an in-coming message.
+            payload: '{"want":"tacos","n":3}'
+        - recv:
+            doc: |
+              Receive what we just published.  Bind a pattern variable.
+            pattern: '{"want":"?wanted","n":"?n"}'
+        - run: |
+            // Make a new binding based on what we just heard.
+            test.Bindings["?m"] = test.Bindings["?n"] * 10;
+            test.Bindings["?rnd"] = Math.random();
+        - pub:
+            doc: |
+              Publish a message that includes variables with values we
+              provided or got during pattern matching.
+            payload:
+              deliver: "?wanted"
+              n: "?n"
+              m: "?m"
+              r: "?rnd"
+        - recv:
+            doc: Check part of that message.
+            pattern:
+              deliver: tacos
+              m: 30

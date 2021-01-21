@@ -1,0 +1,35 @@
+doc: |
+  Demonstration of how one recv makes bindings that can conflict with
+  a subsequent recv.  Also see bindings-clear.yaml,
+  bindings-deconflict.yaml, and bindings-star.yaml.
+
+  Note that this test is a negative test.  (It's expected to fail.)
+labels:
+  - selftest
+negative: true  
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"queso"}'
+        - recv:
+            doc: |
+              We'll bind the pattern variable '?x'.
+            pattern: '{"want":"?x"}'
+        - pub:
+            payload: '{"want":"chips"}'
+        - recv:
+            doc: |
+              The pattern variable '?x' was bound previously to
+              'queso', so the following pattern is really
+              '{"want":"queso"}', which will not match
+              '{"want":"chips"}'.  As a result, this step will time
+              out.
+
+              This test is 'negative' (see above in this
+              specification), so Plax will report that this test
+              actually succeeded.
+            pattern: '{"want":"?x"}'
+            timeout: 1s
