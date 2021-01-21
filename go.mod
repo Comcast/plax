@@ -11,6 +11,5 @@ require (
 	github.com/dop251/goja v0.0.0-20210114204047-983fa61a23a8
 	github.com/eclipse/paho.mqtt.golang v1.3.1
 	github.com/harlow/kinesis-consumer v0.3.4
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
