@@ -1,0 +1,91 @@
+doc: |
+  Demonstration of using Plax to drive a WebDriver to test an Android app.
+
+  Note that this test could be extended to work with other channels to
+  verify some server-side behavior.
+
+  To run and extend this demo, see:
+
+  1. https://github.com/appium/appium/blob/master/docs/en/about-appium/getting-started.md
+  2. https://www.w3.org/TR/webdriver/
+  3. https://appiumpro.com/editions/110-controlling-appium-via-raw-http-requests-with-curl
+  
+bindings:
+  '?!port': '4723'
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: wd
+                type: httpclient
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session'
+              method: POST
+              headers:
+                'Content-type':
+                  - 'application/json'
+              body:
+                capabilities:
+                  alwaysMatch:
+                    platformName: "Android"
+                    platformVersion: "11"
+                    deviceName: "Android Emulator"
+                    app: "/Users/somebody/Downloads/ApiDemos-debug.apk"
+                    appPackage: "io.appium.android.apis"
+                    appActivity: ."view.TextFields"
+                    automationName: "UiAutomator2"
+        - recv:
+            pattern:
+              value:
+                sessionId: "?SID"
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element'
+              method: POST
+              headers:
+                'Content-type':
+                  - 'application/json'
+              body:
+                using: class name
+                value: android.widget.EditText
+        - recv:
+            pattern:
+              value:
+                ELEMENT: "?ELEMENT"
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element/{?ELEMENT}/clear'
+              method: POST
+              headers:
+                'Content-type':
+                  - 'application/json'
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element/{?ELEMENT}/value'
+              method: POST
+              headers:
+                'Content-type':
+                  - 'application/json'
+              body:
+                text: "Please send queso."
+        - wait: 1s
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element/{?ELEMENT}/text'
+              method: GET
+        - recv:
+            pattern:
+              value: "Please send queso."
+        - pub:
+            payload:
+              url: 'http://localhost:{?!port}/wd/hub/session/{?SID}'
+              method: DELETE
