@@ -119,6 +119,33 @@ func TestSubstitute(t *testing.T) {
 			t.Fatal(string(js2))
 		}
 	})
+
+	t.Run("deepstring", func(t *testing.T) {
+
+		var (
+			src, target struct {
+				Foo struct {
+					Bar string
+				}
+			}
+			js = `{"Foo":{"Bar":"I want {?want}."}}`
+		)
+
+		if err := json.Unmarshal([]byte(js), &src); err != nil {
+			t.Fatal(err)
+		}
+
+		tst.Bindings = map[string]interface{}{
+			"?want": "queso",
+		}
+		if err := tst.Bindings.SubOnce(ctx, src, &target, true); err != nil {
+			t.Fatal(err)
+		}
+		if s := target.Foo.Bar; s != "I want queso." {
+			t.Fatal(s)
+		}
+	})
+
 }
 
 func TestTestIdFromPathname(t *testing.T) {
