@@ -147,8 +147,7 @@ func (bs *Bindings) SubOnce(ctx *Ctx, src, target interface{}, maybeJSON bool) e
 	// See the 'deepstring' subtest in TestSubstitute for an
 	// example.
 	if js, err := json.Marshal(&src); err == nil {
-		js1, err := bs.StringSub(ctx, string(js))
-		if err == nil {
+		if js1, err := bs.StringSub(ctx, string(js)); err == nil {
 			var x interface{}
 			if err := json.Unmarshal([]byte(js1), &x); err != nil {
 				return err
