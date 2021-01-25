@@ -128,7 +128,7 @@ func (bs *Bindings) Sub(ctx *Ctx, src, target interface{}, maybeJSON bool) error
 	return fmt.Errorf("expansion limit (%d) exceeded at '%s' starting from '%s'", limit, s, src0)
 }
 
-// SubOnce the bindings
+// SubOnce performs a single pass of bindings substitition on src and updates target.
 func (bs *Bindings) SubOnce(ctx *Ctx, src, target interface{}, maybeJSON bool) error {
 	// If we are given a string, perform string-based expansion on
 	// that string.
@@ -136,6 +136,23 @@ func (bs *Bindings) SubOnce(ctx *Ctx, src, target interface{}, maybeJSON bool) e
 		var err error
 		if src, err = bs.StringSub(ctx, s); err != nil {
 			return err
+		}
+	}
+
+	// Even if we are not given a string, we attempt to
+	// JSON-serialize it to a string in order to perform embedded
+	// string-based substitutions in whatever strings might lurk
+	// in the structure.
+	//
+	// See the 'deepstring' subtest in TestSubstitute for an
+	// example.
+	if js, err := json.Marshal(&src); err == nil {
+		if js1, err := bs.StringSub(ctx, string(js)); err == nil {
+			var x interface{}
+			if err := json.Unmarshal([]byte(js1), &x); err != nil {
+				return err
+			}
+			src = x
 		}
 	}
 
