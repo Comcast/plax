@@ -20,7 +20,7 @@ War_](http://classics.mit.edu/Thucydides/pelopwar.1.first.html)
 Plax is a test automation engine for messaging systems.  This engine
 is [designed](chans) to perform integrated testing of MQTT messaging,
 Kinesis streams, SNS traffic, SQS trafic, Kafka I/O, HTTP APIs, mobile
-apps (via [WebDriver](https://www.w3.org/TR/webdriver/), and more.
+apps (via [WebDriver](https://www.w3.org/TR/webdriver/)), and more.
 
 An author of a test specifies a sequence of input and expected outputs
 over a set of channels that are connected to external services.
