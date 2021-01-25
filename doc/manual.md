@@ -299,6 +299,15 @@ following channel types:
 	1. `Form`: Optional map of names to _arrays_ of values.  If you
        specify this property, then `Body` becomes this URL-encoded
        value.
+	   
+	1. `PollInterval`: An optional duration (in [Go
+       syntax](https://golang.org/pkg/time/#ParseDuration)) to have
+       this request repeat on that interval.  You can also specify an
+       `Id`, which you can then use to `Terminate` the polling.  If
+       you don't specify an `Id` along with a `PollInterval`, you can
+       stil do `Terminate: last`, which will always work to terminate
+       the most recent polling HTTP request.  See [this
+       demo](../demos/webdriver.yaml).
 
 As the needs arise, we can add channel types like:
 

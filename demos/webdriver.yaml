@@ -77,14 +77,17 @@ spec:
                   - 'application/json'
               body:
                 text: "Please send queso."
-        - wait: 1s
         - pub:
             payload:
               url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element/{?ELEMENT}/text'
+              pollinterval: 300ms
               method: GET
         - recv:
             pattern:
               value: "Please send queso."
+        - pub:
+            payload:
+              terminate: last
         - pub:
             payload:
               url: 'http://localhost:{?!port}/wd/hub/session/{?SID}'
