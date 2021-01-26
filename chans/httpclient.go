@@ -38,6 +38,9 @@ type HTTPClient struct {
 	opts   *HTTPClientOpts
 	client *http.Client
 	c      chan dsl.Msg
+
+	pollers    map[string]chan bool
+	lastPoller string
 }
 
 // HTTPClientOpts configures an HTTPClient channel.
@@ -81,13 +84,38 @@ type HTTPRequest struct {
 	// Form can contain form values, and you can specify these
 	// values instead of providing an explicit Body.
 	Form url.Values
+
+	HTTPRequestCtl
+
+	req *http.Request
+}
+
+type HTTPRequestCtl struct {
+
+	// Id is used to refer to this request when it has a polling
+	// interval.
+	Id string
+
+	// PollInterval, when not zero, will cause this channel to
+	// repeated the HTTP request at this interval.
+	//
+	// Value should be a string that time.ParseDuration can parse.
+	PollInterval string
+
+	pollInterval time.Duration
+
+	// Terminate, when not zero, should be the Id of a previous polling
+	// request, and that polling request will be terminated.
+	//
+	// No other properties in this struct should be provided.
+	Terminate string
 }
 
 // extractHTTPRequest attempts to make an http.Request from the
 // (payload of the) given message.
 //
 // The message payload should be a JSON-serialized http.Request.
-func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*http.Request, error) {
+func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 	// m.Body is a JSON serialization of an HTTPRequest.
 
 	// Parse the HTTPRequest.  First get a string representation
@@ -147,17 +175,68 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*http.Request, error) {
 		real.Body = ioutil.NopCloser(strings.NewReader(body))
 	}
 
-	return real, nil
+	req.req = real
+
+	return &req, nil
 }
 
-func (c *HTTPClient) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
-	ctx.Logf("%T Pub", c)
-	req, err := extractHTTPRequest(ctx, m)
-	if err != nil {
-		return err
+func (c *HTTPClient) terminate(ctx *dsl.Ctx, id string) error {
+	ctx.Logf("%T terminating poller %s", c, id)
+
+	if id == "last" {
+		if c.lastPoller == "" {
+			return fmt.Errorf("no last polling request")
+		}
+		id = c.lastPoller
 	}
 
-	resp, err := c.client.Do(req)
+	ctl, have := c.pollers[id]
+	if !have {
+		return fmt.Errorf("unknown poller id '%s'", id)
+	}
+	close(ctl)
+	delete(c.pollers, id)
+	c.lastPoller = ""
+
+	return nil
+}
+
+func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
+	go func() {
+		d := req.pollInterval
+		if d <= 0 {
+			ctx.Logf("Warning HTTP request PollInterval %v", d)
+			d = time.Second
+		}
+		ticker := time.NewTicker(d)
+
+	LOOP:
+		for {
+			select {
+			case <-ctx.Done():
+			case <-ticker.C:
+				ctx.Logf("%T making polling request", c)
+				if err := c.do(ctx, req); err != nil {
+					r := dsl.Msg{
+						Payload: map[string]interface{}{
+							"error": err.Error(),
+						},
+					}
+
+					go c.To(ctx, r)
+				}
+			case <-ctl:
+				break LOOP
+			}
+		}
+	}()
+
+	return nil
+}
+
+func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {
+	ctx.Logf("%T making request", c)
+	resp, err := c.client.Do(req.req)
 	if err != nil {
 		return err
 	}
@@ -182,6 +261,39 @@ func (c *HTTPClient) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 	}
 
 	return c.To(ctx, r)
+}
+
+func (c *HTTPClient) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
+	ctx.Logf("%T Pub", c)
+	req, err := extractHTTPRequest(ctx, m)
+	if err != nil {
+		return err
+	}
+
+	if req.Terminate != "" {
+		return c.terminate(ctx, req.Terminate)
+	}
+
+	if req.PollInterval != "" {
+		d, err := time.ParseDuration(req.PollInterval)
+		if err != nil {
+			return err
+		}
+		req.pollInterval = d
+		if req.Id == "" {
+			req.Id = "NA"
+		}
+		ctl := make(chan bool)
+		c.pollers[req.Id] = ctl
+		c.lastPoller = req.Id
+		if err := c.poll(ctx, ctl, req); err != nil {
+			return err
+		}
+		// Start polling but go ahead an do this first one
+		// below.
+	}
+
+	return c.do(ctx, req)
 }
 
 func (c *HTTPClient) Recv(ctx *dsl.Ctx) chan dsl.Msg {
@@ -221,7 +333,8 @@ func NewHTTPClientChan(ctx *dsl.Ctx, opts interface{}) (dsl.Chan, error) {
 	}
 
 	return &HTTPClient{
-		opts: &o,
-		c:    make(chan dsl.Msg, DefaultMQTTBufferSize),
+		opts:    &o,
+		c:       make(chan dsl.Msg, DefaultMQTTBufferSize),
+		pollers: make(map[string]chan bool),
 	}, nil
 }
