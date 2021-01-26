@@ -15,6 +15,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+// Package junit provides simplified structures for JUnit test
+// reports.
 package junit
 
 // https://llg.cubic.org/docs/junit/
