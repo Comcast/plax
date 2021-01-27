@@ -15,6 +15,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+// Package main is the command-line 'yamlincl' utilitiy.
 package main
 
 import (

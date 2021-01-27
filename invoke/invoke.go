@@ -15,6 +15,11 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+// Package invoke provides gear supporting to facilitate running Plax
+// tests in different environments (and configurations).
+//
+// Also see cmd/plaxrun.
 package invoke
 
 import (
