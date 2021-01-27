@@ -19,6 +19,7 @@ package dsl
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
@@ -64,6 +65,60 @@ func TestNewCmdChan(t *testing.T) {
 	// cmd sub doesn't do anything
 	if err = c.Sub(ctx, "dummy"); err != nil {
 		t.Fatal(err)
+	}
+
+	if err = c.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCmdStderr(t *testing.T) {
+	ctx := NewCtx(nil)
+	cmd := exec.Cmd{}
+	stdin := make(chan string)
+	stdout := make(chan string)
+	stderr := make(chan string)
+	p := Process{
+		Name:    "test-echo",
+		Command: "bash",
+		Args:    []string{"-c", "echo 'more chips, please' >&2"},
+		cmd:     &cmd,
+		Stderr:  stderr,
+		Stdin:   stdin,
+		Stdout:  stdout,
+	}
+
+	c, err := NewCmdChan(ctx, p)
+	if err != nil {
+		t.Fatal("could not create cmd channel: " + err.Error())
+	}
+
+	if c.Kind() != "cmd" {
+		t.Fatal(c.Kind())
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		in = c.Recv(ctx)
+		to = time.NewTimer(time.Second)
+	)
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("ctx Done")
+	case <-to.C:
+		t.Fatal("timeout")
+	case msg := <-in:
+		if msg.Topic != "stderr" {
+			t.Fatal(msg.Topic)
+		}
+		s, _ := msg.Payload.(string)
+		if !strings.Contains(s, "chips") {
+			t.Fatal(msg.Payload)
+		}
 	}
 
 	if err = c.Close(ctx); err != nil {
