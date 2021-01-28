@@ -1,0 +1,21 @@
+doc: Regexp-based matching demo
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - "$include<include/mock.yaml>"
+        - pub:
+            payload: Please make some more salad.
+        - pub:
+            payload: Please make some more guacamole.
+        - recv:
+            regexp: (?P<please>Please) make some more (?P<What>(.*))\.
+            timeout: '1s'
+            guard: |
+              return bs['?What'] == 'guacamole' && bs['?*please'] == 'Please';
+        - pub:
+            payload: Please make even more {?What}.
+        - recv:
+            regexp: Please make even more guacamole.
