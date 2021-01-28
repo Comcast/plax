@@ -1,5 +1,10 @@
 # Plax: an engine for testing messaging systems
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/Comcast/plax.svg)](https://pkg.go.dev/github.com/Comcast/plax)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
+
+
 > And with reference to the narrative of events, far from permitting
 > myself to derive it from the first source that came to hand, I did
 > not even trust my own impressions, but it rests partly on what I saw
@@ -9,10 +14,6 @@
 
 -- [Thucydides, _The History of the Peloponnesian
 War_](http://classics.mit.edu/Thucydides/pelopwar.1.first.html)
-
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](CODE_OF_CONDUCT.md)
 
 
 ## Summary

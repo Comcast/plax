@@ -15,6 +15,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+// Package main is the standard Plax command-line program.
 package main
 
 import (
