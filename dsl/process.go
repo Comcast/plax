@@ -105,7 +105,12 @@ func (p *Process) Start(ctx *Ctx) error {
 	go func() {
 		sc := bufio.NewScanner(errPipe)
 		for sc.Scan() {
-			ctx.Logf("Process %s stderr output: %s\n", p.Name, sc.Text())
+			line := sc.Text()
+			ctx.Logf("Process %s stderr line: %s\n", p.Name, line)
+			select {
+			case <-ctx.Done():
+			case p.Stderr <- line:
+			}
 		}
 		if err := sc.Err(); err != nil {
 			ctx.Logf("Process %s stderr error %s", p.Name, err)
