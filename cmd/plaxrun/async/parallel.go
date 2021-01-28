@@ -33,14 +33,12 @@ func Parallel(ctx context.Context, tfs ...*TaskFunc) ([]TaskResult, error) {
 	count := 0
 
 	for index, tf := range tfs {
-		if tf != nil {
-			task, err := NewTask(index, tf)
-			if err != nil {
-				return nil, err
-			}
-
-			tasks[index] = task
+		task, err := NewTask(index, tf)
+		if err != nil {
+			return nil, err
 		}
+
+		tasks[index] = task
 	}
 
 	for _, task := range tasks {
