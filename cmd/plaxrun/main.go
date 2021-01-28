@@ -15,6 +15,9 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+// Package main is the 'plaxrun' command-line program for running many
+// tests with various configurations.
 package main
 
 import (
