@@ -25,17 +25,9 @@ import (
 	"time"
 )
 
-func TestParallel(t *testing.T) {
+func TestSequential(t *testing.T) {
 	// Output will be array of results or an error
-	// results ,err := Parallel(context.Background(),
-	// 	func() string { return sleepAndSay("I like tacos!") },
-	// 	func() error { return sleepAndError(fmt.Errorf("tacos are bad")) },
-	// 	func() (string, error) {
-	// 		return sleepAndSayWithError("I don't like tacos!", fmt.Errorf("tacos are bad"))
-	// 	},
-	// 	func() (string, error) { return sleepAndSayWithError("I like tacos!", nil) },
-	// 	func() { sleep() })
-	results, err := Parallel(context.Background(), testFuncTasks...)
+	results, err := Sequential(context.Background(), testFuncTasks...)
 
 	if err != nil {
 		t.Error(err)
@@ -44,56 +36,55 @@ func TestParallel(t *testing.T) {
 	fmt.Printf("Results: %v", results)
 }
 
-func TestParallelWithBadFuncNumberReturnValues(t *testing.T) {
+func TestSequentialWithBadFuncNumberReturnValues(t *testing.T) {
 	var testFuncTasks = []*TaskFunc{}
 	testFuncs := append(testFuncTasks, &badTaskFunc1)
 
 	// Output will be array of results or an error
-	_, err := Parallel(context.Background(), testFuncs...)
+	_, err := Sequential(context.Background(), testFuncs...)
 
 	if err == nil {
 		t.Errorf("expected bad function")
 	}
 }
 
-func TestParallelWithBadFuncLastReturnValueNotError(t *testing.T) {
+func TestSequentialWithBadFuncLastReturnValueNotError(t *testing.T) {
 	var testFuncTasks = []*TaskFunc{}
 	testFuncs := append(testFuncTasks, &badTaskFunc2)
 
 	// Output will be array of results or an error
-	_, err := Parallel(context.Background(), testFuncs...)
+	_, err := Sequential(context.Background(), testFuncs...)
 
 	if err == nil {
 		t.Errorf("expected bad function")
 	}
 }
 
-func TestParallelWithNilTaskFunc(t *testing.T) {
+func TestSequentialWithNilTaskFunc(t *testing.T) {
 	var testFuncTasks = []*TaskFunc{}
 	testFuncs := append(testFuncTasks, nil)
 
 	// Output will be array of results or an error
-	_, err := Parallel(context.Background(), testFuncs...)
+	_, err := Sequential(context.Background(), testFuncs...)
 
 	if err == nil {
 		t.Errorf("expected bad function")
 	}
 }
 
-func TestParallelWithNilFunc(t *testing.T) {
+func TestSequentialWithNilFunc(t *testing.T) {
 	var testFuncTasks = []*TaskFunc{}
 	testFuncs := append(testFuncTasks, &badTaskFunc3)
 
 	// Output will be array of results or an error
-	_, err := Parallel(context.Background(), testFuncs...)
+	_, err := Sequential(context.Background(), testFuncs...)
 
 	if err == nil {
 		t.Errorf("expected bad function")
 	}
 }
-
-func TestParallelWithTimeout(t *testing.T) {
-	results, err := ParallelWithTimeout(context.Background(), 3*time.Second, testFuncTasks...)
+func TestSequentialWithTimeout(t *testing.T) {
+	results, err := SequentialWithTimeout(context.Background(), 3*time.Second, testFuncTasks...)
 
 	if err != nil {
 		t.Logf("Error: %v\n", err)

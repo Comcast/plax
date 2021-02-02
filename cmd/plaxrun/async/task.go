@@ -27,7 +27,7 @@ import (
 
 // TaskFunc is a function that returns nothing (empty), an error, or a result and error
 type TaskFunc struct {
-	Func func() error
+	Func interface{}
 	Name string
 }
 
@@ -40,8 +40,10 @@ type TaskResult struct {
 	Result interface{}
 }
 
+// TaskResults is as an array of TaskResult
 type TaskResults []TaskResult
 
+// HasError determines if any of the TaskResults is an error
 func (trs TaskResults) HasError() bool {
 	for _, tr := range trs {
 		if tr.Error != nil {
@@ -52,6 +54,7 @@ func (trs TaskResults) HasError() bool {
 	return false
 }
 
+// Error return a string representation of the TaskResults Errors
 func (trs TaskResults) Error() string {
 	var sb strings.Builder
 
@@ -88,6 +91,10 @@ type Task struct {
 func NewTask(index int, tf *TaskFunc) (*Task, error) {
 	if tf == nil {
 		return nil, fmt.Errorf("task function is nil")
+	}
+
+	if tf.Func == nil {
+		return nil, fmt.Errorf("function is nil")
 	}
 
 	errorType := reflect.TypeOf((*error)(nil)).Elem()
