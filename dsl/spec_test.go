@@ -164,3 +164,43 @@ func TestSerialization(t *testing.T) {
 		}
 	})
 }
+
+func TestFails(t *testing.T) {
+
+	ctx, s, tst := newTest(t)
+
+	{
+		p := &Phase{}
+
+		s.Phases["phase1"] = p
+
+		addMock(t, ctx, p)
+
+		p.AddStep(ctx, &Step{
+			Goto: "mock-test",
+		})
+	}
+
+	{
+		p := &Phase{}
+
+		s.Phases["mock-test"] = p
+
+		p.AddStep(ctx, &Step{
+			Pub: &Pub{
+				Payload: `{"want":"tacos"}`,
+			},
+		})
+
+		p.AddStep(ctx, &Step{
+			Recv: &Recv{
+				Pattern: `{"need":"?*x"}`,
+				Timeout: time.Second,
+			},
+			Fails: true,
+		})
+	}
+
+	run(t, ctx, tst)
+
+}

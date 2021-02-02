@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/Comcast/sheens/match"
+	jschema "github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v3"
 )
 
@@ -130,7 +131,23 @@ type Step struct {
 	Ingest *Ingest `yaml:",omitempty"`
 }
 
+// exec calls exe() and then handles Fails (if any).
 func (s *Step) exec(ctx *Ctx, t *Test) (string, error) {
+	next, err := s.exe(ctx, t)
+	if err != nil {
+		if _, is := IsBroken(err); is {
+			return "", err
+		}
+		return s.Goto, nil
+	}
+
+	return next, err
+}
+
+// exe executes the step.
+//
+// Called by exec().
+func (s *Step) exe(ctx *Ctx, t *Test) (string, error) {
 	// ToDo: Warn if multiple Pub, Sub, Recv, Wait, Goto specified?
 
 	t.Tick(ctx)
@@ -589,6 +606,10 @@ type Recv struct {
 
 	Run string `json:",omitempty" yaml:",omitempty"`
 
+	// Schema is an optional URI for a JSON Schema that's used to
+	// validate incoming messages before other processing.
+	Schema string `json:",omitempty" yaml:",omitempty"`
+
 	ch Chan
 }
 
@@ -664,6 +685,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 		Target:        r.Target,
 		Guard:         guard,
 		Run:           run,
+		Schema:        r.Schema,
 		ch:            r.ch,
 	}, nil
 }
@@ -705,7 +727,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			ctx.Indf("    Recv timeout (%v)", timeout)
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, JSON(pat))
 		case m := <-in:
-			ctx.Indf("    Recv dequeuing '%s'", m.Topic)
+			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
 			ctx.Inddf("                   %s", m.Payload)
 
 			var (
@@ -739,6 +761,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				case "payload":
 					// Match against only the (deserialized) payload.
 					target = parsed
+
 				case "msg":
 
 					// Match against the full message
@@ -753,6 +776,33 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 
 				ctx.Inddf("      msg:     %s", JSON(target))
+
+				if r.Schema != "" {
+					ctx.Indf("      schema: %s", r.Schema)
+					var (
+						doc    = jschema.NewStringLoader(m.Payload)
+						schema = jschema.NewReferenceLoader(r.Schema)
+					)
+
+					v, err := jschema.Validate(schema, doc)
+					if err != nil {
+						return Brokenf("schema validation error: %v", err)
+					}
+					if !v.Valid() {
+						var (
+							errs       = v.Errors()
+							complaints = make([]string, len(errs))
+						)
+						for i, err := range errs {
+							complaints[i] = err.String()
+							ctx.Indf("      schema invalidation: %s", err)
+						}
+						return fmt.Errorf("schema (%s) validation errors: %s",
+							r.Schema, strings.Join(complaints, "; "))
+					} else {
+						ctx.Indf("      schema validated")
+					}
+				}
 
 				// We are giving empty bindings to
 				// 'Match' because we have already

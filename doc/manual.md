@@ -811,7 +811,7 @@ spec:
   defaultchan: cpe
 ```
 
-<a name="fail"></a>
+<a name="fails"></a>
 You can also specify that a step is required to _fail_:
 
 ```yaml
@@ -822,7 +822,7 @@ spec:
       - pub:
           topic: want
           payload: '"queso"'
-        fail: true
+        fails: true
 ```
 
 Note that `fail` is specified at the same level as the type of step

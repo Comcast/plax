@@ -1,7 +1,7 @@
 doc: |
-  This test should always fail.
-
-  Despite certain failure, we try to receive a message.
+  Demonstrates use of 'fails'.
+labels:
+  - selftest
 spec:
   phases:
     phase1:
@@ -10,3 +10,4 @@ spec:
         - recv:
             pattern: '{"soundOf":"silence"}'
             timeout: '1s'
+          fails: true
