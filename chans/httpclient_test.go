@@ -20,6 +20,7 @@ package chans
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -59,14 +60,20 @@ func TestHTTPRequestPolling(t *testing.T) {
 		}
 	}()
 
-	err = c.Pub(ctx, dsl.Msg{
-		Payload: &HTTPRequest{
-			Method: "GET",
-			URL:    ts.URL,
-			HTTPRequestCtl: HTTPRequestCtl{
-				PollInterval: interval.String(),
-			},
+	payload, err := json.Marshal(&HTTPRequest{
+		Method: "GET",
+		URL:    ts.URL,
+		HTTPRequestCtl: HTTPRequestCtl{
+			PollInterval: interval.String(),
 		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Pub(ctx, dsl.Msg{
+		Payload: string(payload),
 	})
 
 	if err != nil {
@@ -107,14 +114,20 @@ func TestHTTPRequestPolling(t *testing.T) {
 	// Check termination. We have a little race in our test, but
 	// hopefully it won't cause trouble.
 
-	err = c.Pub(ctx, dsl.Msg{
-		Payload: &HTTPRequest{
-			Method: "GET",
-			URL:    ts.URL,
-			HTTPRequestCtl: HTTPRequestCtl{
-				Terminate: "last",
-			},
+	payload, err = json.Marshal(&HTTPRequest{
+		Method: "GET",
+		URL:    ts.URL,
+		HTTPRequestCtl: HTTPRequestCtl{
+			Terminate: "last",
 		},
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Pub(ctx, dsl.Msg{
+		Payload: string(payload),
 	})
 
 	if err != nil {

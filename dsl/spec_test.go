@@ -71,6 +71,7 @@ func run(t *testing.T, ctx *Ctx, tst *Test) {
 func TestBasic(t *testing.T) {
 
 	ctx, s, tst := newTest(t)
+	ctx.LogLevel = "debug"
 
 	{
 		p := &Phase{
@@ -137,4 +138,29 @@ func MustParseJSON(js string) interface{} {
 		panic(fmt.Errorf("failed to parse %s: %s", js, err))
 	}
 	return x
+}
+
+func TestSerialization(t *testing.T) {
+	for name, ser := range Serializations {
+		t.Run(name, func(t *testing.T) {
+			payload := `{"want":"tacos"}`
+			x, err := ser.Deserialize(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			y, err := ser.Serialize(x)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if payload != y {
+				t.Fatal(y)
+			}
+		})
+	}
+
+	t.Run("illegal", func(t *testing.T) {
+		if _, err := NewSerialization("graffiti"); err == nil {
+			t.Fatal("expected a complaint")
+		}
+	})
 }

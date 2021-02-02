@@ -20,6 +20,7 @@ package dsl
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -30,7 +31,13 @@ func init() {
 // CmdChan is a channel that's backed by a subprocess.
 type CmdChan struct {
 	p *Process
-	c chan Msg
+
+	// to receives messages that are forwarded to the Process's stdin.
+	to chan Msg
+
+	// from receives messages from the Process's stdin and stdout,
+	// and these messages are emitted from this channel for recv consideration.
+	from chan Msg
 }
 
 // NewCmdChan obviously makes a new CmdChan.
@@ -42,13 +49,19 @@ func NewCmdChan(ctx *Ctx, cfg interface{}) (Chan, error) {
 		return nil, err
 	}
 	return &CmdChan{
-		p: &p,
-		c: make(chan Msg, 1024),
+		p:    &p,
+		to:   make(chan Msg, 1024),
+		from: make(chan Msg, 1024),
 	}, nil
 }
 
 func (c *CmdChan) Kind() ChanKind {
 	return "cmd"
+}
+
+func TrimEOL(s string) string {
+	s = strings.TrimSuffix(s, "\n")
+	return strings.TrimSuffix(s, "\r")
 }
 
 // Open starts the subprocess and the associated pipes.
@@ -59,7 +72,7 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 	}
 
 	go func() {
-		pub := func(topic, payload string) {
+		out := func(topic, payload string) {
 			msg := Msg{
 				Topic:   topic,
 				Payload: payload,
@@ -67,7 +80,7 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 			select {
 			case <-ctx.Done():
 				return
-			case c.c <- msg:
+			case c.from <- msg:
 			}
 		}
 
@@ -75,10 +88,15 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 			select {
 			case <-ctx.Done():
 				return
+			case msg := <-c.to:
+				select {
+				case <-ctx.Done():
+				case c.p.Stdin <- msg.Payload:
+				}
 			case line := <-c.p.Stdout:
-				pub("stdout", line)
+				out("stdout", line)
 			case line := <-c.p.Stderr:
-				pub("stderr", line)
+				out("stderr", line)
 			}
 		}
 	}()
@@ -86,10 +104,9 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 	return nil
 }
 
-// Close currently just closes the subprocess's stdin.
 func (c *CmdChan) Close(ctx *Ctx) error {
 	ctx.Logf("CmdChan %s Close", c.p.Name)
-	close(c.p.Stdin)
+	// close(c.p.Stdin)
 	return nil
 }
 
@@ -111,7 +128,7 @@ func (c *CmdChan) Pub(ctx *Ctx, m Msg) error {
 
 func (c *CmdChan) Recv(ctx *Ctx) chan Msg {
 	ctx.Logf("CmdChan %s Recv", c.p.Name)
-	return c.c
+	return c.from
 }
 
 // Kill is not currently supported.  (It should be.)
@@ -129,9 +146,9 @@ func (c *CmdChan) To(ctx *Ctx, m Msg) error {
 	m.ReceivedAt = time.Now().UTC()
 	select {
 	case <-ctx.Done():
-	case c.c <- m:
+	case c.to <- m:
 	default:
-		panic("Warning: CmdChan channel full")
+		return fmt.Errorf("CmdChan %s input buffer is full", c.p.Name)
 	}
 	return nil
 }

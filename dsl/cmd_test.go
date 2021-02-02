@@ -26,20 +26,22 @@ import (
 )
 
 func TestNewCmdChan(t *testing.T) {
-	ctx := NewCtx(nil)
-	cmd := exec.Cmd{}
-	stdin := make(chan string)
-	stdout := make(chan string)
-	stderr := make(chan string)
-	p := Process{
-		Name:    "test-echo",
-		Command: "echo",
-		Args:    []string{"howdy, world!"},
-		cmd:     &cmd,
-		Stderr:  stderr,
-		Stdin:   stdin,
-		Stdout:  stdout,
-	}
+	var (
+		ctx    = NewCtx(nil)
+		cmd    = exec.Cmd{}
+		stdin  = make(chan string)
+		stdout = make(chan string)
+		stderr = make(chan string)
+		p      = Process{
+			Name:    "test-echo",
+			Command: "echo",
+			Args:    []string{"howdy, world!"},
+			cmd:     &cmd,
+			Stderr:  stderr,
+			Stdin:   stdin,
+			Stdout:  stdout,
+		}
+	)
 
 	c, err := NewCmdChan(ctx, p)
 	if err != nil {
@@ -74,20 +76,22 @@ func TestNewCmdChan(t *testing.T) {
 }
 
 func TestCmdStderr(t *testing.T) {
-	ctx := NewCtx(nil)
-	cmd := exec.Cmd{}
-	stdin := make(chan string)
-	stdout := make(chan string)
-	stderr := make(chan string)
-	p := Process{
-		Name:    "test-echo",
-		Command: "bash",
-		Args:    []string{"-c", "echo 'more chips, please' >&2"},
-		cmd:     &cmd,
-		Stderr:  stderr,
-		Stdin:   stdin,
-		Stdout:  stdout,
-	}
+	var (
+		ctx    = NewCtx(nil)
+		cmd    = exec.Cmd{}
+		stdin  = make(chan string)
+		stdout = make(chan string)
+		stderr = make(chan string)
+		p      = Process{
+			Name:    "test-echo",
+			Command: "bash",
+			Args:    []string{"-c", "echo 'more chips, please' >&2"},
+			cmd:     &cmd,
+			Stderr:  stderr,
+			Stdin:   stdin,
+			Stdout:  stdout,
+		}
+	)
 
 	c, err := NewCmdChan(ctx, p)
 	if err != nil {
@@ -116,8 +120,7 @@ func TestCmdStderr(t *testing.T) {
 		if msg.Topic != "stderr" {
 			t.Fatal(msg.Topic)
 		}
-		s, _ := msg.Payload.(string)
-		if !strings.Contains(s, "chips") {
+		if !strings.Contains(msg.Payload, "chips") {
 			t.Fatal(msg.Payload)
 		}
 	}

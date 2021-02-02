@@ -119,20 +119,11 @@ type HTTPRequestCtl struct {
 func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 	// m.Body is a JSON serialization of an HTTPRequest.
 
-	// Parse the HTTPRequest.  First get a string representation
-	// of the payload.
-	js, is := m.Payload.(string)
-	if !is {
-		bs, err := json.Marshal(&m.Payload)
-		if err != nil {
-			// ToDo: Better error msg.
-			return nil, err
-		}
-		js = string(bs)
-	}
-
-	// Parse the string as JSON representing an HTTPRequest.
-	req := HTTPRequest{}
+	// Parse the HTTPRequest.
+	var (
+		js  = m.Payload
+		req = HTTPRequest{}
+	)
 	if err := json.Unmarshal([]byte(js), &req); err != nil {
 		return nil, err
 	}
@@ -147,6 +138,7 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 	// assume it should be JSON-serialized.
 	var body string
 	if req.Body != nil {
+		var is bool
 		if body, is = req.Body.(string); !is {
 			bs, err := json.Marshal(&req.Body)
 			if err != nil {
@@ -219,9 +211,9 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 				ctx.Logf("%T making polling request", c)
 				if err := c.do(ctx, req); err != nil {
 					r := dsl.Msg{
-						Payload: map[string]interface{}{
+						Payload: dsl.JSON(map[string]interface{}{
 							"error": err.Error(),
-						},
+						}),
 					}
 
 					go c.To(ctx, r)
@@ -250,15 +242,8 @@ func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {
 	}
 	ctx.Logdf("%T received body %s", c, bs)
 
-	var x interface{}
-	if 0 < len(bs) {
-		if err = json.Unmarshal(bs, &x); err != nil {
-			x = string(bs)
-		}
-	}
-
 	r := dsl.Msg{
-		Payload: x,
+		Payload: string(bs),
 	}
 
 	return c.To(ctx, r)

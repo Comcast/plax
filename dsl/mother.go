@@ -21,7 +21,6 @@ package dsl
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -46,7 +45,7 @@ type MotherMakeRequest struct {
 	// Config is the configuration for the requested channel.
 	//
 	// This value is usually deserialized from YAML.
-	Config interface{} `json:"config"`
+	Config interface{} `json:"config,omitempty"`
 }
 
 // MotherResponse is the structure of the generic response to a
@@ -98,38 +97,36 @@ func (c *Mother) Sub(ctx *Ctx, topic string) error {
 //
 // The message payload should represent a MotherRequest in JSON.
 func (c *Mother) Pub(ctx *Ctx, m Msg) error {
-	ctx.Logf("Mother.Pub %v", m.Payload)
+	ctx.Logf("Mother.Pub %T %v", m.Payload, m.Payload)
 
-	// Parse the request.
-	s, is := m.Payload.(string)
-	if !is {
-		js, err := json.Marshal(&m.Payload)
-		if err != nil {
-			return err
-		}
-		s = string(js)
-	}
-
-	var req MotherRequest
-	var resp MotherResponse
+	var (
+		req  MotherRequest
+		resp MotherResponse
+	)
 
 	punt := func(err error) error {
 		if err != nil {
 			resp.Success = false
 			resp.Error = err.Error()
 		}
+		js, err := json.Marshal(&resp)
+		if err != nil {
+			return err
+		}
 		return c.To(ctx, Msg{
-			Payload: Canon(&resp),
+			Payload: string(js),
 		})
 	}
 
-	if err := json.Unmarshal([]byte(s), &req); err != nil {
+	// Parse the payload as a MotherRequest.
+	if err := json.Unmarshal([]byte(m.Payload), &req); err != nil {
 		return punt(err)
 	}
 
 	resp.Request = &req
 
-	// Act on it.
+	// Handle the request.
+
 	if req.Make == nil {
 		return punt(fmt.Errorf("Only 'make' supported"))
 	}
@@ -146,12 +143,10 @@ func (c *Mother) Pub(ctx *Ctx, m Msg) error {
 		}
 	}
 
-	log.Printf("debug Make.Type %v", req.Make.Type)
 	ch, err := c.t.makeChan(ctx, req.Make.Type, req.Make.Config)
 	if err != nil {
 		return punt(err)
 	}
-	log.Printf("debug made %v", ch)
 
 	if err := ch.Open(ctx); err != nil {
 		return punt(err)
@@ -173,7 +168,7 @@ func (c *Mother) Kill(ctx *Ctx) error {
 }
 
 func (c *Mother) To(ctx *Ctx, m Msg) error {
-	ctx.Logf("Mother To %s", JSON(m.Payload))
+	ctx.Logf("Mother To %s", m.Payload)
 	m.ReceivedAt = time.Now().UTC()
 	select {
 	case <-ctx.Done():

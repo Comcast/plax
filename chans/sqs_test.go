@@ -30,7 +30,7 @@ import (
 
 func TestSQS(t *testing.T) {
 
-	// Can use (say) https://github.com/p4tin/goaws to run a
+	// We can use (say) https://github.com/p4tin/goaws to run a
 	// local/mock SQS.  That goaws apparently needs a config file
 	// with an account id in order to return valid XML in some
 	// cases.  The file 'goaws.config' does that.  Example:
@@ -39,10 +39,13 @@ func TestSQS(t *testing.T) {
 	//
 	// If this test fails to talk to an SQS, the test is skipped.
 	//
-	//
-	// Use the AWS CLI to create a queue for testing:
+	// Then use the AWS CLI to create a queue for testing:
 	//
 	// aws --endpoint-url http://localhost:4100 sqs create-queue --queue-name plaxtest
+	//
+	// Then run this test.
+	//
+	// ToDo: Use the p4tin/goaws packages directly from this test.
 
 	endpoint := "http://localhost:4100"
 
@@ -72,12 +75,17 @@ func TestSQS(t *testing.T) {
 	then := time.Now().UTC().Format(time.RFC3339Nano)
 
 	{
+		o := map[string]interface{}{
+			"t":            then,
+			"want":         "tacos",
+			"DelaySeconds": 2,
+		}
+		js, err := json.Marshal(&o)
+		if err != nil {
+			t.Fatal(err)
+		}
 		m := dsl.Msg{
-			Payload: map[string]interface{}{
-				"t":            then,
-				"want":         "tacos",
-				"DelaySeconds": 2,
-			},
+			Payload: string(js),
 		}
 
 		if err = c.Pub(ctx, m); err != nil {
@@ -86,22 +94,26 @@ func TestSQS(t *testing.T) {
 	}
 
 	{
-		ch := c.Recv(ctx)
-		msg := <-ch
-		js, err := json.MarshalIndent(&msg, "", "  ")
-		if err != nil {
+		var (
+			ch      = c.Recv(ctx)
+			msg     = <-ch
+			payload = msg.Payload
+			parsed  map[string]interface{}
+		)
+
+		fmt.Printf("recv\n%s\n", payload)
+
+		if err := json.Unmarshal([]byte(payload), &parsed); err != nil {
 			t.Fatal(err)
 		}
-		fmt.Printf("recv\n%s\n", js)
 
-		if m, is := msg.Payload.(map[string]interface{}); is {
-			then0 := m["t"]
-			if then0 != then {
-				t.Fatalf("%v != %v", then0, then)
-			}
-		} else {
-			t.Fatalf("%T", msg.Payload)
+		then0, have := parsed["t"]
+		if !have {
+			t.Fatal("no 't' in payload")
+		}
+
+		if then0 != then {
+			t.Fatalf("%v != %v", then0, then)
 		}
 	}
-
 }

@@ -1,0 +1,62 @@
+doc: |
+  Test interaction with a shell using the new regular expression
+  matching (instead of pattern matching).
+
+  Note the use of 'serialization: string' to avoid the default JSON
+  (de)serialization of messages.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: shell
+                type: cmd
+                config:
+                  command: bash
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: |
+              Set a shell variable.
+            serialization: string
+            payload: |
+              QUESO=queso
+        - pub:
+            doc: |
+              Use that shell variable.
+            serialization: string
+            payload: |
+              echo "Hello, $QUESO."
+        - recv:
+            doc: |
+              Verify that the shell variable expansion worked.  For
+              fun, use a guard to check the binding from the match.
+            serialization: string
+            regexp: |
+              Hello, (?P<x>(.*))\.
+            guard: |
+              return bs['?*x'] == "queso";
+        - pub:
+            doc: |
+              Update our shell variable.
+            serialization: string
+            payload: |
+              QUESO="good $QUESO"
+        - pub:
+            doc: |
+              Use that shell variable again.
+            serialization: string
+            payload: |
+              echo "I like $QUESO."
+        - recv:
+            doc: |
+              Verify that the shell variable expansion worked.
+            serialization: string
+            regexp: |
+              I like good queso\.

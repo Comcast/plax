@@ -626,6 +626,9 @@ single operation.  Currently the following steps are supported:
     1. `topic`: Optional: The expected message should arrive on this
        topic.  Parameters and bindings
        [substitution](#substitutions) applies.
+	   
+	1. `serialization`: How to deserialize in-coming payloads. Either
+       `string` or `JSON`, and `JSON` is the default.
 
     1. `pattern`: A _pattern_ that the message must match.  Parameters
        and bindings [substitution](#substitutions)
@@ -745,6 +748,9 @@ single operation.  Currently the following steps are supported:
        topic.  Parameters and bindings
        [substitution](#-substitutions) applies.
 	   
+	1. `serialization`: How to serialize the payload. Either `string`
+       or `JSON`, and `JSON` is the default.
+
 	1. `payload`: A _pattern_ that the message must match.  If the
       	value is a JSON string, the string is first parsed as JSON.
       	Parameters and bindings
