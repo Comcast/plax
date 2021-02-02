@@ -379,8 +379,13 @@ type Pub struct {
 	Topic         string
 	Serialization *Serialization
 
+	// Schema is an optional URI for a JSON Schema that's used to
+	// validate incoming messages before other processing.
+	Schema string `json:",omitempty" yaml:",omitempty"`
+
 	Payload interface{}
-	Run     string `json:",omitempty" yaml:",omitempty"`
+
+	Run string `json:",omitempty" yaml:",omitempty"`
 
 	ch Chan
 }
@@ -479,6 +484,12 @@ func (p *Pub) Exec(ctx *Ctx, t *Test) error {
 	payload, err := p.Serialization.Serialize(p.Payload)
 	if err != nil {
 		return err
+	}
+
+	if p.Schema != "" {
+		if err := validateSchema(ctx, p.Schema, payload); err != nil {
+			return err
+		}
 	}
 
 	err = p.ch.Pub(ctx, Msg{
@@ -690,6 +701,33 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}, nil
 }
 
+func validateSchema(ctx *Ctx, schemaURI string, payload string) error {
+	ctx.Indf("      schema: %s", schemaURI)
+	var (
+		doc    = jschema.NewStringLoader(payload)
+		schema = jschema.NewReferenceLoader(schemaURI)
+	)
+
+	v, err := jschema.Validate(schema, doc)
+	if err != nil {
+		return Brokenf("schema validation error: %v", err)
+	}
+	if !v.Valid() {
+		var (
+			errs       = v.Errors()
+			complaints = make([]string, len(errs))
+		)
+		for i, err := range errs {
+			complaints[i] = err.String()
+			ctx.Indf("      schema invalidation: %s", err)
+		}
+		return fmt.Errorf("schema (%s) validation errors: %s",
+			schemaURI, strings.Join(complaints, "; "))
+	}
+	ctx.Indf("      schema validated")
+	return nil
+}
+
 func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 	var (
 		timeout = r.Timeout
@@ -778,29 +816,8 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				ctx.Inddf("      msg:     %s", JSON(target))
 
 				if r.Schema != "" {
-					ctx.Indf("      schema: %s", r.Schema)
-					var (
-						doc    = jschema.NewStringLoader(m.Payload)
-						schema = jschema.NewReferenceLoader(r.Schema)
-					)
-
-					v, err := jschema.Validate(schema, doc)
-					if err != nil {
-						return Brokenf("schema validation error: %v", err)
-					}
-					if !v.Valid() {
-						var (
-							errs       = v.Errors()
-							complaints = make([]string, len(errs))
-						)
-						for i, err := range errs {
-							complaints[i] = err.String()
-							ctx.Indf("      schema invalidation: %s", err)
-						}
-						return fmt.Errorf("schema (%s) validation errors: %s",
-							r.Schema, strings.Join(complaints, "; "))
-					} else {
-						ctx.Indf("      schema validated")
+					if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
+						return err
 					}
 				}
 

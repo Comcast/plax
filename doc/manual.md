@@ -627,6 +627,9 @@ single operation.  Currently the following steps are supported:
        topic.  Parameters and bindings
        [substitution](#substitutions) applies.
 	   
+	1. `schema`: An option URI for a JSON schema, which is then used
+       to validate the in-coming message before any other processing.
+		
 	1. `serialization`: How to deserialize in-coming payloads. Either
        `string` or `JSON`, and `JSON` is the default.
 
@@ -756,6 +759,9 @@ single operation.  Currently the following steps are supported:
       	Parameters and bindings
       	[substitution](#substitutions) applies.
       	[String commands](#string-commands) are also available.
+		
+	1. `schema`: An option URI for a JSON schema, which is then used
+       to validate the out-going message.
 		
 	1. `run`: Execute Javascript just like a `recv`'s `guard` except
        that the return value is ignored.  Parameters and bindings

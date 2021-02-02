@@ -204,3 +204,20 @@ func TestFails(t *testing.T) {
 	run(t, ctx, tst)
 
 }
+
+func TestValidateSchema(t *testing.T) {
+	ctx := NewCtx(nil)
+	schema := "file://../demos/order.json"
+	t.Run("happy", func(t *testing.T) {
+		msg := `{"want":"chips"}`
+		if err := validateSchema(ctx, schema, msg); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("sad", func(t *testing.T) {
+		msg := `{"need":"queso"}`
+		if err := validateSchema(ctx, schema, msg); err == nil {
+			t.Fatal("'want' was required")
+		}
+	})
+}
