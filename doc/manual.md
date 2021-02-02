@@ -635,7 +635,19 @@ single operation.  Currently the following steps are supported:
         structure](https://github.com/Comcast/sheens#pattern-matching).
 		
 		All bindings for variables that start with `?*` are removed
-        before this pattern is substituted.
+        before this pattern substitution.
+		
+		Alternately, give a `regexp` instead of a `pattern`.
+		
+	1. `regexp`: A [regular expression](https://github.com/google/re2)
+       (instead of a `pattern`).  A regular expression will probably
+       be more convenient for receiving non-JSON input.
+	   
+	   A named group like `(?P<foo>.*)` match results in a new binding
+       for a `?*foo`.  If the name starts with an uppercase rune as in
+       `Foo`, then the variable will be `?Foo`.
+	   
+	   See [`demos/regexp.yaml`](../demos/regexp.yaml) for an example.
 	
 	1. `clearbindings`: If true, delete all `test.Bindings` for
        variables that do not start with `?!`.

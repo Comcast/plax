@@ -428,9 +428,24 @@ func (s *Sub) Exec(ctx *Ctx, t *Test) error {
 }
 
 type Recv struct {
-	Chan    string
-	Topic   string
+	Chan  string
+	Topic string
+
+	// Pattern is a Sheens pattern
+	// https://github.com/Comcast/sheens/blob/main/README.md#pattern-matching
+	// for matching incoming messages.
+	//
+	// Use a pattern for matching JSON-serialized messages.
+	//
+	// Also see Regexp.
 	Pattern interface{}
+
+	// Regexp, which is an alternative to Pattern, gives a (Go)
+	// regular expression used to match incoming messages.
+	//
+	// A named group match becomes a bound variable.
+	Regexp string
+
 	Timeout time.Duration
 
 	// Target is an optional switch to specify what part of the
@@ -509,6 +524,23 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 	ctx.Inddf("    Effective pattern: %s", JSON(pat))
 
+	reg := r.Regexp
+	if true {
+		// Experimental regular expression matching (preparation).
+
+		if reg != "" {
+			if r.Pattern != nil {
+				return nil, fmt.Errorf("can't have both Pattern and Regexp")
+			}
+			ctx.Inddf("    Given regexp: %s", reg)
+			// We'll have syntax conflicts ...
+			if reg, err = t.Bindings.StringSub(ctx, reg); err != nil {
+				return nil, err
+			}
+			ctx.Inddf("    Effective regexp: %s", reg)
+		}
+	}
+
 	guard, err := t.Bindings.StringSub(ctx, r.Guard)
 	if err != nil {
 		return nil, err
@@ -523,6 +555,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 		Chan:    r.Chan,
 		Topic:   topic,
 		Pattern: pat,
+		Regexp:  reg,
 		Timeout: r.Timeout,
 		Target:  r.Target,
 		Guard:   guard,
@@ -553,7 +586,11 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 		return NewBroken(fmt.Errorf("Bad Recv Target: '%s'", r.Target))
 	}
 
-	ctx.Inddf("    Recv pattern %s", JSON(pat))
+	if r.Regexp != "" {
+		ctx.Inddf("    Recv regexp %s", r.Regexp)
+	} else {
+		ctx.Inddf("    Recv pattern %s", JSON(pat))
+	}
 	ctx.Inddf("    Recv target %s", r.Target)
 	for {
 		select {
@@ -582,7 +619,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			}
 
 			ctx.Inddf("    Recv considering %s", JSON(m))
-			if pat != nil {
+			if pat != nil || r.Regexp != "" {
 
 				// We are giving empty bindings to
 				// 'Match' because we have already
@@ -602,12 +639,22 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				//
 				// ToDo: Reconsider.
 
-				bss, err := match.Match(pat, Canon(target), match.NewBindings())
+				var bss []match.Bindings
+				var err error
+				if pat != nil {
+					bss, err = match.Match(pat, Canon(target), match.NewBindings())
+				} else if r.Regexp != "" {
+					bss, err = RegexpMatch(r.Regexp, target)
+				} else {
+					err = fmt.Errorf("internal error with pat and r.exp == nil")
+				}
 				if err != nil {
 					return err
 				}
+
 				ctx.Indf("    Recv match:")
 				ctx.Inddf("      pattern: %s", JSON(pat))
+				ctx.Inddf("      regexp: %s", r.Regexp)
 				ctx.Inddf("      msg:     %s", JSON(m))
 				ctx.Indf("      result: %v", 0 < len(bss))
 				ctx.Inddf("      bss: %s", JSON(bss))
