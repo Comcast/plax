@@ -19,6 +19,9 @@
 package dsl
 
 import (
+	"fmt"
+	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
@@ -124,6 +127,82 @@ func TestCmdStderr(t *testing.T) {
 			t.Fatal(msg.Payload)
 		}
 	}
+
+	if err = c.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCmdTermEarly(t *testing.T) {
+	var (
+		ctx      = NewCtx(nil)
+		cmd      = exec.Cmd{}
+		filename = "term-proof.tmp"
+		script   = fmt.Sprintf(`trap 'rm %s' SIGTERM SIGTERM; while true; do sleep 1; done`, filename)
+	)
+
+	p := Process{
+		Name:    "test-term",
+		Command: "bash",
+		Args:    []string{"-c", script},
+		cmd:     &cmd,
+	}
+
+	if err := ioutil.WriteFile(filename, []byte("process should delete me"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	c, err := NewCmdChan(ctx, p)
+	if err != nil {
+		t.Fatal("could not create cmd channel: " + err.Error())
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Second)
+
+	if err = c.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		time.Sleep(time.Second)
+		if _, err := os.Stat(filename); os.IsNotExist(err) {
+			return
+		}
+	}
+
+	t.Fatal("script not terminated?")
+}
+
+// TestCmdTermLate is just a cursory check that terminating the
+// process after it has existed doesn't blow anything up.
+func TestCmdTermLate(t *testing.T) {
+	var (
+		ctx    = NewCtx(nil)
+		cmd    = exec.Cmd{}
+		script = `echo bye`
+	)
+
+	p := Process{
+		Name:    "test-term",
+		Command: "bash",
+		Args:    []string{"-c", script},
+		cmd:     &cmd,
+	}
+
+	c, err := NewCmdChan(ctx, p)
+	if err != nil {
+		t.Fatal("could not create cmd channel: " + err.Error())
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(time.Second)
 
 	if err = c.Close(ctx); err != nil {
 		t.Fatal(err)

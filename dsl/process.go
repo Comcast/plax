@@ -24,6 +24,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"syscall"
 )
 
 // Process represents an external process run from a test.
@@ -49,6 +50,10 @@ type Process struct {
 	Stdout chan string `json:"-"`
 	Stderr chan string `json:"-"`
 	Stdin  chan string `json:"-"`
+
+	// ctl is only used to terminate goroutines when the Process
+	// is terminated.
+	ctl chan bool
 }
 
 // Substitute the bindings into the Process
@@ -81,6 +86,7 @@ func (p *Process) Start(ctx *Ctx) error {
 	p.Stdin = make(chan string)
 	p.Stderr = make(chan string)
 	p.Stdout = make(chan string)
+	p.ctl = make(chan bool)
 
 	p.cmd = exec.Command(p.Command, p.Args...)
 
@@ -116,6 +122,8 @@ func (p *Process) Start(ctx *Ctx) error {
 			select {
 			case <-ctx.Done():
 				return
+			case <-p.ctl:
+				return
 			case p.Stderr <- line:
 			}
 		}
@@ -137,6 +145,8 @@ func (p *Process) Start(ctx *Ctx) error {
 			select {
 			case <-ctx.Done():
 				return
+			case <-p.ctl:
+				return
 			case p.Stdout <- line:
 			}
 		}
@@ -153,8 +163,15 @@ func (p *Process) Start(ctx *Ctx) error {
 	return nil
 }
 
-// Stop kills the Process.
-func (p *Process) Stop(ctx *Ctx) error {
-	ctx.Logf("Process %s stopping", p.Name)
+// Term sends a SIGTERM to the process.
+func (p *Process) Term(ctx *Ctx) error {
+	close(p.ctl)
+	p.cmd.Process.Signal(syscall.SIGTERM)
+	return nil
+}
+
+// Kill kills the Process.
+func (p *Process) Kill(ctx *Ctx) error {
+	ctx.Logf("Process %s killed", p.Name)
 	return p.cmd.Process.Kill()
 }

@@ -104,10 +104,10 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 	return nil
 }
 
+// Close attempts to terminate the underlying process.
 func (c *CmdChan) Close(ctx *Ctx) error {
 	ctx.Logf("CmdChan %s Close", c.p.Name)
-	// close(c.p.Stdin)
-	return nil
+	return c.p.Term(ctx)
 }
 
 // Sub doesn't currently do anything.

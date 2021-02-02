@@ -31,14 +31,12 @@ func Sequential(ctx context.Context, tfs ...*TaskFunc) (TaskResults, error) {
 	count := 0
 
 	for index, tf := range tfs {
-		if tf.Func != nil {
-			task, err := NewTask(index, tf)
-			if err != nil {
-				return nil, err
-			}
-
-			tasks[index] = task
+		task, err := NewTask(index, tf)
+		if err != nil {
+			return nil, err
 		}
+
+		tasks[index] = task
 	}
 
 	for i, task := range tasks {
