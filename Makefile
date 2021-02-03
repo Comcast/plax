@@ -1,16 +1,14 @@
 all:
-	cd cmd/plax && go install
-	cd cmd/plaxrun && go install
-	cd cmd/yamlincl && go install
+	go install ./...
 
 .PHONY: unit-tests
-units-tests:
-	cd dsl && go test
-	cd chans && go test
-	cd invoke && go test
+unit-tests:
+	go test -v ./...
 
-.PHONY: demo-tests
-demo-tests: plax-demos plaxrun-demos
+test: unit-tests
+
+.PHONY: demos
+demos: plax-demos plaxrun-demos
 
 plax-demos: all
 	plax -dir demos -labels selftest
@@ -18,4 +16,3 @@ plax-demos: all
 plaxrun-demos: all
 	plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-test-group
 
-test: unit-tests demo-tests
