@@ -163,6 +163,21 @@ func TestSerialization(t *testing.T) {
 			t.Fatal("expected a complaint")
 		}
 	})
+
+	t.Run("string", func(t *testing.T) {
+		var x interface{} = "queso"
+		s, err := NewSerialization("string")
+		if err != nil {
+			t.Fatal(err)
+		}
+		y, err := s.Serialize(x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if x.(string) != y {
+			t.Fatal(y)
+		}
+	})
 }
 
 func TestFails(t *testing.T) {

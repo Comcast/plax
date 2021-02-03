@@ -1,0 +1,67 @@
+doc: |
+  An example of using HTTP client and server channels together.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: Make our HTTP client.
+            chan: mother
+            payload:
+              make:
+                name: client
+                type: httpclient
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: Make our HTTP server.
+            chan: mother
+            payload:
+              make:
+                name: server
+                type: httpserver
+                config:
+                  host: localhost
+                  port: 8888
+                  parsejson: true
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - wait: 1s
+        - pub:
+            doc: Make an HTTP request to our server.
+            chan: client
+            payload:
+              url: 'http://localhost:8888/order'
+              method: POST
+              body:
+                send: tacos
+                n: 3
+        - recv:
+            doc: Receive the HTTP request from our server.
+            chan: server
+            pattern:
+              path: /order
+              body:
+                send: "?this"
+                n: "?n"
+            guard: |
+              return bs["?n"] < 10;
+        - pub:
+            doc: Respond to that HTTP request.
+            chan: server
+            payload:
+              body:
+                deliver: "?this"
+                n: "?n"
+        - recv:
+            doc: Finally get the response from the client.
+            chan: client
+            pattern:
+              statuscode: 200
+              body:
+                deliver: tacos
+                n: 3

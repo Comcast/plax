@@ -1,12 +1,14 @@
 # Recent changes
 
-## `HTTPClient` channel request and response
+## New `httpserver` channel
+
+## `httpclient` channel request and response improvements
 
 The request message now has lower-case properties instead of
 capitalized properties.
 
 The response message has structure supporting status code, body, and
-headers.
+headers.  Sadly this change is not backwards-compatible.
 
 
 ## Schema validation

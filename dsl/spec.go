@@ -377,6 +377,21 @@ func (s *Serialization) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+func (s *Serialization) UnmarshalJSON(bs []byte) error {
+	name := string(bs)
+	// Carefully remove required double-quotes.
+	if len(name) < 3 || name[0] != '"' || name[len(name)-1] != '"' {
+		return fmt.Errorf("bad serialization: '%s'", name)
+	}
+	name = name[1 : len(name)-1]
+	ser, err := NewSerialization(name)
+	if err != nil {
+		return err
+	}
+	*s = *ser
+	return nil
+}
+
 type Pub struct {
 	Chan          string
 	Topic         string
@@ -418,6 +433,7 @@ func (s *Serialization) Serialize(x interface{}) (string, error) {
 			fmt.Errorf("can't serialize %s from a %T", *s, x)
 		}
 	default:
+		dst = "error"
 		err = fmt.Errorf("internal error: unknown Serialization %#v", s)
 	}
 

@@ -1,0 +1,34 @@
+doc: |
+  An silly example of running a one-shot HTTP server.
+
+  When this test is running, do "curl localhost:8888/hello".
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: Make our HTTP server.
+            chan: mother
+            payload:
+              make:
+                name: server
+                type: httpserver
+                config:
+                  host: localhost
+                  port: 8888
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - recv:
+            doc: Receive the HTTP request from our server.
+            chan: server
+            pattern:
+              path: /hello
+        - pub:
+            doc: Respond to that HTTP request.
+            chan: server
+            payload:
+              serialization: string
+              body: world
+        - wait: 5s
