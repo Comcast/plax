@@ -22,6 +22,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"syscall"
 )
@@ -95,13 +96,16 @@ func (p *Process) Start(ctx *Ctx) error {
 	}
 
 	go func() {
-		select {
-		case <-ctx.Done():
-			return
-		case <-p.ctl:
-			return
-		case line := <-p.Stdin:
-			io.WriteString(inPipe, line)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case line := <-p.Stdin:
+				line = TrimEOL(line) + "\n"
+				if _, err = io.WriteString(inPipe, line); err != nil {
+					log.Printf("Warning: Process Write: %s", err)
+				}
+			}
 		}
 	}()
 
@@ -111,9 +115,9 @@ func (p *Process) Start(ctx *Ctx) error {
 	}
 
 	go func() {
-		sc := bufio.NewScanner(errPipe)
-		for sc.Scan() {
-			line := sc.Text()
+		in := bufio.NewScanner(errPipe)
+		for in.Scan() {
+			line := in.Text()
 			ctx.Logf("Process %s stderr line: %s\n", p.Name, line)
 			select {
 			case <-ctx.Done():
@@ -123,7 +127,7 @@ func (p *Process) Start(ctx *Ctx) error {
 			case p.Stderr <- line:
 			}
 		}
-		if err := sc.Err(); err != nil {
+		if err := in.Err(); err != nil {
 			ctx.Logf("Process %s stderr error %s", p.Name, err)
 		}
 	}()
@@ -134,9 +138,9 @@ func (p *Process) Start(ctx *Ctx) error {
 	}
 
 	go func() {
-		sc := bufio.NewScanner(outPipe)
-		for sc.Scan() {
-			line := sc.Text()
+		in := bufio.NewScanner(outPipe)
+		for in.Scan() {
+			line := in.Text()
 			ctx.Logf("Process %s stdout line: %s\n", p.Name, line)
 			select {
 			case <-ctx.Done():
@@ -146,8 +150,8 @@ func (p *Process) Start(ctx *Ctx) error {
 			case p.Stdout <- line:
 			}
 		}
-		if err := sc.Err(); err != nil {
-			ctx.Logf("Process %s Run stdout error %s", p.Name, err)
+		if err := in.Err(); err != nil {
+			ctx.Logf("Process %s stdout error %s", p.Name, err)
 		}
 	}()
 

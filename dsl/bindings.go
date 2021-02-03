@@ -30,13 +30,13 @@ import (
 // Bindings type
 type Bindings map[string]interface{}
 
-// NewBindings builds a new set of bindings
+// NewBindings builds a new set of bindings.
 func NewBindings() Bindings {
 	bindings := make(map[string]interface{})
 	return bindings
 }
 
-// Copy the bindings deeply
+// Copy the bindings deeply.
 func (bs *Bindings) Copy() (*Bindings, error) {
 	bytes, err := json.Marshal(bs)
 	if err != nil {
@@ -49,12 +49,12 @@ func (bs *Bindings) Copy() (*Bindings, error) {
 	return &ret, nil
 }
 
-// String representation required for parameters
+// String returns a string representation (required for parameters).
 func (bs *Bindings) String() string {
 	return "PARAM=VALUE"
 }
 
-// SetKeyValue to set the binding key to the given JSON value
+// SetKeyValue to set the binding key to the given JSON value.
 func (bs *Bindings) SetKeyValue(key string, value string) {
 	var v interface{}
 	if err := json.Unmarshal([]byte(value), &v); err != nil {
@@ -64,7 +64,7 @@ func (bs *Bindings) SetKeyValue(key string, value string) {
 	(*bs)[key] = v
 }
 
-// Set the parameter key=value pair
+// Set the parameter key=value pair.
 func (bs *Bindings) Set(value string) error {
 	pv := strings.SplitN(value, "=", 2)
 	if len(pv) != 2 {
@@ -76,7 +76,7 @@ func (bs *Bindings) Set(value string) error {
 	return nil
 }
 
-// Sub the bindings
+// Sub the bindings structurally.
 func (bs *Bindings) Sub(ctx *Ctx, src, target interface{}, maybeJSON bool) error {
 	// Computes the fixed point of SubOnce.
 
@@ -165,7 +165,7 @@ func (bs *Bindings) SubOnce(ctx *Ctx, src, target interface{}, maybeJSON bool) e
 				// ctx.Indf("    Interpreting as JSON: %s", short(s))
 				src = x // Assuming it was meant to be JSON.
 			} else {
-				ctx.Indf("    Note: string representation isn't JSON: %s", short(s))
+				// ctx.Indf("    Note: string representation isn't JSON: %s", short(s))
 			}
 		}
 	}

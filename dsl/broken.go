@@ -78,3 +78,7 @@ func IsFailure(x interface{}) (Failure, bool) {
 	b, is := x.(Failure)
 	return b, is
 }
+
+func Failuref(format string, args ...interface{}) Failure {
+	return Failure(fmt.Sprintf(format, args...))
+}

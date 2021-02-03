@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/Comcast/sheens/match"
+	jschema "github.com/xeipuuv/gojsonschema"
+	"gopkg.in/yaml.v3"
 )
 
 var DefaultInitialPhase = "phase1"
@@ -129,7 +131,26 @@ type Step struct {
 	Ingest *Ingest `yaml:",omitempty"`
 }
 
+// exec calls exe() and then handles Fails (if any).
 func (s *Step) exec(ctx *Ctx, t *Test) (string, error) {
+	next, err := s.exe(ctx, t)
+	if err != nil {
+		if _, is := IsBroken(err); is {
+			return "", err
+		}
+		if s.Fails {
+			return s.Goto, nil
+		}
+		return "", err
+	}
+
+	return next, err
+}
+
+// exe executes the step.
+//
+// Called by exec().
+func (s *Step) exe(ctx *Ctx, t *Test) (string, error) {
 	// ToDo: Warn if multiple Pub, Sub, Recv, Wait, Goto specified?
 
 	t.Tick(ctx)
@@ -313,13 +334,118 @@ func Wait(ctx *Ctx, durationString string) error {
 	return nil
 }
 
+// Serialization is a enum of possible (de)serializations.
+type Serialization string
+
+var (
+	serJSON   Serialization = "JSON"
+	serString Serialization = "string"
+
+	// DefaultSerialization is of course the default Serialization
+	// (for pub and recv operation).
+	DefaultSerialization = serJSON
+
+	// Serializations is a dictionary of supported Serializations.
+	Serializations = map[string]Serialization{
+		string(serJSON):   serJSON,
+		string(serString): serString,
+	}
+)
+
+func NewSerialization(name string) (*Serialization, error) {
+	ser, have := Serializations[name]
+	if !have {
+		allowed := make([]string, 0, len(Serializations))
+		for name := range Serializations {
+			allowed = append(allowed, name)
+		}
+		return nil, fmt.Errorf("requested serialization '%s' isn't one of %v", name, allowed)
+	}
+	return &ser, nil
+}
+
+func (s *Serialization) UnmarshalYAML(value *yaml.Node) error {
+	var name string
+	if err := value.Decode(&name); err != nil {
+		return err
+	}
+	ser, err := NewSerialization(name)
+	if err != nil {
+		return err
+	}
+	*s = *ser
+	return nil
+}
+
 type Pub struct {
-	Chan    string
-	Topic   string
+	Chan          string
+	Topic         string
+	Serialization *Serialization
+
+	// Schema is an optional URI for a JSON Schema that's used to
+	// validate incoming messages before other processing.
+	Schema string `json:",omitempty" yaml:",omitempty"`
+
 	Payload interface{}
-	Run     string `json:",omitempty" yaml:",omitempty"`
+
+	Run string `json:",omitempty" yaml:",omitempty"`
 
 	ch Chan
+}
+
+// Serialize attempts to render the given argument.
+func (s *Serialization) Serialize(x interface{}) (string, error) {
+	var (
+		ser = DefaultSerialization
+		err error
+		dst string
+	)
+
+	if s != nil {
+		ser = *s
+	}
+
+	switch ser {
+	case serJSON:
+		var js []byte
+		if js, err = json.Marshal(&x); err == nil {
+			dst = string(js)
+		}
+	case serString:
+		if str, is := x.(string); is {
+			dst = str
+		} else {
+			fmt.Errorf("can't serialize %s from a %T", *s, x)
+		}
+	default:
+		err = fmt.Errorf("internal error: unknown Serialization %#v", s)
+	}
+
+	return dst, err
+}
+
+// Deserialize attempts to deserialize the given string.
+func (s *Serialization) Deserialize(str string) (interface{}, error) {
+	var (
+		ser = DefaultSerialization
+		err error
+		dst interface{}
+	)
+
+	if s != nil {
+		ser = *s
+	}
+
+	switch ser {
+	case serJSON:
+		err = json.Unmarshal([]byte(str), &dst)
+	case serString:
+		dst = str
+	default:
+		err = fmt.Errorf("internal error: unknown Serialization %#v", s)
+	}
+
+	return dst, err
 }
 
 func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
@@ -333,12 +459,7 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	if err := t.Bindings.Sub(ctx, p.Payload, &pay, true); err != nil {
 		return nil, err
 	}
-
-	payjs, err := json.Marshal(&pay)
-	if err != nil {
-		return nil, err
-	}
-	ctx.Inddf("    Effective payload: %s", payjs)
+	ctx.Inddf("    Effective payload: %s", JSON(pay))
 
 	run, err := t.Bindings.StringSub(ctx, p.Run)
 	if err != nil {
@@ -349,11 +470,12 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	}
 
 	return &Pub{
-		Chan:    p.Chan,
-		Topic:   topic,
-		Payload: string(payjs),
-		Run:     run,
-		ch:      p.ch,
+		Chan:          p.Chan,
+		Topic:         topic,
+		Serialization: p.Serialization,
+		Payload:       pay,
+		Run:           run,
+		ch:            p.ch,
 	}, nil
 
 }
@@ -362,9 +484,20 @@ func (p *Pub) Exec(ctx *Ctx, t *Test) error {
 	ctx.Indf("    Pub topic '%s'", p.Topic)
 	ctx.Inddf("        payload %s", p.Payload)
 
-	err := p.ch.Pub(ctx, Msg{
+	payload, err := p.Serialization.Serialize(p.Payload)
+	if err != nil {
+		return err
+	}
+
+	if p.Schema != "" {
+		if err := validateSchema(ctx, p.Schema, payload); err != nil {
+			return err
+		}
+	}
+
+	err = p.ch.Pub(ctx, Msg{
 		Topic:   p.Topic,
-		Payload: p.Payload,
+		Payload: payload,
 	})
 
 	if err != nil {
@@ -431,6 +564,8 @@ type Recv struct {
 	Chan  string
 	Topic string
 
+	Serialization *Serialization
+
 	// Pattern is a Sheens pattern
 	// https://github.com/Comcast/sheens/blob/main/README.md#pattern-matching
 	// for matching incoming messages.
@@ -485,6 +620,10 @@ type Recv struct {
 
 	Run string `json:",omitempty" yaml:",omitempty"`
 
+	// Schema is an optional URI for a JSON Schema that's used to
+	// validate incoming messages before other processing.
+	Schema string `json:",omitempty" yaml:",omitempty"`
+
 	ch Chan
 }
 
@@ -517,28 +656,27 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	// Pattern must always be structured.  If we are given a
 	// string, it's interpreted as a JSON string.
 
-	ctx.Inddf("    Given pattern: %s", JSON(r.Pattern))
 	var pat interface{}
-	if err := t.Bindings.Sub(ctx, r.Pattern, &pat, true); err != nil {
-		return nil, err
-	}
-	ctx.Inddf("    Effective pattern: %s", JSON(pat))
+	if r.Pattern != nil {
+		ctx.Inddf("    Given pattern: %s", JSON(r.Pattern))
 
-	reg := r.Regexp
-	if true {
-		// Experimental regular expression matching (preparation).
-
-		if reg != "" {
-			if r.Pattern != nil {
-				return nil, fmt.Errorf("can't have both Pattern and Regexp")
-			}
-			ctx.Inddf("    Given regexp: %s", reg)
-			// We'll have syntax conflicts ...
-			if reg, err = t.Bindings.StringSub(ctx, reg); err != nil {
-				return nil, err
-			}
-			ctx.Inddf("    Effective regexp: %s", reg)
+		if err := t.Bindings.Sub(ctx, r.Pattern, &pat, true); err != nil {
+			return nil, err
 		}
+		ctx.Inddf("    Effective pattern: %s", JSON(pat))
+	}
+
+	var reg string = r.Regexp
+	if r.Regexp != "" {
+		if r.Pattern != nil {
+			return nil, Brokenf("can't have both Pattern and Regexp")
+		}
+		ctx.Inddf("    Given regexp: %s", reg)
+		// We'll have syntax conflicts ...
+		if reg, err = t.Bindings.StringSub(ctx, reg); err != nil {
+			return nil, err
+		}
+		ctx.Inddf("    Effective regexp: %s", reg)
 	}
 
 	guard, err := t.Bindings.StringSub(ctx, r.Guard)
@@ -552,16 +690,45 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	return &Recv{
-		Chan:    r.Chan,
-		Topic:   topic,
-		Pattern: pat,
-		Regexp:  reg,
-		Timeout: r.Timeout,
-		Target:  r.Target,
-		Guard:   guard,
-		Run:     run,
-		ch:      r.ch,
+		Chan:          r.Chan,
+		Topic:         topic,
+		Serialization: r.Serialization,
+		Pattern:       pat,
+		Regexp:        reg,
+		Timeout:       r.Timeout,
+		Target:        r.Target,
+		Guard:         guard,
+		Run:           run,
+		Schema:        r.Schema,
+		ch:            r.ch,
 	}, nil
+}
+
+func validateSchema(ctx *Ctx, schemaURI string, payload string) error {
+	ctx.Indf("      schema: %s", schemaURI)
+	var (
+		doc    = jschema.NewStringLoader(payload)
+		schema = jschema.NewReferenceLoader(schemaURI)
+	)
+
+	v, err := jschema.Validate(schema, doc)
+	if err != nil {
+		return Brokenf("schema validation error: %v", err)
+	}
+	if !v.Valid() {
+		var (
+			errs       = v.Errors()
+			complaints = make([]string, len(errs))
+		)
+		for i, err := range errs {
+			complaints[i] = err.String()
+			ctx.Indf("      schema invalidation: %s", err)
+		}
+		return fmt.Errorf("schema (%s) validation errors: %s",
+			schemaURI, strings.Join(complaints, "; "))
+	}
+	ctx.Indf("      schema validated")
+	return nil
 }
 
 func (r *Recv) Exec(ctx *Ctx, t *Test) error {
@@ -601,25 +768,58 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			ctx.Indf("    Recv timeout (%v)", timeout)
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, JSON(pat))
 		case m := <-in:
-			ctx.Indf("    Recv dequeuing '%s'", m.Topic)
-			ctx.Inddf("                   %s", JSON(m.Payload))
+			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
+			ctx.Inddf("                   %s", m.Payload)
 
-			m.Payload = MaybeParseJSON(m.Payload)
-			var target interface{} = map[string]interface{}{
-				"Topic":   m.Topic,
-				"Payload": m.Payload,
-			}
+			var (
+				err error
+				bss []match.Bindings
+			)
 
-			switch r.Target {
-			case "payload":
-				target = m.Payload
-			case "msg":
-			default:
-				return NewBroken(fmt.Errorf("Bad Recv Target: '%s'", r.Target))
-			}
+			ctx.Indf("    Recv match:")
 
-			ctx.Inddf("    Recv considering %s", JSON(m))
-			if pat != nil || r.Regexp != "" {
+			if r.Regexp != "" {
+				ctx.Inddf("      regexp: %s", r.Regexp)
+				if r.Target != "payload" {
+					return Brokenf("can only regexp-match against payload (not also topic)")
+				}
+				bss, err = RegexpMatch(r.Regexp, m.Payload)
+			} else {
+				ctx.Inddf("      pattern: %s", JSON(pat))
+
+				var parsed interface{}
+				if parsed, err = r.Serialization.Deserialize(m.Payload); err != nil {
+					return err
+				}
+
+				// target will be the target for matching.
+				var target interface{}
+
+				switch r.Target {
+				case "payload":
+					// Match against only the (deserialized) payload.
+					target = parsed
+
+				case "msg":
+
+					// Match against the full message
+					// (with topic and deserialized
+					// payload).
+					target = map[string]interface{}{
+						"Topic":   m.Topic,
+						"Payload": parsed,
+					}
+				default:
+					return Brokenf("bad Recv Target: '%s'", r.Target)
+				}
+
+				ctx.Inddf("      msg:     %s", JSON(target))
+
+				if r.Schema != "" {
+					if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
+						return err
+					}
+				}
 
 				// We are giving empty bindings to
 				// 'Match' because we have already
@@ -631,145 +831,133 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				// string contexts in additional to
 				// structural contexts.
 				//
-				// If we waited to structural bindings
-				// substitution until now, then
-				// string-context bindings substitution
-				// would be inconsistent with that
-				// late use of bindings here.
+				// If we waited to do structural
+				// bindings substitution until now,
+				// then string-context bindings
+				// substitution would be inconsistent
+				// with that late use of bindings
+				// here.
 				//
 				// ToDo: Reconsider.
 
-				var bss []match.Bindings
-				var err error
-				if pat != nil {
-					bss, err = match.Match(pat, Canon(target), match.NewBindings())
-				} else if r.Regexp != "" {
-					bss, err = RegexpMatch(r.Regexp, target)
-				} else {
-					err = fmt.Errorf("internal error with pat and r.exp == nil")
-				}
-				if err != nil {
-					return err
-				}
+				target = Canon(target)
+				bss, err = match.Match(pat, target, match.NewBindings())
+			}
 
-				ctx.Indf("    Recv match:")
-				ctx.Inddf("      pattern: %s", JSON(pat))
-				ctx.Inddf("      regexp: %s", r.Regexp)
-				ctx.Inddf("      msg:     %s", JSON(m))
-				ctx.Indf("      result: %v", 0 < len(bss))
-				ctx.Inddf("      bss: %s", JSON(bss))
-				if 0 < len(bss) {
+			ctx.Indf("      result: %v", 0 < len(bss))
+			ctx.Inddf("      bss: %s", JSON(bss))
 
-					if 1 < len(bss) {
-						// Let's protest if we get
-						// multiple sets of bindings.
-						//
-						// Better safe than sorry?  If
-						// we start running into this
-						// situation, let's figure out
-						// the best way to proceed.
-						// Otherwise we might not notice
-						// unintended behavior.
-						return fmt.Errorf("multiple bindings sets: %s", JSON(bss))
-					}
+			if 0 < len(bss) {
 
-					// Extend rather than replace
-					// t.Bindings.  Note that we have to
-					// extend t.Bindings rather than replace
-					// it due to the bindings substitution
-					// logic.  See the comments above
-					// 'Match' above.
+				if 1 < len(bss) {
+					// Let's protest if we get
+					// multiple sets of bindings.
 					//
-					// ToDo: Contemplate possibility for
-					// inconsistencies.
-					//
-					// Thanks, Carlos, for this fix!
-					if t.Bindings == nil {
-						// Some unit tests might not
-						// have initialized t.Bindings.
-						t.Bindings = make(map[string]interface{})
-					}
-					for p, v := range bss[0] {
-						if x, have := t.Bindings[p]; have {
-							// Let's see if we are
-							// changing an existing
-							// binding.  If so, note
-							// that.
-							js0 := JSON(v)
-							js1 := JSON(x)
-							if js0 != js1 {
-								ctx.Indf("    Updating binding for %s", p)
-							}
-						}
-						t.Bindings[p] = v
-					}
-
-					if r.Guard != "" {
-						ctx.Indf("    Recv guard")
-						src, err := t.prepareSource(ctx, r.Guard)
-						if err != nil {
-							return err
-						}
-
-						// Convert bss to a stripped representation ...
-						js, _ := json.Marshal(&bss)
-						var bindingss interface{}
-						json.Unmarshal(js, &bindingss)
-						// And again ...
-						var bs interface{}
-						js, _ = json.Marshal(&bss[0])
-						json.Unmarshal(js, &bs)
-
-						env := t.jsEnv(ctx)
-						env["bindingss"] = bindingss
-						env["msg"] = m
-
-						x, err := JSExec(ctx, src, env)
-						if f, is := IsFailure(x); is {
-							return f
-						}
-						if f, is := IsFailure(err); is {
-							return f
-						}
-						if err != nil {
-							return err
-						}
-
-						switch vv := x.(type) {
-						case bool:
-							if !vv {
-								ctx.Indf("    Recv guard not pleased")
-								continue
-							}
-							ctx.Indf("    Recv guard satisfied")
-						default:
-							return Brokenf("Guard Javascript returned a %T (%v) and not a bool", x, x)
-						}
-					}
-
-					ctx.Indf("    Recv satisfied")
-					ctx.Inddf("      t.Bindings: %s", JSON(t.Bindings))
-
-					if r.Run != "" {
-						src, err := t.prepareSource(ctx, r.Run)
-						if err != nil {
-							return err
-						}
-
-						// Convert bss to a stripped representation ...
-						env := t.jsEnv(ctx)
-						can := Canon(&bss)
-						env["bindingss"] = can
-						env["bss"] = can
-						env["msg"] = m
-
-						if _, err = JSExec(ctx, src, env); err != nil {
-							return err
-						}
-					}
-
-					return nil
+					// Better safe than sorry?  If
+					// we start running into this
+					// situation, let's figure out
+					// the best way to proceed.
+					// Otherwise we might not notice
+					// unintended behavior.
+					return fmt.Errorf("multiple bindings sets: %s", JSON(bss))
 				}
+
+				// Extend rather than replace
+				// t.Bindings.  Note that we have to
+				// extend t.Bindings rather than replace
+				// it due to the bindings substitution
+				// logic.  See the comments above
+				// 'Match' above.
+				//
+				// ToDo: Contemplate possibility for
+				// inconsistencies.
+				//
+				// Thanks, Carlos, for this fix!
+				if t.Bindings == nil {
+					// Some unit tests might not
+					// have initialized t.Bindings.
+					t.Bindings = make(map[string]interface{})
+				}
+				for p, v := range bss[0] {
+					if x, have := t.Bindings[p]; have {
+						// Let's see if we are
+						// changing an existing
+						// binding.  If so, note
+						// that.
+						js0 := JSON(v)
+						js1 := JSON(x)
+						if js0 != js1 {
+							ctx.Indf("    Updating binding for %s", p)
+						}
+					}
+					t.Bindings[p] = v
+				}
+
+				if r.Guard != "" {
+					ctx.Indf("    Recv guard")
+					src, err := t.prepareSource(ctx, r.Guard)
+					if err != nil {
+						return err
+					}
+
+					// Convert bss to a stripped representation ...
+					js, _ := json.Marshal(&bss)
+					var bindingss interface{}
+					json.Unmarshal(js, &bindingss)
+					// And again ...
+					var bs interface{}
+					js, _ = json.Marshal(&bss[0])
+					json.Unmarshal(js, &bs)
+
+					env := t.jsEnv(ctx)
+					env["bindingss"] = bindingss
+					env["msg"] = m
+
+					x, err := JSExec(ctx, src, env)
+					if f, is := IsFailure(x); is {
+						return f
+					}
+					if f, is := IsFailure(err); is {
+						return f
+					}
+					if err != nil {
+						return err
+					}
+
+					switch vv := x.(type) {
+					case bool:
+						if !vv {
+							ctx.Indf("    Recv guard not pleased")
+							continue
+						}
+						ctx.Indf("    Recv guard satisfied")
+					default:
+						return Brokenf("Guard Javascript returned a %T (%v) and not a bool", x, x)
+					}
+				}
+
+				ctx.Indf("    Recv satisfied")
+				ctx.Inddf("      t.Bindings: %s", JSON(t.Bindings))
+
+				if r.Run != "" {
+					src, err := t.prepareSource(ctx, r.Run)
+					if err != nil {
+						return err
+					}
+
+					// Convert bss to a stripped representation ...
+					env := t.jsEnv(ctx)
+					can := Canon(&bss)
+					env["bindingss"] = can
+					env["bss"] = can
+					env["msg"] = m
+
+					if _, err = JSExec(ctx, src, env); err != nil {
+						return err
+					}
+				}
+
+				return nil
 			}
 		}
 	}
@@ -810,9 +998,10 @@ func (p *Reconnect) Exec(ctx *Ctx, t *Test) error {
 }
 
 type Ingest struct {
-	Chan    string
-	Topic   string
-	Payload interface{}
+	Chan          string
+	Topic         string
+	Serialization *Serialization
+	Payload       interface{}
 	// Timeout time.Duration
 
 	ch Chan
@@ -830,18 +1019,23 @@ func (i *Ingest) Substitute(ctx *Ctx, t *Test) (*Ingest, error) {
 	}
 
 	return &Ingest{
-		Chan:    i.Chan,
-		Topic:   topic,
-		Payload: pay,
-		ch:      i.ch,
+		Chan:          i.Chan,
+		Topic:         topic,
+		Serialization: i.Serialization,
+		Payload:       pay,
+		ch:            i.ch,
 	}, nil
 
 }
 
 func (i *Ingest) Exec(ctx *Ctx, t *Test) error {
+	payload, err := i.Serialization.Serialize(i.Payload)
+	if err != nil {
+		return err
+	}
 	m := Msg{
 		Topic:   i.Topic,
-		Payload: i.Payload,
+		Payload: payload,
 	}
 
 	return i.ch.To(ctx, m)

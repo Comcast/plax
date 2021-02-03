@@ -26,7 +26,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -424,11 +423,9 @@ func NewMQTTChan(ctx *dsl.Ctx, opts interface{}) (dsl.Chan, error) {
 		return nil, err
 	}
 
-	log.Printf("debug %s", js)
 	if err = json.Unmarshal(js, &o); err != nil {
 		return nil, fmt.Errorf("NewMQTTChan: %w", err)
 	}
-	log.Printf("debug %#v", o)
 
 	if o.PubTimeout == 0 {
 		o.PubTimeout = 1000 // ms
@@ -469,15 +466,9 @@ func NewMQTTChan(ctx *dsl.Ctx, opts interface{}) (dsl.Chan, error) {
 		ctx.Logf("MQTT %s receiving %s", o.ClientID, m.Topic())
 		ctx.Logdf("     %s", m.Payload())
 
-		js := m.Payload()
-		var x interface{}
-		if err := json.Unmarshal(js, &x); err != nil {
-			ctx.Warnf("warning: %s on %s from MQTT.Sub handler", err, js)
-			return
-		}
 		msg := dsl.Msg{
 			Topic:   m.Topic(),
-			Payload: x,
+			Payload: string(m.Payload()),
 		}
 		go func() {
 			if err := c.To(ctx, msg); err != nil {

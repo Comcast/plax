@@ -2,8 +2,8 @@ package dsl
 
 import (
 	"fmt"
-	"log"
 	"regexp"
+	"strings"
 	"unicode"
 
 	"github.com/Comcast/sheens/match"
@@ -17,6 +17,8 @@ import (
 // uppercase rune, then the binding variable starts with '?'.
 // Otherwise, the variable starts with '?*'
 func RegexpMatch(pat string, target interface{}) ([]match.Bindings, error) {
+	pat = strings.TrimRight(pat, "\n\r")
+
 	r, err := regexp.Compile(pat)
 	if err != nil {
 		return nil, err
@@ -56,8 +58,6 @@ func RegexpMatch(pat string, target interface{}) ([]match.Bindings, error) {
 		sym += name
 
 		bs[sym] = val
-
-		log.Printf("Debug %v %v %v", i, sym, val)
 	}
 
 	return bss, nil

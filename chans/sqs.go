@@ -73,8 +73,13 @@ type SQSOpts struct {
 	// Defaults to DefaultChanBufferSize.
 	BufferSize int
 
-	// MsgDelaySeconds enables extraction of DelaySeconds from
-	// published message's payload.
+	// MsgDelaySeconds enables extraction of property DelaySeconds
+	// from published message's payload, which should be a JSON of
+	// an map.
+	//
+	// This hack means that a test cannot specify DelaySeconds for
+	// a payload that is not a JSON representation of a map.
+	// ToDo: Reconsider.
 	MsgDelaySeconds bool
 
 	// WaitTimeSeconds is the SQS receive wait time.
@@ -152,37 +157,40 @@ func (c *SQSChan) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 	ctx.Logf("SQSChan Pub()")
 
 	delay := c.opts.DelaySeconds
+	payload := m.Payload
 
 	if c.opts.MsgDelaySeconds {
+
 		// Extract and remove DelaySeconds from the message
 		// Payload.
-		if o, is := m.Payload.(map[string]interface{}); is {
-			if x, have := o["DelaySeconds"]; have {
-				switch n := x.(type) {
-				case int:
-					delay = int64(n)
-				case int64:
-					delay = n
-				case float64:
-					delay = int64(n)
-				}
-				delete(o, "DelaySeconds")
+		var o map[string]interface{}
+		err := json.Unmarshal([]byte(m.Payload), &o)
+		if err != nil {
+			return dsl.Brokenf("when using MsgDelaySeconds, SQS message must be a JSON map")
+		}
+		if x, have := o["DelaySeconds"]; have {
+			switch n := x.(type) {
+			case int:
+				delay = int64(n)
+			case int64:
+				delay = n
+			case float64:
+				delay = int64(n)
+			default:
+				return dsl.Brokenf("when using MsgDelaySeconds, DelaySeconds in SQS payload a number (not a %T)", n)
 			}
+			delete(o, "DelaySeconds")
+			js, err := json.Marshal(&o)
+			if err != nil {
+				return dsl.Brokenf("failed to re-JSON-serialize SQS message: %v", err)
+			}
+			payload = string(js)
 		}
 	}
 
-	// Only m.Payload is published (as the message body).
-	js, err := json.Marshal(&m.Payload)
-	if err != nil {
-		// Try to support a non-JSON message.
-		if s, is := m.Payload.(string); is {
-			js = []byte(s)
-		}
-	}
-
-	_, err = c.svc.SendMessage(&sqs.SendMessageInput{
+	_, err := c.svc.SendMessage(&sqs.SendMessageInput{
 		DelaySeconds: &delay,
-		MessageBody:  aws.String(string(js)),
+		MessageBody:  aws.String(payload),
 		QueueUrl:     aws.String(c.opts.QueueURL),
 	})
 
@@ -233,17 +241,9 @@ LOOP:
 		}
 
 		for _, msg := range result.Messages {
-			var (
-				body = *msg.Body
-				m    = dsl.Msg{
-					Topic: c.opts.QueueURL,
-				}
-			)
-
-			if err := json.Unmarshal([]byte(body), &m.Payload); err != nil {
-				m.Payload = map[string]interface{}{
-					"plain": body,
-				}
+			m := dsl.Msg{
+				Topic:   c.opts.QueueURL,
+				Payload: *msg.Body,
 			}
 
 			// ToDo: Consider channel depth, etc.

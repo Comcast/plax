@@ -1,0 +1,20 @@
+doc: |
+  Demonstration of JSON schema validation.
+spec:
+  phases:
+    phase1:
+      steps:
+        - "$include<include/mock.yaml>"
+        - pub:
+            payload: '{"want":"queso"}'
+            schema: "file://demos/order.json"
+        - recv:
+            schema: "file://demos/order.json"
+            pattern: '{"want":"?*x"}'
+        - pub:
+            payload: '{"need":"tacos"}'
+        - recv:
+            schema: "file://demos/order.json"
+            pattern: '{"need":"?*x"}'
+          fails: true
+            

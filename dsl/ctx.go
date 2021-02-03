@@ -27,13 +27,17 @@ import (
 )
 
 var (
-	// DefaultLogger is the default logger
+	// DefaultLogger is the default logger.
 	DefaultLogger Logger = &GoLogger{}
-	// DefaultLogLevel is the default log level
+
+	// DefaultLogLevel is the default log level.
+	//
+	// ToDo: Use an enum.
 	DefaultLogLevel = "info"
 )
 
-// Ctx is the context for the dsl
+// Ctx includes a context.Context, logging specifications, and some
+// directories for various file inclusions.
 type Ctx struct {
 	context.Context
 	Logger
@@ -56,7 +60,7 @@ func NewCtx(ctx context.Context) *Ctx {
 	}
 }
 
-// WithCancel builds a new dsl.Ctx WithCancel
+// WithCancel builds a new dsl.Ctx with a cancel function.
 func (c *Ctx) WithCancel() (*Ctx, func()) {
 	ctx, cancel := context.WithCancel(c.Context)
 	return &Ctx{
@@ -67,7 +71,7 @@ func (c *Ctx) WithCancel() (*Ctx, func()) {
 	}, cancel
 }
 
-// WithTimeout builds a new dsl.Ctx WithTimeout
+// WithTimeout builds a new dsl.Ctx with a timeout function.
 func (c *Ctx) WithTimeout(d time.Duration) (*Ctx, func()) {
 	ctx, cancel := context.WithTimeout(c.Context, d)
 	return &Ctx{
@@ -78,7 +82,7 @@ func (c *Ctx) WithTimeout(d time.Duration) (*Ctx, func()) {
 	}, cancel
 }
 
-// SetLogLevel sets the dsl.Ctx LogLevel
+// SetLogLevel sets the dsl.Ctx LogLevel.
 func (c *Ctx) SetLogLevel(level string) error {
 	canonical := strings.ToLower(level)
 	// No strings.TrimSpace.

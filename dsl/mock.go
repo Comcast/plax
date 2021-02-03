@@ -58,7 +58,7 @@ func (c *MockChan) Sub(ctx *Ctx, topic string) error {
 
 func (c *MockChan) Pub(ctx *Ctx, m Msg) error {
 	ctx.Logf("MockChan Pub topic %s", m.Topic)
-	ctx.Logdf("             payload %s", JSON(m.Payload))
+	ctx.Logdf("             payload %s", m.Payload)
 	return c.To(ctx, m)
 }
 
@@ -73,7 +73,7 @@ func (c *MockChan) Kill(ctx *Ctx) error {
 
 func (c *MockChan) To(ctx *Ctx, m Msg) error {
 	ctx.Logf("MockChan To topic %s", m.Topic)
-	ctx.Logdf("            payload %s", JSON(m.Payload))
+	ctx.Logdf("            payload %s", m.Payload)
 	m.ReceivedAt = time.Now().UTC()
 	select {
 	case <-ctx.Done():

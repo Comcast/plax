@@ -71,6 +71,7 @@ func run(t *testing.T, ctx *Ctx, tst *Test) {
 func TestBasic(t *testing.T) {
 
 	ctx, s, tst := newTest(t)
+	ctx.LogLevel = "debug"
 
 	{
 		p := &Phase{
@@ -137,4 +138,86 @@ func MustParseJSON(js string) interface{} {
 		panic(fmt.Errorf("failed to parse %s: %s", js, err))
 	}
 	return x
+}
+
+func TestSerialization(t *testing.T) {
+	for name, ser := range Serializations {
+		t.Run(name, func(t *testing.T) {
+			payload := `{"want":"tacos"}`
+			x, err := ser.Deserialize(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			y, err := ser.Serialize(x)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if payload != y {
+				t.Fatal(y)
+			}
+		})
+	}
+
+	t.Run("illegal", func(t *testing.T) {
+		if _, err := NewSerialization("graffiti"); err == nil {
+			t.Fatal("expected a complaint")
+		}
+	})
+}
+
+func TestFails(t *testing.T) {
+
+	ctx, s, tst := newTest(t)
+
+	{
+		p := &Phase{}
+
+		s.Phases["phase1"] = p
+
+		addMock(t, ctx, p)
+
+		p.AddStep(ctx, &Step{
+			Goto: "mock-test",
+		})
+	}
+
+	{
+		p := &Phase{}
+
+		s.Phases["mock-test"] = p
+
+		p.AddStep(ctx, &Step{
+			Pub: &Pub{
+				Payload: `{"want":"tacos"}`,
+			},
+		})
+
+		p.AddStep(ctx, &Step{
+			Recv: &Recv{
+				Pattern: `{"need":"?*x"}`,
+				Timeout: time.Second,
+			},
+			Fails: true,
+		})
+	}
+
+	run(t, ctx, tst)
+
+}
+
+func TestValidateSchema(t *testing.T) {
+	ctx := NewCtx(nil)
+	schema := "file://../demos/order.json"
+	t.Run("happy", func(t *testing.T) {
+		msg := `{"want":"chips"}`
+		if err := validateSchema(ctx, schema, msg); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("sad", func(t *testing.T) {
+		msg := `{"need":"queso"}`
+		if err := validateSchema(ctx, schema, msg); err == nil {
+			t.Fatal("'want' was required")
+		}
+	})
 }

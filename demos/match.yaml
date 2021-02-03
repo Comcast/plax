@@ -17,11 +17,12 @@ spec:
             timeout: '2s'
             guard: |
               // Silly to do this 'match' here when we could have done it
-              // with the 'recv' pattern.  But at least shows calling 'match'
+              // with the 'recv' pattern.  Just shows calling 'match'
               // from Javascript.
               print("msg", msg);
               var pat = {"when":"?w"}; // Our pattern
               var bs0 = {}; // Input bindings for 'match'.
-              var bss = match(pat, msg.Payload, bs0);
+              // msg.Payload is a raw string.
+              var bss = match(pat, JSON.parse(msg.Payload), bs0);
               var w = bss[0]["?w"];
               return w == "now";

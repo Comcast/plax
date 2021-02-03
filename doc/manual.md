@@ -626,6 +626,12 @@ single operation.  Currently the following steps are supported:
     1. `topic`: Optional: The expected message should arrive on this
        topic.  Parameters and bindings
        [substitution](#substitutions) applies.
+	   
+	1. `schema`: An option URI for a JSON schema, which is then used
+       to validate the in-coming message before any other processing.
+		
+	1. `serialization`: How to deserialize in-coming payloads. Either
+       `string` or `JSON`, and `JSON` is the default.
 
     1. `pattern`: A _pattern_ that the message must match.  Parameters
        and bindings [substitution](#substitutions)
@@ -745,11 +751,17 @@ single operation.  Currently the following steps are supported:
        topic.  Parameters and bindings
        [substitution](#-substitutions) applies.
 	   
+	1. `serialization`: How to serialize the payload. Either `string`
+       or `JSON`, and `JSON` is the default.
+
 	1. `payload`: A _pattern_ that the message must match.  If the
       	value is a JSON string, the string is first parsed as JSON.
       	Parameters and bindings
       	[substitution](#substitutions) applies.
       	[String commands](#string-commands) are also available.
+		
+	1. `schema`: An option URI for a JSON schema, which is then used
+       to validate the out-going message.
 		
 	1. `run`: Execute Javascript just like a `recv`'s `guard` except
        that the return value is ignored.  Parameters and bindings
@@ -805,7 +817,7 @@ spec:
   defaultchan: cpe
 ```
 
-<a name="fail"></a>
+<a name="fails"></a>
 You can also specify that a step is required to _fail_:
 
 ```yaml
@@ -816,7 +828,7 @@ spec:
       - pub:
           topic: want
           payload: '"queso"'
-        fail: true
+        fails: true
 ```
 
 Note that `fail` is specified at the same level as the type of step

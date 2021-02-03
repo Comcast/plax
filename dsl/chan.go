@@ -21,9 +21,9 @@ package dsl
 import "time"
 
 type Msg struct {
-	Topic      string      `json:"topic"`
-	Payload    interface{} `json:"payload"`
-	ReceivedAt time.Time   `json:"receivedAt"`
+	Topic      string    `json:"topic"`
+	Payload    string    `json:"payload"`
+	ReceivedAt time.Time `json:"receivedAt"`
 }
 
 // ChanOpts represents generic data that is give to a Chan constructor.
