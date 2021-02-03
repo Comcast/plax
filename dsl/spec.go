@@ -138,7 +138,10 @@ func (s *Step) exec(ctx *Ctx, t *Test) (string, error) {
 		if _, is := IsBroken(err); is {
 			return "", err
 		}
-		return s.Goto, nil
+		if s.Fails {
+			return s.Goto, nil
+		}
+		return "", err
 	}
 
 	return next, err
@@ -782,9 +785,6 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 				bss, err = RegexpMatch(r.Regexp, m.Payload)
 			} else {
-				if r.Pattern == nil {
-					return Brokenf("recv needs either a pattern or regexp")
-				}
 				ctx.Inddf("      pattern: %s", JSON(pat))
 
 				var parsed interface{}
