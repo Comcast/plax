@@ -45,8 +45,9 @@ spec:
                     automationName: "UiAutomator2"
         - recv:
             pattern:
-              value:
-                sessionId: "?SID"
+              body:
+                value:
+                  sessionId: "?SID"
         - pub:
             payload:
               url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element'
@@ -59,8 +60,9 @@ spec:
                 value: android.widget.EditText
         - recv:
             pattern:
-              value:
-                ELEMENT: "?ELEMENT"
+              body:
+                value:
+                  ELEMENT: "?ELEMENT"
         - pub:
             payload:
               url: 'http://localhost:{?!port}/wd/hub/session/{?SID}/element/{?ELEMENT}/clear'
@@ -84,7 +86,8 @@ spec:
               method: GET
         - recv:
             pattern:
-              value: "Please send queso."
+              body:
+                value: "Please send queso."
         - pub:
             payload:
               terminate: last

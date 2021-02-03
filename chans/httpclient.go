@@ -19,12 +19,12 @@
 package chans
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/Comcast/plax/dsl"
@@ -73,20 +73,24 @@ func (c *HTTPClient) Sub(ctx *dsl.Ctx, topic string) error {
 // its URL field is actually a URL and not a string.  (Other reasons,
 // too.)
 type HTTPRequest struct {
-	Method  string
-	URL     string
-	Headers map[string][]string
+	Method  string              `json:"method"`
+	URL     string              `json:"url"`
+	Headers map[string][]string `json:"headers"`
 
-	// Body will be the request body.
-	//
-	// If Body isn't a string, it'll be JSON-serialized.
-	Body interface{}
+	// Body is the request body.
+	Body interface{} `json:"body,omitempty"`
+
+	RequestBodySerialization    dsl.Serialization `json:"requestBodySerialization,omitempty" yaml:"requestbodyserialization,omitempty"`
+	ResponseBodyDeserialization dsl.Serialization `json:"responseBodyDeserialization,omitempty" yaml:"responsebodydeserialization,omitempty"`
 
 	// Form can contain form values, and you can specify these
 	// values instead of providing an explicit Body.
-	Form url.Values
+	Form url.Values `json:"form,omitempty"`
 
-	HTTPRequestCtl
+	HTTPRequestCtl `json:"ctl,omitempty" yaml:"ctl"`
+
+	// body will be the serialized Body.
+	body []byte
 
 	req *http.Request
 }
@@ -95,13 +99,13 @@ type HTTPRequestCtl struct {
 
 	// Id is used to refer to this request when it has a polling
 	// interval.
-	Id string
+	Id string `json:"id,omitempty"`
 
 	// PollInterval, when not zero, will cause this channel to
 	// repeated the HTTP request at this interval.
 	//
 	// Value should be a string that time.ParseDuration can parse.
-	PollInterval string
+	PollInterval string `json:"pollInterval"`
 
 	pollInterval time.Duration
 
@@ -109,7 +113,7 @@ type HTTPRequestCtl struct {
 	// request, and that polling request will be terminated.
 	//
 	// No other properties in this struct should be provided.
-	Terminate string
+	Terminate string `json:"terminate,omitempty"`
 }
 
 // extractHTTPRequest attempts to make an http.Request from the
@@ -122,7 +126,10 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 	// Parse the HTTPRequest.
 	var (
 		js  = m.Payload
-		req = HTTPRequest{}
+		req = &HTTPRequest{
+			RequestBodySerialization:    dsl.DefaultSerialization,
+			ResponseBodyDeserialization: dsl.DefaultSerialization,
+		}
 	)
 	if err := json.Unmarshal([]byte(js), &req); err != nil {
 		return nil, err
@@ -134,19 +141,12 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 		return nil, err
 	}
 
-	// We allow req.Body to be anything.  If it's not a string,
-	// assume it should be JSON-serialized.
-	var body string
-	if req.Body != nil {
-		var is bool
-		if body, is = req.Body.(string); !is {
-			bs, err := json.Marshal(&req.Body)
-			if err != nil {
-				// ToDo: Better error msg.
-				return nil, err
-			}
-			body = string(bs)
+	if req.Body != "" {
+		s, err := req.RequestBodySerialization.Serialize(req.Body)
+		if err != nil {
+			return nil, err
 		}
+		req.body = []byte(s)
 	}
 
 	// Construct the actual http.Request.
@@ -157,20 +157,20 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 	}
 
 	if req.Form != nil {
-		if body != "" {
+		if req.Body != nil {
 			return nil, fmt.Errorf("can't specify both Body and Form")
 		}
 		// real.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-		body = req.Form.Encode()
+		req.body = []byte(req.Form.Encode())
 	}
 
-	if body != "" {
-		real.Body = ioutil.NopCloser(strings.NewReader(body))
+	if req.Body != nil {
+		real.Body = ioutil.NopCloser(bytes.NewReader(req.body))
 	}
 
 	req.req = real
 
-	return &req, nil
+	return req, nil
 }
 
 func (c *HTTPClient) terminate(ctx *dsl.Ctx, id string) error {
@@ -227,6 +227,13 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 	return nil
 }
 
+type HTTPResponse struct {
+	StatusCode int                 `json:"statusCode" yaml:"statuscode"`
+	Body       interface{}         `json:"body"`
+	Error      string              `json:"error,omitempty"`
+	Headers    map[string][]string `json:"headers"`
+}
+
 func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {
 	ctx.Logf("%T making request", c)
 	resp, err := c.client.Do(req.req)
@@ -242,11 +249,31 @@ func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {
 	}
 	ctx.Logdf("%T received body %s", c, bs)
 
-	r := dsl.Msg{
-		Payload: string(bs),
+	r := &HTTPResponse{
+		StatusCode: resp.StatusCode,
+		Headers:    resp.Header,
 	}
 
-	return c.To(ctx, r)
+	body, err := req.ResponseBodyDeserialization.Deserialize(string(bs))
+	if err != nil {
+		r.Error = err.Error()
+	} else {
+		r.Body = body
+	}
+
+	js, err := json.Marshal(&r)
+	if err != nil {
+		m := map[string]interface{}{
+			"error": err.Error(),
+		}
+		js, _ = json.Marshal(&m)
+	}
+
+	msg := dsl.Msg{
+		Payload: string(js),
+	}
+
+	return c.To(ctx, msg)
 }
 
 func (c *HTTPClient) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
