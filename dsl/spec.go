@@ -138,7 +138,10 @@ func (s *Step) exec(ctx *Ctx, t *Test) (string, error) {
 		if _, is := IsBroken(err); is {
 			return "", err
 		}
-		return s.Goto, nil
+		if s.Fails {
+			return s.Goto, nil
+		}
+		return "", err
 	}
 
 	return next, err
