@@ -427,11 +427,7 @@ func (s *Serialization) Serialize(x interface{}) (string, error) {
 			dst = string(js)
 		}
 	case serString:
-		if str, is := x.(string); is {
-			dst = str
-		} else {
-			fmt.Errorf("can't serialize %s from a %T", *s, x)
-		}
+		dst = fmt.Sprintf("%v", x) // Does a lot for us.
 	default:
 		dst = "error"
 		err = fmt.Errorf("internal error: unknown Serialization %#v", s)

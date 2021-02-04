@@ -164,7 +164,7 @@ func TestSerialization(t *testing.T) {
 		}
 	})
 
-	t.Run("string", func(t *testing.T) {
+	t.Run("string-string", func(t *testing.T) {
 		var x interface{} = "queso"
 		s, err := NewSerialization("string")
 		if err != nil {
@@ -175,6 +175,21 @@ func TestSerialization(t *testing.T) {
 			t.Fatal(err)
 		}
 		if x.(string) != y {
+			t.Fatal(y)
+		}
+	})
+
+	t.Run("string-int", func(t *testing.T) {
+		var x interface{} = 42
+		s, err := NewSerialization("string")
+		if err != nil {
+			t.Fatal(err)
+		}
+		y, err := s.Serialize(x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if "42" != y {
 			t.Fatal(y)
 		}
 	})
