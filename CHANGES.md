@@ -1,5 +1,13 @@
 # Recent changes
 
+## `@@` and `!!` syntax changes
+
+Now do
+
+1. `{@@filename}` instead of `@@filename` and
+1. `{!!javascript!!}` instead of `!!javascript`.
+
+
 ## `HTTPClient` channel request and response
 
 The request message now has lower-case properties instead of

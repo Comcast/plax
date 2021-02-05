@@ -141,7 +141,7 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 		return nil, err
 	}
 
-	if req.Body != "" {
+	if req.Body != nil {
 		s, err := req.RequestBodySerialization.Serialize(req.Body)
 		if err != nil {
 			return nil, err
@@ -228,7 +228,7 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 }
 
 type HTTPResponse struct {
-	StatusCode int                 `json:"statusCode" yaml:"statuscode"`
+	StatusCode int                 `json:"statuscode"`
 	Body       interface{}         `json:"body"`
 	Error      string              `json:"error,omitempty"`
 	Headers    map[string][]string `json:"headers"`
@@ -306,7 +306,14 @@ func (c *HTTPClient) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 		// below.
 	}
 
-	return c.do(ctx, req)
+	go func() {
+		if err := c.do(ctx, req); err != nil {
+			// ToDo: Probably publish this message.
+			ctx.Warnf("httpclient request error: %v", err)
+		}
+	}()
+
+	return nil
 }
 
 func (c *HTTPClient) Recv(ctx *dsl.Ctx) chan dsl.Msg {

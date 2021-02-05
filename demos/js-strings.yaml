@@ -13,6 +13,6 @@ spec:
       steps:
         - '$include<include/mock.yaml>'
         - pub:
-            payload: '!!"Hello, " + "{?WORLD}, it is "  + "{?DATE}"'
+            payload: '{!!"\"Hello, " + "{?WORLD}, it is "  + "{?DATE}\""!!}'
         - recv:
             pattern: '"Hello, {?WORLD}, it is {?DATE}"'

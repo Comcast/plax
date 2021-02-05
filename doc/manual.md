@@ -510,17 +510,17 @@ behavior is convenient when doing structured binding substitution.
 
 #### String commands
 
-Several string values have special powers.
+Several substrings have special powers.
 
-<a name="at-at-filename"></a>If one of these strings looks like
-`@@FILENAME`, then Plax attempts to substitute the contents of the
-file with name `FILENAME` for that string.  The file is read relative
-to the directory that contained the test specification.
+<a name="at-at-filename"></a>When Plax sees `{@@FILENAME}`, then Plax
+attempts to substitute the contents of the file with name `FILENAME`
+for that substring.  The file is read relative to the directory that
+contained the test specification.
 
-<a name="bang-bang-javascript"></a>If one of these string starts with
-`!!`, then remainder of the string is executed as Javascript.
-Bindings substitution applies.  The value returned by this Javascript
-is substituted for string.
+<a name="bang-bang-javascript"></a>When Plax sees `{!!JAVASCRIPT!!}`,
+then `JAVASCRIPT` is executed as Javascript, and the result replaces
+that substring.  Bindings substitution applies.  The value returned by
+this Javascript is substituted for string.
 
 These string commands are processed in the order above: first `@@` and
 then `!!`.  (So a file's contents could start with `!!`, which would
