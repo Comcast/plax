@@ -26,7 +26,6 @@ import (
 
 	"github.com/Comcast/sheens/match"
 	jschema "github.com/xeipuuv/gojsonschema"
-	"gopkg.in/yaml.v3"
 )
 
 var DefaultInitialPhase = "phase1"
@@ -334,68 +333,9 @@ func Wait(ctx *Ctx, durationString string) error {
 	return nil
 }
 
-// Serialization is a enum of possible (de)serializations.
-type Serialization string
-
-var (
-	serJSON   Serialization = "JSON"
-	serString Serialization = "string"
-
-	// DefaultSerialization is of course the default Serialization
-	// (for pub and recv operation).
-	DefaultSerialization = serJSON
-
-	// Serializations is a dictionary of supported Serializations.
-	Serializations = map[string]Serialization{
-		string(serJSON):   serJSON,
-		string(serString): serString,
-	}
-)
-
-func NewSerialization(name string) (*Serialization, error) {
-	ser, have := Serializations[name]
-	if !have {
-		allowed := make([]string, 0, len(Serializations))
-		for name := range Serializations {
-			allowed = append(allowed, name)
-		}
-		return nil, fmt.Errorf("requested serialization '%s' isn't one of %v", name, allowed)
-	}
-	return &ser, nil
-}
-
-func (s *Serialization) UnmarshalYAML(value *yaml.Node) error {
-	var name string
-	if err := value.Decode(&name); err != nil {
-		return err
-	}
-	ser, err := NewSerialization(name)
-	if err != nil {
-		return err
-	}
-	*s = *ser
-	return nil
-}
-
-func (s *Serialization) UnmarshalJSON(bs []byte) error {
-	name := string(bs)
-	// Carefully remove required double-quotes.
-	if len(name) < 3 || name[0] != '"' || name[len(name)-1] != '"' {
-		return fmt.Errorf("bad serialization: '%s'", name)
-	}
-	name = name[1 : len(name)-1]
-	ser, err := NewSerialization(name)
-	if err != nil {
-		return err
-	}
-	*s = *ser
-	return nil
-}
-
 type Pub struct {
-	Chan          string
-	Topic         string
-	Serialization *Serialization
+	Chan  string
+	Topic string
 
 	// Schema is an optional URI for a JSON Schema that's used to
 	// validate incoming messages before other processing.
@@ -408,58 +348,6 @@ type Pub struct {
 	ch Chan
 }
 
-// Serialize attempts to render the given argument.
-func (s *Serialization) Serialize(x interface{}) (string, error) {
-	var (
-		ser = DefaultSerialization
-		err error
-		dst string
-	)
-
-	if s != nil {
-		ser = *s
-	}
-
-	switch ser {
-	case serJSON:
-		var js []byte
-		if js, err = json.Marshal(&x); err == nil {
-			dst = string(js)
-		}
-	case serString:
-		dst = fmt.Sprintf("%v", x) // Does a lot for us.
-	default:
-		dst = "error"
-		err = fmt.Errorf("internal error: unknown Serialization %#v", s)
-	}
-
-	return dst, err
-}
-
-// Deserialize attempts to deserialize the given string.
-func (s *Serialization) Deserialize(str string) (interface{}, error) {
-	var (
-		ser = DefaultSerialization
-		err error
-		dst interface{}
-	)
-
-	if s != nil {
-		ser = *s
-	}
-
-	switch ser {
-	case serJSON:
-		err = json.Unmarshal([]byte(str), &dst)
-	case serString:
-		dst = str
-	default:
-		err = fmt.Errorf("internal error: unknown Serialization %#v", s)
-	}
-
-	return dst, err
-}
-
 func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	topic, err := t.Bindings.StringSub(ctx, p.Topic)
 	if err != nil {
@@ -467,11 +355,21 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	}
 	ctx.Inddf("    Effective topic: %s", topic)
 
-	var pay interface{}
-	if err := t.Bindings.Sub(ctx, p.Payload, &pay, true); err != nil {
+	var payload string
+	if s, is := p.Payload.(string); is {
+		payload = s
+	} else {
+		js, err := json.Marshal(&p.Payload)
+		if err != nil {
+			return nil, err
+		}
+		payload = string(js)
+	}
+
+	if payload, err = t.Bindings.Sub(ctx, payload); err != nil {
 		return nil, err
 	}
-	ctx.Inddf("    Effective payload: %s", JSON(pay))
+	ctx.Inddf("    Effective payload: %s", payload)
 
 	run, err := t.Bindings.StringSub(ctx, p.Run)
 	if err != nil {
@@ -482,12 +380,11 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	}
 
 	return &Pub{
-		Chan:          p.Chan,
-		Topic:         topic,
-		Serialization: p.Serialization,
-		Payload:       pay,
-		Run:           run,
-		ch:            p.ch,
+		Chan:    p.Chan,
+		Topic:   topic,
+		Payload: payload,
+		Run:     run,
+		ch:      p.ch,
 	}, nil
 
 }
@@ -496,9 +393,9 @@ func (p *Pub) Exec(ctx *Ctx, t *Test) error {
 	ctx.Indf("    Pub topic '%s'", p.Topic)
 	ctx.Inddf("        payload %s", p.Payload)
 
-	payload, err := p.Serialization.Serialize(p.Payload)
-	if err != nil {
-		return err
+	payload, is := p.Payload.(string)
+	if !is {
+		return Brokenf("internal error: payload is a %T", p.Payload)
 	}
 
 	if p.Schema != "" {
@@ -507,7 +404,7 @@ func (p *Pub) Exec(ctx *Ctx, t *Test) error {
 		}
 	}
 
-	err = p.ch.Pub(ctx, Msg{
+	err := p.ch.Pub(ctx, Msg{
 		Topic:   p.Topic,
 		Payload: payload,
 	})
@@ -576,8 +473,6 @@ type Recv struct {
 	Chan  string
 	Topic string
 
-	Serialization *Serialization
-
 	// Pattern is a Sheens pattern
 	// https://github.com/Comcast/sheens/blob/main/README.md#pattern-matching
 	// for matching incoming messages.
@@ -641,6 +536,16 @@ type Recv struct {
 
 func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
+	// Canonicalize r.Target.
+	switch r.Target {
+	case "payload", "Payload", "":
+		r.Target = "payload"
+	case "msg", "message", "Message":
+		r.Target = "msg"
+	default:
+		return nil, NewBroken(fmt.Errorf("bad Recv Target: '%s'", r.Target))
+	}
+
 	// Always remove "temporary" bindings.
 	for p, _ := range t.Bindings {
 		if strings.HasPrefix(p, "?*") {
@@ -666,17 +571,30 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	// Pattern must always be structured.  If we are given a
-	// string, it's interpreted as a JSON string.
+	// string, it's interpreted as a JSON string.  But first we
+	// have to perform (string-based) substititions.
 
-	var pat interface{}
-	if r.Pattern != nil {
-		ctx.Inddf("    Given pattern: %s", JSON(r.Pattern))
-
-		if err := t.Bindings.Sub(ctx, r.Pattern, &pat, true); err != nil {
+	var s string
+	if src, is := r.Pattern.(string); !is {
+		js, err := json.Marshal(&r.Pattern)
+		if err != nil {
 			return nil, err
 		}
-		ctx.Inddf("    Effective pattern: %s", JSON(pat))
+		s = string(js)
+	} else {
+		s = src
 	}
+
+	if s, err = t.Bindings.Sub(ctx, s); err != nil {
+		return nil, err
+	}
+
+	var pat interface{}
+	if err = json.Unmarshal([]byte(s), &pat); err != nil {
+		return nil, err
+	}
+
+	ctx.Inddf("    Effective pattern: %s", JSON(pat))
 
 	var reg string = r.Regexp
 	if r.Regexp != "" {
@@ -702,17 +620,16 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	return &Recv{
-		Chan:          r.Chan,
-		Topic:         topic,
-		Serialization: r.Serialization,
-		Pattern:       pat,
-		Regexp:        reg,
-		Timeout:       r.Timeout,
-		Target:        r.Target,
-		Guard:         guard,
-		Run:           run,
-		Schema:        r.Schema,
-		ch:            r.ch,
+		Chan:    r.Chan,
+		Topic:   topic,
+		Pattern: pat,
+		Regexp:  reg,
+		Timeout: r.Timeout,
+		Target:  r.Target,
+		Guard:   guard,
+		Run:     run,
+		Schema:  r.Schema,
+		ch:      r.ch,
 	}, nil
 }
 
@@ -747,7 +664,6 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 	var (
 		timeout = r.Timeout
 		in      = r.ch.Recv(ctx)
-		pat     = r.Pattern
 	)
 
 	if timeout == 0 {
@@ -756,20 +672,12 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 
 	tm := time.NewTimer(timeout)
 
-	switch r.Target {
-	case "payload", "Payload", "":
-		r.Target = "payload"
-	case "msg", "message", "Message":
-		r.Target = "msg"
-	default:
-		return NewBroken(fmt.Errorf("Bad Recv Target: '%s'", r.Target))
-	}
-
 	if r.Regexp != "" {
 		ctx.Inddf("    Recv regexp %s", r.Regexp)
 	} else {
-		ctx.Inddf("    Recv pattern %s", JSON(pat))
+		ctx.Inddf("    Recv pattern %s", r.Pattern)
 	}
+
 	ctx.Inddf("    Recv target %s", r.Target)
 	for {
 		select {
@@ -778,7 +686,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			return nil
 		case <-tm.C:
 			ctx.Indf("    Recv timeout (%v)", timeout)
-			return fmt.Errorf("timeout after %s waiting for %s", timeout, JSON(pat))
+			return fmt.Errorf("timeout after %s waiting for %s", timeout, r.Pattern)
 		case m := <-in:
 			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
 			ctx.Inddf("                   %s", m.Payload)
@@ -797,29 +705,24 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 				bss, err = RegexpMatch(r.Regexp, m.Payload)
 			} else {
-				ctx.Inddf("      pattern: %s", JSON(pat))
-
-				var parsed interface{}
-				if parsed, err = r.Serialization.Deserialize(m.Payload); err != nil {
-					return err
-				}
+				ctx.Inddf("      pattern: %s", JSON(r.Pattern))
 
 				// target will be the target for matching.
 				var target interface{}
+				if err = json.Unmarshal([]byte(m.Payload), &target); err != nil {
+					return err
+				}
 
 				switch r.Target {
 				case "payload":
 					// Match against only the (deserialized) payload.
-					target = parsed
-
 				case "msg":
-
 					// Match against the full message
 					// (with topic and deserialized
 					// payload).
 					target = map[string]interface{}{
 						"Topic":   m.Topic,
-						"Payload": parsed,
+						"Payload": target,
 					}
 				default:
 					return Brokenf("bad Recv Target: '%s'", r.Target)
@@ -853,9 +756,12 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				// ToDo: Reconsider.
 
 				target = Canon(target)
-				bss, err = match.Match(pat, target, match.NewBindings())
+				bss, err = match.Match(r.Pattern, target, match.NewBindings())
 			}
 
+			if err != nil {
+				return err
+			}
 			ctx.Indf("      result: %v", 0 < len(bss))
 			ctx.Inddf("      bss: %s", JSON(bss))
 
@@ -1010,10 +916,9 @@ func (p *Reconnect) Exec(ctx *Ctx, t *Test) error {
 }
 
 type Ingest struct {
-	Chan          string
-	Topic         string
-	Serialization *Serialization
-	Payload       interface{}
+	Chan    string
+	Topic   string
+	Payload interface{}
 	// Timeout time.Duration
 
 	ch Chan
@@ -1025,25 +930,38 @@ func (i *Ingest) Substitute(ctx *Ctx, t *Test) (*Ingest, error) {
 		return nil, err
 	}
 
-	var pay interface{}
-	if err = t.Bindings.Sub(ctx, i.Payload, &pay, true); err != nil {
+	var pay string
+	if s, is := i.Payload.(string); is {
+		pay = s
+	} else {
+		js, err := json.Marshal(&i.Payload)
+		if err != nil {
+			return nil, err
+		}
+		pay = string(js)
+	}
+
+	if pay, err = t.Bindings.Sub(ctx, pay); err != nil {
 		return nil, err
 	}
 
 	return &Ingest{
-		Chan:          i.Chan,
-		Topic:         topic,
-		Serialization: i.Serialization,
-		Payload:       pay,
-		ch:            i.ch,
+		Chan:    i.Chan,
+		Topic:   topic,
+		Payload: pay,
+		ch:      i.ch,
 	}, nil
 
 }
 
 func (i *Ingest) Exec(ctx *Ctx, t *Test) error {
-	payload, err := i.Serialization.Serialize(i.Payload)
-	if err != nil {
-		return err
+	payload, is := i.Payload.(string)
+	if !is {
+		js, err := json.Marshal(&i.Payload)
+		if err != nil {
+			return err
+		}
+		payload = string(js)
 	}
 	m := Msg{
 		Topic:   i.Topic,

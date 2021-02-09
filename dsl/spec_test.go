@@ -140,61 +140,6 @@ func MustParseJSON(js string) interface{} {
 	return x
 }
 
-func TestSerialization(t *testing.T) {
-	for name, ser := range Serializations {
-		t.Run(name, func(t *testing.T) {
-			payload := `{"want":"tacos"}`
-			x, err := ser.Deserialize(payload)
-			if err != nil {
-				t.Fatal(err)
-			}
-			y, err := ser.Serialize(x)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if payload != y {
-				t.Fatal(y)
-			}
-		})
-	}
-
-	t.Run("illegal", func(t *testing.T) {
-		if _, err := NewSerialization("graffiti"); err == nil {
-			t.Fatal("expected a complaint")
-		}
-	})
-
-	t.Run("string-string", func(t *testing.T) {
-		var x interface{} = "queso"
-		s, err := NewSerialization("string")
-		if err != nil {
-			t.Fatal(err)
-		}
-		y, err := s.Serialize(x)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if x.(string) != y {
-			t.Fatal(y)
-		}
-	})
-
-	t.Run("string-int", func(t *testing.T) {
-		var x interface{} = 42
-		s, err := NewSerialization("string")
-		if err != nil {
-			t.Fatal(err)
-		}
-		y, err := s.Serialize(x)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if "42" != y {
-			t.Fatal(y)
-		}
-	})
-}
-
 func TestFails(t *testing.T) {
 
 	ctx, s, tst := newTest(t)
