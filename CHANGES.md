@@ -2,6 +2,9 @@
 
 ## New `httpserver` channel
 
+See [`demos/http.yaml`](demos/http.yaml) and
+[`demos/httpserver.yaml`](demos/httpserver.yaml) for examples.
+
 ## `httpclient` channel request and response improvements
 
 ## `@@` and `!!` syntax changes
