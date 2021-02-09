@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"regexp"
 	"strings"
 
 	"github.com/Comcast/sheens/match"
@@ -76,110 +78,70 @@ func (bs *Bindings) Set(value string) error {
 	return nil
 }
 
+func (bs *Bindings) SubX(ctx *Ctx, src, dst interface{}) error {
+	js, err := json.Marshal(&src)
+	if err != nil {
+		return err
+	}
+	s, err := bs.Sub(ctx, string(js))
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(s), &dst)
+}
+
 // Sub the bindings structurally.
-func (bs *Bindings) Sub(ctx *Ctx, src, target interface{}, maybeJSON bool) error {
+func (bs *Bindings) Sub(ctx *Ctx, src string) (string, error) {
 	// Computes the fixed point of SubOnce.
 
-	// We use a canonical (we hope) string representation to
-	// determine termination.
-
-	canonical := func(x interface{}) (string, error) {
-		js, err := json.Marshal(&x)
-		if err != nil {
-			return "", err
-		}
-		return string(js), nil
-	}
-
-	// src0 is just for an error message (if required).
-	src0, err := canonical(src)
-	if err != nil {
-		return nil
-	}
 	var (
+		// limit is the invocation circuit breaker.
+		// ToDo: Expose.
 		limit = 10
 
 		// acc remembers all previous values to detect loops.
 		acc = make([]string, 0, limit)
 	)
 
-	var s string
+	acc = append(acc, src)
+
 	for i := 0; i < limit; i++ {
 		var err error
-		var x interface{}
-		if err = bs.SubOnce(ctx, src, &x, maybeJSON); err != nil {
-			return err
-		}
-		if s, err = canonical(x); err != nil {
-			return err
+		if src, err = bs.SubOnce(ctx, src); err != nil {
+			return "", err
 		}
 		// Have we enountered this string before?
-		for _, s0 := range acc {
-			if s == s0 {
-				// Need to deserialize into target.
-				// Then we are done.
-				return json.Unmarshal([]byte(s), &target)
+		for _, previous := range acc {
+			if src == previous {
+				return src, nil
 			}
 		}
 		// Nope.  Remember it.
-		acc = append(acc, s)
+		acc = append(acc, src)
 	}
 
-	return fmt.Errorf("expansion limit (%d) exceeded at '%s' starting from '%s'", limit, s, src0)
+	return "", Brokenf("expansion limit (%d) exceeded at '%s' starting from '%s'", limit, src, acc[0])
 }
 
-// SubOnce performs a single pass of bindings substitition on src and updates target.
-func (bs *Bindings) SubOnce(ctx *Ctx, src, target interface{}, maybeJSON bool) error {
-	// If we are given a string, perform string-based expansion on
-	// that string.
-	if s, is := src.(string); is {
-		var err error
-		if src, err = bs.StringSub(ctx, s); err != nil {
-			return err
+// SubOnce performs a single pass of bindings substitition on src.
+func (bs *Bindings) SubOnce(ctx *Ctx, src string) (string, error) {
+	log.Printf("DEBUG SubSOnce %T %#v", src, src)
+	var err error
+	if src, err = bs.StringSub(ctx, src); err != nil {
+		return "", err
+	}
+
+	var x interface{}
+	if err = json.Unmarshal([]byte(src), &x); err == nil {
+		x = bs.Bind(ctx, x)
+		js, err := json.Marshal(&x)
+		if err != nil {
+			return "", err
 		}
+		src = string(js)
 	}
 
-	// Even if we are not given a string, we attempt to
-	// JSON-serialize it to a string in order to perform embedded
-	// string-based substitutions in whatever strings might lurk
-	// in the structure.
-	//
-	// See the 'deepstring' subtest in TestSubstitute for an
-	// example.
-	if js, err := json.Marshal(&src); err == nil {
-		if js1, err := bs.StringSub(ctx, string(js)); err == nil {
-			var x interface{}
-			if err := json.Unmarshal([]byte(js1), &x); err != nil {
-				return err
-			}
-			src = x
-		}
-	}
-
-	if maybeJSON {
-		// Src might be a string of JSON.  If we can parse it, assume
-		// that it is!  Then we can do structured bindings.
-		if s, is := src.(string); is {
-			var x interface{}
-			if err := json.Unmarshal([]byte(s), &x); err == nil {
-				// ctx.Indf("    Interpreting as JSON: %s", short(s))
-				src = x // Assuming it was meant to be JSON.
-			} else {
-				// ctx.Indf("    Note: string representation isn't JSON: %s", short(s))
-			}
-		}
-	}
-	// Perform structured bindings substitution.
-	src = bs.Bind(ctx, src)
-
-	// Attempt to deserialize the result into the target.
-
-	js, err := json.Marshal(&src)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(js, &target)
+	return src, nil
 }
 
 // StringSub computes the fixed point of StringSubOnce.
@@ -215,6 +177,61 @@ func (bs *Bindings) StringSub(ctx *Ctx, s string) (string, error) {
 	return "", fmt.Errorf("expansion limit (%d) exceeded on at '%s' starting from '%s'", limit, s, s0)
 }
 
+var atAtFilename = regexp.MustCompile(`"?{@@(.+?)}"?`)
+
+func atAtSub(ctx *Ctx, s string) (string, error) {
+	var err error
+	y := atAtFilename.ReplaceAllStringFunc(s, func(s string) string {
+		m := atAtFilename.FindStringSubmatch(s)
+		if len(m) != 2 {
+			err = Brokenf("internal error: failed to @@ submatch on '%s'", s)
+			return fmt.Sprintf("<error: %s>", err)
+		}
+		filename := m[1]
+		var bs []byte
+		if bs, err = ioutil.ReadFile(ctx.Dir + "/" + filename); err != nil {
+			return fmt.Sprintf("<error: %s>", err)
+		}
+		return string(bs)
+	})
+	if err != nil {
+		return "", err
+	}
+	return y, nil
+}
+
+var bangBangFilename = regexp.MustCompile(`"?{!!(.+?)!!}"?`)
+
+func bangBangSub(ctx *Ctx, s string) (string, error) {
+	var err error
+	y := bangBangFilename.ReplaceAllStringFunc(s, func(s string) string {
+		m := bangBangFilename.FindStringSubmatch(s)
+		if len(m) != 2 {
+			err = Brokenf("internal error: failed to !! submatch on '%s'", s)
+			return fmt.Sprintf("<error: %s>", err)
+		}
+		src := m[1]
+		ctx.Inddf("    Expansion: Javascript '%s'", short(src))
+		var x interface{}
+		if x, err = JSExec(ctx, src, nil); err != nil {
+			return fmt.Sprintf("<error: %s>", err)
+		}
+		str, is := x.(string)
+		if !is {
+			var js []byte
+			if js, err = json.Marshal(&x); err != nil {
+				return fmt.Sprintf("<error: %s>", err)
+			}
+			str = string(js)
+		}
+		return str
+	})
+	if err != nil {
+		return "", err
+	}
+	return y, nil
+}
+
 // StringSubOnce performs the following subsitutions in order: @@, !!,
 // bindings.
 //
@@ -223,6 +240,15 @@ func (bs *Bindings) StringSub(ctx *Ctx, s string) (string, error) {
 //
 // This method does not call Bind (structured bindings substitution).
 func (bs *Bindings) StringSubOnce(ctx *Ctx, s string) (string, error) {
+	s, err := atAtSub(ctx, s)
+	if err != nil {
+		return "", err
+	}
+
+	if s, err = bangBangSub(ctx, s); err != nil {
+		return "", err
+	}
+
 	b := *bs
 	// Maybe read a file.
 	if strings.HasPrefix(s, "@@") {
@@ -307,4 +333,61 @@ func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) interface{} {
 // Bind replaces all bindings in the given (structured) thing.
 func (bs *Bindings) Bind(ctx *Ctx, x interface{}) interface{} {
 	return bs.replaceBindings(ctx, x)
+}
+
+// walk is not used.
+func walk(ctx *Ctx, x interface{}, f func(ctx *Ctx, x interface{}) (interface{}, error), limit int) (interface{}, error) {
+	if limit <= 0 {
+		return nil, Brokenf("walk() took too many steps")
+	}
+
+	switch vv := x.(type) {
+	case map[string]interface{}:
+		acc := make(map[string]interface{}, len(vv))
+		for k, v := range vv {
+			k1, err := f(ctx, k)
+			if err != nil {
+				return nil, err
+			}
+			s, is := k1.(string)
+			if !is {
+				return nil, Brokenf("tried to set a %T map key (%#v)", k1, k1)
+			}
+			v1, err := walk(ctx, v, f, limit-1)
+			if err != nil {
+				return nil, err
+			}
+			if v1 != nil {
+				acc[s] = v1
+			}
+		}
+		return acc, nil
+	case string:
+		x, err := f(ctx, vv)
+		if err != nil {
+			return nil, err
+		}
+		if s, is := x.(string); is && s == vv {
+			// Nothing changed, so stop now.
+			return s, nil
+		}
+		y, err := walk(ctx, x, f, limit-1)
+		if err != nil {
+			return nil, err
+		}
+		return y, nil
+	case []interface{}:
+		acc := make([]interface{}, len(vv))
+		for i, x := range vv {
+			x1, err := walk(ctx, x, f, limit-1)
+			if err != nil {
+				return nil, err
+			}
+			acc[i] = x1
+		}
+		return acc, nil
+	default:
+		return x, nil
+	}
+
 }

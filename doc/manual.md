@@ -282,30 +282,37 @@ following channel types:
     The published payload should be a JSON object with the following
     properties:
 	
-	1. `Method`: The HTTP request method. Default is `GET`.
+	1. `method`: The HTTP request method. Default is `GET`.
 	
-	1. `URL`: The requested URL (required).
+	1. `url`: The requested URL (required).
 	
-	1. `Headers`: An optional map of header names to _arrays_ of
+	1. `headers`: An optional map of header names to _arrays_ of
        values.  Example:
 	   
         ```{JSON}
-		{"Headers":{"someHeader":["someValue"]}}
+		{"headers":{"someHeader":["someValue"]}}
 		```
 		
-	1. `Body`: Optional body for the request.  If the value isn't a
-       string, it's JSON-serialized.
+	1. `body`: Optional body for the request.
+	
+	1. `requestbodyserialization`: Either `JSON` or `string`, which
+       specifies how to serialize the request body.  Defaults to
+       "JSON".
 	   
-	1. `Form`: Optional map of names to _arrays_ of values.  If you
-       specify this property, then `Body` becomes this URL-encoded
+	1. `form`: Optional map of names to _arrays_ of values.  If you
+       specify this property, then `body` becomes this URL-encoded
        value.
 	   
-	1. `PollInterval`: An optional duration (in [Go
+	1. `responsebodyserialization`: Either `JSON` or `string`, which
+       specifies how to deserialize the response body.  Defaults to
+       "JSON".
+	   
+	1. `pollinterval`: An optional duration (in [Go
        syntax](https://golang.org/pkg/time/#ParseDuration)) to have
        this request repeat on that interval.  You can also specify an
-       `Id`, which you can then use to `Terminate` the polling.  If
-       you don't specify an `Id` along with a `PollInterval`, you can
-       stil do `Terminate: last`, which will always work to terminate
+       `Id`, which you can then use to `terminate` the polling.  If
+       you don't specify an `id` along with a `pollinterval`, you can
+       stil do `terminate: last`, which will always work to terminate
        the most recent polling HTTP request.  See [this
        demo](../demos/webdriver.yaml).
 
@@ -503,17 +510,19 @@ behavior is convenient when doing structured binding substitution.
 
 #### String commands
 
-Several string values have special powers.
+Several substrings have special powers.
 
-<a name="at-at-filename"></a>If one of these strings looks like
-`@@FILENAME`, then Plax attempts to substitute the contents of the
-file with name `FILENAME` for that string.  The file is read relative
-to the directory that contained the test specification.
+<a name="at-at-filename"></a>When Plax sees `{@@FILENAME}`, then Plax
+attempts to substitute the contents of the file with name `FILENAME`
+for that substring.  When Plax sees a pattern or payload of the form
+`@@FILENAME`, the same thing happens.  The file is read relative to the
+directory that contained the test specification.
 
-<a name="bang-bang-javascript"></a>If one of these string starts with
-`!!`, then remainder of the string is executed as Javascript.
-Bindings substitution applies.  The value returned by this Javascript
-is substituted for string.
+<a name="bang-bang-javascript"></a>When Plax sees `{!!JAVASCRIPT!!}`,
+then `JAVASCRIPT` is executed as Javascript, and the result replaces
+that substring.  Bindings substitution applies.  The value returned by
+this Javascript is substituted for string.  When Plax sees a pattern
+or payload of the form `!!JAVASCRIPT`, then the same thing happens.
 
 These string commands are processed in the order above: first `@@` and
 then `!!`.  (So a file's contents could start with `!!`, which would
