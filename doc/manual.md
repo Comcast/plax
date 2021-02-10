@@ -56,10 +56,6 @@ plax -h
 Usage of plax:
   -I value
     	YAML include directories
-  -check-string-subst string
-    	perform string-based substitution and exit
-  -check-struct-subst string
-    	perform structured substitution and exit
   -dir string
     	Directory containing test specs
   -error-exit-code
@@ -72,8 +68,6 @@ Usage of plax:
     	Show report of known tests; don't run anything.  Assumes -dir.
   -log string
     	log level (info, debug, none) (default "info")
-  -network string
-    	net.Dial network to deal to force IPv4
   -p value
     	Parameter values: PARAM=VALUE
   -priority int
