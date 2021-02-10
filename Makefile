@@ -1,6 +1,8 @@
 all:
 	go install ./...
 
+install: all
+
 .PHONY: unit-tests
 unit-tests:
 	go test -v ./...

@@ -228,7 +228,7 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 }
 
 type HTTPResponse struct {
-	StatusCode int                 `json:"statuscode"`
+	StatusCode int                 `json:"statuscode" yaml:"statuscode"`
 	Body       interface{}         `json:"body"`
 	Error      string              `json:"error,omitempty"`
 	Headers    map[string][]string `json:"headers"`

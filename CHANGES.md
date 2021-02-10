@@ -1,5 +1,12 @@
 # Recent changes
 
+## New `httpserver` channel
+
+See [`demos/http.yaml`](demos/http.yaml) and
+[`demos/httpserver.yaml`](demos/httpserver.yaml) for examples.
+
+## `httpclient` channel request and response improvements
+
 ## `@@` and `!!` syntax changes
 
 Now do
@@ -14,7 +21,7 @@ The request message now has lower-case properties instead of
 capitalized properties.
 
 The response message has structure supporting status code, body, and
-headers.
+headers.  Sadly this change is not backwards-compatible.
 
 
 ## Schema validation

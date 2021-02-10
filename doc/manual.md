@@ -310,14 +310,37 @@ following channel types:
        the most recent polling HTTP request.  See [this
        demo](../demos/webdriver.yaml).
 
+1. `httpserver`: An HTTP server channel type.  Configuration:
+
+    1. `host`: name of the network interface to use
+	1. `port`: number of port on which to listen
+	1. `parsejson`: Boolean that indicates whether to parse received
+       message bodies as JSON.  Defaults to `true`.
+	   
+    To use an `httpserver` channel, you `recv` each request that the
+    HTTP listener receives from a client, and you `pub` the response
+    to forward to the client.  The request your `recv` has a payload
+    with `path`, `headers`, `method`, `body`, and `error` properties.
+    The response can have `headers`, `body`, `statuscode`, and
+    `serialization`. The `serialization` property, which can have a
+    `JSON` (default) or `string` value, specifies how the given `body`
+    is serialized before forwarding as the HTTP response body to the
+    HTTP client.
+	
+	You can of course run both an `httpclient` and `httpserver` in a
+    Plax test, and you can make those channels talk to each other via
+    real HTTP.  (You can also `curl` your `httpserver` if you want,
+    but remember you have to `recv` and `pub` to that channel for each
+    actual HTTP request.)  See [`demos/http.yaml`](../demos/http.yaml)
+    for an example.
+
 As the needs arise, we can add channel types like:
 
 1. KDS publisher
-1. HTTP server (a `recv` obtains a pending request, and a `pub`
-   responds to that request)
 1. Kafka consumer and publisher
 
 and so on.
+
 
 #### Including YAML in other YAML
 
