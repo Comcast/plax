@@ -39,6 +39,12 @@ func NewMockChan(ctx *Ctx, _ interface{}) (Chan, error) {
 	}, nil
 }
 
+func (c *MockChan) DocSpec() *DocSpec {
+	return &DocSpec{
+		Chan: &MockChan{},
+	}
+}
+
 func (c *MockChan) Kind() ChanKind {
 	return "mock"
 }

@@ -24,6 +24,7 @@ import (
 	"io"
 	"log"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -75,6 +76,15 @@ func (p *Process) Substitute(ctx *Ctx, bs *Bindings) (*Process, error) {
 		Command: cmd,
 		Args:    args,
 	}, nil
+}
+
+// TrimEOL is a utility function that removes the last (if any)
+// newline character(s).
+//
+// This function does not trim more than one newline.
+func TrimEOL(s string) string {
+	s = strings.TrimSuffix(s, "\n")
+	return strings.TrimSuffix(s, "\r")
 }
 
 // Start starts the program, which runs in the background (until the

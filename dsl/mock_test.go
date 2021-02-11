@@ -24,6 +24,10 @@ import (
 	"testing"
 )
 
+func TestDocsMock(t *testing.T) {
+	(&MockChan{}).DocSpec().Write("mock")
+}
+
 func TestMock(t *testing.T) {
 	ctx := NewCtx(nil)
 	c, err := NewMockChan(ctx, nil)

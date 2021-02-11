@@ -44,12 +44,19 @@ func init() {
 	dsl.TheChanRegistry.Register(dsl.NewCtx(nil), "mqtt", NewMQTTChan)
 }
 
-// MQTT is an MQTT client Chan
+// MQTT is an MQTT client Chan.
 type MQTT struct {
 	opts   *MQTTOpts
 	mopts  *mqtt.ClientOptions
 	client mqtt.Client
 	c      chan dsl.Msg
+}
+
+func (c *MQTT) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &MQTT{},
+		Opts: &MQTTOpts{},
+	}
 }
 
 // MQTTOpts is partly subset of mqtt.ClientOptions that can be

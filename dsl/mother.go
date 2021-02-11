@@ -76,6 +76,14 @@ func NewMother(ctx *Ctx, _ interface{}) (*Mother, error) {
 	}, nil
 }
 
+func (c *Mother) DocSpec() *DocSpec {
+	return &DocSpec{
+		Chan:   &Mother{},
+		Input:  &MotherRequest{},
+		Output: &MotherResponse{},
+	}
+}
+
 func (c *Mother) Kind() ChanKind {
 	return "mother"
 }

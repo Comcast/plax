@@ -80,4 +80,6 @@ type Chan interface {
 	// To is a utility to send a message to the channel returned
 	// by Recv.
 	To(ctx *Ctx, m Msg) error
+
+	DocSpec() *DocSpec
 }
