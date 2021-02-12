@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package chans
+package httpserver
 
 import (
 	"encoding/json"
@@ -28,12 +28,14 @@ import (
 	"github.com/Comcast/plax/dsl"
 )
 
+var (
+	// DefaultHTTPServerBufferSize is the default size of the
+	// buffer of in-coming HTTP request messages.
+	DefaultHTTPServerBufferSize = 1024
+)
+
 func init() {
 	dsl.TheChanRegistry.Register(dsl.NewCtx(nil), "httpserver", NewHTTPServerChan)
-	DocSpecs["httpserver"] = &DocSpec{
-		Chan: &HTTPServer{},
-		Opts: &HTTPServerOpts{},
-	}
 }
 
 // HTTPServer is an HTTP server Chan.
@@ -61,6 +63,13 @@ type HTTPServerOpts struct {
 	Host      string `json:"host"`
 	Port      int    `json:"port"`
 	ParseJSON bool   `json:"parsejson" yaml:"parsejson"`
+}
+
+func (c *HTTPServer) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &HTTPServer{},
+		Opts: &HTTPServerOpts{},
+	}
 }
 
 func (c *HTTPServer) Kind() dsl.ChanKind {
@@ -226,7 +235,7 @@ func NewHTTPServerChan(ctx *dsl.Ctx, opts interface{}) (dsl.Chan, error) {
 
 	return &HTTPServer{
 		opts:  &o,
-		reqs:  make(chan dsl.Msg, DefaultMQTTBufferSize),
-		resps: make(chan dsl.Msg, DefaultMQTTBufferSize),
+		reqs:  make(chan dsl.Msg, DefaultHTTPServerBufferSize),
+		resps: make(chan dsl.Msg, DefaultHTTPServerBufferSize),
 	}, nil
 }

@@ -29,6 +29,10 @@ import (
 	"github.com/Comcast/plax/dsl"
 )
 
+func TestDocs(t *testing.T) {
+	(&CmdChan{}).DocSpec().Write("cmd")
+}
+
 func TestNewCmdChan(t *testing.T) {
 	var (
 		ctx    = dsl.NewCtx(nil)

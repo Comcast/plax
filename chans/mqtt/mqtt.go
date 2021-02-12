@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package chans
+package mqtt
 
 import (
 	"crypto/rand"
@@ -31,13 +31,13 @@ import (
 
 	"github.com/Comcast/plax/dsl"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	mq "github.com/eclipse/paho.mqtt.golang"
 )
 
 var (
 	// DefaultMQTTBufferSize is the default capacity of the
 	// internal Go channel.
-	DefaultMQTTBufferSize = 1024
+	DefaultMQTTBufferSize = dsl.DefaultChanBufferSize
 )
 
 func init() {
@@ -45,10 +45,21 @@ func init() {
 }
 
 // MQTT is an MQTT client Chan.
+//
+// This channel impl talks MQTT to a broker.  The configuration
+// provides the data required to set up the connections.  Messages
+// published to this channel are forwarded to the MQTT broker, and
+// messages received from the MQTT broker are available for a test to
+// receive.
+//
+// The topic of a message published to the channel becomes the MQTT
+// topic for the message.  Similarly, the topic of the message
+// received from the broker becomes the topic of the message the test
+// sees.
 type MQTT struct {
 	opts   *MQTTOpts
-	mopts  *mqtt.ClientOptions
-	client mqtt.Client
+	mopts  *mq.ClientOptions
+	client mq.Client
 	c      chan dsl.Msg
 }
 
@@ -59,8 +70,11 @@ func (c *MQTT) DocSpec() *dsl.DocSpec {
 	}
 }
 
-// MQTTOpts is partly subset of mqtt.ClientOptions that can be
+// MQTTOpts is partly subset of mq.ClientOptions that can be
 // deserialized.
+//
+// This data specifies everything required to attempt the connection
+// to the MQTT broker.
 type MQTTOpts struct {
 	// When this struct or its fields' documentation changes,
 	// update doc/manual.md.
@@ -82,12 +96,13 @@ type MQTTOpts struct {
 
 	// Insecure will given the value for the tls.Config InsecureSkipVerify.
 	//
-	// InsecureSkipVerify controls whether a client verifies the
-	// server's certificate chain and host name. If InsecureSkipVerify
-	// is true, crypto/tls accepts any certificate presented by the
-	// server and any host name in that certificate. In this mode, TLS
-	// is susceptible to machine-in-the-middle attacks unless custom
-	// verification is used. This should be used only for testing.
+	// This flag specifies whether a client verifies the server's
+	// certificate chain and host name. If InsecureSkipVerify is
+	// true, crypto/tls accepts any certificate presented by the
+	// server and any host name in that certificate. In this mode,
+	// TLS is susceptible to machine-in-the-middle attacks unless
+	// custom verification is used. This should be used only for
+	// testing.
 	Insecure bool `json:",omitempty" yaml:",omitempty"`
 
 	// ALPN gives the
@@ -222,9 +237,9 @@ func dur(ms int64) time.Duration {
 	return time.Duration(ms) * time.Millisecond
 }
 
-// Opts constructions an mqtt.ClientOptions.
-func (o *MQTTOpts) Opts(ctx *dsl.Ctx) (*mqtt.ClientOptions, error) {
-	opts := mqtt.ClientOptions{}
+// Opts constructions an mq.ClientOptions.
+func (o *MQTTOpts) Opts(ctx *dsl.Ctx) (*mq.ClientOptions, error) {
+	opts := mq.ClientOptions{}
 
 	ctx.Logf("MQTT Opts broker: %s", o.BrokerURL)
 	opts.AddBroker(o.BrokerURL)
@@ -318,7 +333,7 @@ func (o *MQTTOpts) Opts(ctx *dsl.Ctx) (*mqtt.ClientOptions, error) {
 
 	opts.SetTLSConfig(tlsConf)
 
-	opts.OnConnectionLost = func(client mqtt.Client, err error) {
+	opts.OnConnectionLost = func(client mq.Client, err error) {
 		ctx.Logf("MQTT %s connection lost", o.ClientID)
 	}
 
@@ -336,7 +351,7 @@ func (c *MQTT) Open(ctx *dsl.Ctx) error {
 
 	ctx.Logf("MQTT %s opening", c.mopts.ClientID)
 
-	c.client = mqtt.NewClient(c.mopts)
+	c.client = mq.NewClient(c.mopts)
 
 	// The c.mopts.ConnectTimeout doesn't work when trying AWS IoT
 	// Core at 443 with ALPN.  Dangit.  So we roll our own,
@@ -469,7 +484,7 @@ func NewMQTTChan(ctx *dsl.Ctx, opts interface{}) (dsl.Chan, error) {
 	// wouldn't see messages that the broker published to a
 	// reconnected client with a persistent session.)
 
-	mopts.DefaultPublishHandler = func(_ mqtt.Client, m mqtt.Message) {
+	mopts.DefaultPublishHandler = func(_ mq.Client, m mq.Message) {
 		ctx.Logf("MQTT %s receiving %s", o.ClientID, m.Topic())
 		ctx.Logdf("     %s", m.Payload())
 

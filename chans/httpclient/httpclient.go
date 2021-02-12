@@ -39,6 +39,10 @@ func init() {
 }
 
 // HTTPClient is an HTTP client Chan.
+//
+// This channel type implements HTTP requests.  A test publishes a
+// request that includes a URL.  This channel performs the HTTP
+// request and then forwards the response for the test to receive.
 type HTTPClient struct {
 	opts   *HTTPClientOpts
 	client *http.Client
@@ -58,6 +62,8 @@ func (c *HTTPClient) DocSpec() *dsl.DocSpec {
 }
 
 // HTTPClientOpts configures an HTTPClient.
+//
+// Currently this channel doesn't have any configuration.
 type HTTPClientOpts struct {
 }
 
@@ -81,26 +87,40 @@ func (c *HTTPClient) Sub(ctx *dsl.Ctx, topic string) error {
 
 // HTTPRequest represents a complete HTTP request, which is typically
 // provided as a message payload in JSON.
-//
-// We can't just use https://golang.org/pkg/net/http/#Header because
-// its URL field is actually a URL and not a string.  (Other reasons,
-// too.)
 type HTTPRequest struct {
-	Method  string              `json:"method"`
-	URL     string              `json:"url"`
+	// We can't just use https://golang.org/pkg/net/http/#Header because
+	// its URL field is actually a URL and not a string.  (Other reasons,
+	// too.)
+
+	// Method is the usual HTTP request method (e.g., GET, POST).
+	Method string `json:"method"`
+
+	// URL is the target for the request.
+	URL string `json:"url"`
+
+	// Headers is map of HTTP header names to values.
 	Headers map[string][]string `json:"headers"`
 
 	// Body is the request body.
 	Body interface{} `json:"body,omitempty"`
 
-	RequestBodySerialization    dsl.Serialization `json:"requestBodySerialization,omitempty" yaml:"requestbodyserialization,omitempty"`
+	// RequestBodySerialization specifies what serialization
+	// (if any) to perform on the request's body.
+	//
+	// Possible values are 'string' and 'json' (default).
+	RequestBodySerialization dsl.Serialization `json:"requestBodySerialization,omitempty" yaml:"requestbodyserialization,omitempty"`
+
+	// ResponseBodyDeserialization specifies what deserialization
+	// (if any) to perform on the response's body.
+	//
+	// Possible values are 'string' and 'json' (default).
 	ResponseBodyDeserialization dsl.Serialization `json:"responseBodyDeserialization,omitempty" yaml:"responsebodydeserialization,omitempty"`
 
 	// Form can contain form values, and you can specify these
 	// values instead of providing an explicit Body.
 	Form url.Values `json:"form,omitempty"`
 
-	// HTTPRequestCtl is optional data to managing polling
+	// HTTPRequestCtl is optional data for managing polling
 	// requests.
 	HTTPRequestCtl `json:"ctl,omitempty" yaml:"ctl"`
 
@@ -110,6 +130,7 @@ type HTTPRequest struct {
 	req *http.Request
 }
 
+// HTTPRequestCtl directs management of polling requests (if any).
 type HTTPRequestCtl struct {
 
 	// Id is used to refer to this request when it has a polling
@@ -242,11 +263,26 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 	return nil
 }
 
+// HTTPResponse represents the HTTP response received from the HTTP
+// server.
+//
 type HTTPResponse struct {
-	StatusCode int                 `json:"statuscode" yaml:"statuscode"`
-	Body       interface{}         `json:"body"`
-	Error      string              `json:"error,omitempty"`
-	Headers    map[string][]string `json:"headers"`
+	// StatusCode is the HTTP status code returned by the HTTP server.
+	StatusCode int `json:"statuscode" yaml:"statuscode"`
+
+	// Body is the either the raw body or parsed body returned by
+	// the HTTP server.
+	//
+	// The requests's ResponseBodyDeserialization determines if
+	// and how deserialization occurs.
+	Body interface{} `json:"body"`
+
+	// Error describes a channel processing error (if any) that
+	// occured during the request or response.
+	Error string `json:"error,omitempty"`
+
+	// Headers contains the response headers from the HTTP server.
+	Headers map[string][]string `json:"headers"`
 }
 
 func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {

@@ -29,6 +29,8 @@ import (
 
 	plaxDsl "github.com/Comcast/plax/dsl"
 
+	_ "github.com/Comcast/plax/chans/std"
+
 	"github.com/Comcast/plax/cmd/plaxrun/dsl"
 	_ "github.com/Comcast/plax/cmd/plaxrun/plugins"
 )

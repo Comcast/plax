@@ -26,18 +26,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Comcast/plax/chans"
 	"github.com/Comcast/plax/dsl"
 )
 
 func init() {
 	dsl.TheChanRegistry.Register(dsl.NewCtx(nil), "cmd", NewCmdChan)
-	chans.DocSpecs["cmd"] = &chans.DocSpec{
-		Chan: &CmdChan{},
-	}
 }
 
 // CmdChan is a channel that's backed by a subprocess.
+//
+// This channel forwards messages to a shell's stdin, and messages
+// written to the shell's stdout and stderr are emitted.
 type CmdChan struct {
 	p *dsl.Process
 
@@ -62,6 +61,13 @@ func NewCmdChan(ctx *dsl.Ctx, cfg interface{}) (dsl.Chan, error) {
 		to:   make(chan dsl.Msg, 1024),
 		from: make(chan dsl.Msg, 1024),
 	}, nil
+}
+
+func (c *CmdChan) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &CmdChan{},
+		Opts: &dsl.Process{},
+	}
 }
 
 func (c *CmdChan) Kind() dsl.ChanKind {

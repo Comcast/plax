@@ -20,6 +20,12 @@ package dsl
 
 import "time"
 
+var (
+	// DefaultChanBufferSize is a default buffer size any Chan can
+	// choose to consider.
+	DefaultChanBufferSize = 1024
+)
+
 type Msg struct {
 	Topic      string    `json:"topic"`
 	Payload    string    `json:"payload"`
