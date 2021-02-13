@@ -1,8 +1,6 @@
 name: cwl
 doc: |
   A simple cloudwatch logs (cwl) channel test.
-labels:
-  - selftest
 bindings:
   '?ACCOUNT_ID': '1234567890'
 spec:
