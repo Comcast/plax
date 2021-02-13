@@ -28,18 +28,19 @@ func init() {
 
 // CWLOpts is the Cloudwatch Logs Options
 type CWLOpts struct {
-	_      struct{} `type:"structure"`
-	Region *string  `type:"string" json:"region,omitempty" yaml:",omitempty"`
-	// GroupName for the Cloudwatch Log Group
+	_ struct{} `type:"structure"`
+	// Region is the region of the AWS Account
+	Region *string `type:"string" json:"region,omitempty" yaml:",omitempty"`
+	// GroupName is the Cloudwatch Log Group Name
 	GroupName string `type:"string" json:"groupName,omitempty" yaml:",omitempty"`
 	// StreamNamePrefix is the Cloudwatch Log Stream Name prefix
 	StreamNamePrefix *string `type:"string" json:",omitempty" yaml:",omitempty"`
-	// FilterPattern is based on the Cloudwatch filter pattern syntax
+	// FilterPattern is based on the Cloudwatch Filter Pattern syntax
 	// Reference: (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
 	FilterPattern string `type:"string" json:",omitempty" yaml:",omitempty"`
-	// StartTimePadding defines the time in seconds to substract from now
+	// StartTimePadding defines the time in seconds to subtract from now
 	StartTimePadding *int64 `type:"number" json:",omitempty" yaml:",omitempty"`
-	// PollInterval defines the Cloudwatch logs poll time interval in seconds
+	// PollInterval defines the Cloudwatch log poll time interval in seconds
 	PollInterval *int64 `type:"number" json:",omitempty" yaml:",omitempty"`
 }
 
