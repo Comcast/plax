@@ -38,7 +38,9 @@ spec:
               used in the next step to expand any embedded variables
               in payloads.
             chan: client
-            pattern: '{"id":"?id"}'
+            pattern:
+              body:
+                id: "?id"
         - pub:
             doc: |
               Use the extracted value in a message payload.  The
@@ -68,5 +70,7 @@ spec:
                   - "application/x-www-form-urlencoded"
         - recv:
             chan: client
-            pattern: '{"total":"?total"}'
-        
+            pattern:
+              statuscode: 200
+              body:
+                total: "?total"

@@ -332,7 +332,7 @@ func (t *Test) makeChan(ctx *Ctx, kind ChanKind, opts interface{}) (Chan, error)
 	}
 
 	var x interface{}
-	if err := t.Bindings.Sub(ctx, opts, &x, false); err != nil {
+	if err := t.Bindings.SubX(ctx, opts, &x); err != nil {
 		return nil, err
 	}
 

@@ -68,6 +68,7 @@ func (c *Ctx) WithCancel() (*Ctx, func()) {
 		Logger:      DefaultLogger,
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
+		Dir:         c.Dir,
 	}, cancel
 }
 
@@ -79,6 +80,7 @@ func (c *Ctx) WithTimeout(d time.Duration) (*Ctx, func()) {
 		Logger:      DefaultLogger,
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
+		Dir:         c.Dir,
 	}, cancel
 }
 

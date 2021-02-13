@@ -1,0 +1,51 @@
+doc: |
+  An example of an HTTP client channel with a request body from a
+  file.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: client
+                type: httpclient
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            chan: client
+            payload:
+              url: 'https://reqres.in/api/users'
+              method: POST
+              body: "{@@http-client-body.json}"
+              headers:
+                'Content-type':
+                  - 'application/json; charset=UTF-8'
+        - recv:
+            chan: client
+            pattern:
+              body:
+                id: "?id"
+        - goto: phase2
+    phase2:
+      steps:
+        - pub:
+            chan: client
+            payload:
+              url: 'https://reqres.in/api/users'
+              method: GET
+              form:
+                page:
+                  - '2'
+              headers:
+                'Content-type':
+                  - "application/x-www-form-urlencoded"
+        - recv:
+            chan: client
+            pattern:
+              statuscode: 200
+              body:
+                total: "?total"
