@@ -22,6 +22,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
@@ -56,6 +57,7 @@ func main() {
 		priority          = flag.Int("priority", -1, "Optional lowest priority (where larger numbers mean lower priority!); negative means all")
 		verbose           = flag.Bool("v", true, "Verbosity")
 		version           = flag.Bool("version", false, "Print version and then exit")
+		listChanTypes     = flag.Bool("channel-types", false, "List known channel types and then exit")
 		seed              = flag.Int64("seed", 0, "Seed for random number generator")
 		nonzeroOnAnyError = flag.Bool("error-exit-code", false, "Return non-zero on any test failure")
 		emitJSON          = flag.Bool("json", false, "Emit docs suitable for indexing")
@@ -72,6 +74,13 @@ func main() {
 	log.Printf("plax version %s", Version)
 
 	if *version {
+		return
+	}
+
+	if *listChanTypes {
+		for name, _ := range dsl.TheChanRegistry {
+			fmt.Printf("%s\n", name)
+		}
 		return
 	}
 

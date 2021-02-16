@@ -55,12 +55,14 @@ plax -h
 Usage of plax:
   -I value
     	YAML include directories
+  -channel-types
+    	List known channel types and then exit
   -dir string
     	Directory containing test specs
   -error-exit-code
     	Return non-zero on any test failure
   -json
-    	Emit docs suitable for indexing with plaxdb
+    	Emit docs suitable for indexing
   -labels string
     	Optional list of required test labels
   -list
@@ -78,7 +80,7 @@ Usage of plax:
   -test string
     	Filename for test specification (default "test.yaml")
   -test-suite string
-    	Name for JUnit test suite (default "{TS}")
+    	Name for JUnit test suite (default "NA")
   -v	Verbosity (default true)
   -version
     	Print version and then exit
@@ -349,6 +351,9 @@ As the needs arise, we can add channel types like:
 2. Kafka consumer and publisher
 
 and so on.
+
+The `plax` executable supports `-channel-types` to list the known
+channel types and then exit.
 
 
 #### Including YAML in other YAML
