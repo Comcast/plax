@@ -10,9 +10,8 @@
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Using Plax](#using-plax)
-    - [Running](#running)
-      - [Plax](#basic-use)
-	  - [Plaxrun](#using-plaxrun)
+    - [Basic use](#basic-use)
+    - [Using `plaxrun`](#using-plaxrun)
     - [Writing Tests](#writing-tests)
       - [Channel types](#channel-types)
       - [Including YAML in other YAML](#including-yaml-in-other-yaml)
@@ -29,7 +28,7 @@
       - [Circuit breaker](#circuit-breaker)
       - [Pattern matching](#pattern-matching)
       - [Specifications](#specifications)
-	- [Output](#output)
+    - [Output](#output)
   - [References](#references)
   
 ## Installation
@@ -148,10 +147,20 @@ following channel types:
 1. [`cmd`](chan_cmd.md): Shell I/O
 1. [`mock`](chan_mock.md): an echoing channel for testing
 
+2. `cwl`: A Cloudwatch Log publisher and consumer.  Options:
+
+	1. `Region` is the region of the AWS Account
+	2. `GroupName` is the Cloudwatch Log Group Name
+	3. `StreamNamePrefix` is the Cloudwatch Log Stream Name prefix
+	4. `FilterPattern` is based on the Cloudwatch Filter Pattern syntax;
+	    Reference: (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
+	5. `StartTimePadding` defines the time in seconds to subtract from now
+	6. `PollInterval` defines the Cloudwatch log poll time interval in seconds
+
 As the needs arise, we can add channel types like:
 
-1. CloudWatch consumer
-1. Kafka consumer and/or publisher
+1. KDS publisher
+2. Kafka consumer and publisher
 
 and so on.
 

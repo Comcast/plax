@@ -1,0 +1,79 @@
+name: cwl
+doc: |
+  A simple cloudwatch logs (cwl) channel test.
+bindings:
+  '?ACCOUNT_ID': '1234567890'
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: |
+              Ask Mother to make a cwl channel called log.
+            chan: mother
+            payload:
+              make:
+                name: log
+                type: cwl
+                config:
+                  region: 'us-west-2'
+                  groupname: 'plax'
+                  streamnameprefix: 'test'
+                  filterpattern: '{$.accountId = {?ACCOUNT_ID}}'
+                  starttimepadding: 20
+                  pollinterval: 1
+        - recv:
+            doc: |
+              Check that our make channel request succeeded.
+            chan: mother
+            pattern:
+              success: true
+        - goto: pub-sub-success
+    pub-sub-success:
+      steps:
+        - pub:
+            doc: |
+              Put a cloudwatch log event with LogLevel ERROR
+            chan: log
+            payload:
+              logLevel: 'ERROR'
+              accountId: '?ACCOUNT_ID'
+        - recv:
+            doc: |
+              Filter the cloudwatch logs and match on the expected logLevel
+            chan: log
+            pattern: '{"logLevel":"ERROR"}'
+            timeout: 15s
+        - goto: pub-sub-expect-matching-loglevel-failure
+    pub-sub-expect-matching-loglevel-failure:
+        steps:
+          - pub:
+              doc: |
+                Put a cloudwatch log event with LogLevel INFO 
+              chan: log
+              payload:
+                logLevel: 'INFO'
+              accountId: '?ACCOUNT_ID'
+          - recv:
+              doc: |
+                Filter the cloudwatch logs and match on the expected logLevel
+              chan: log
+              pattern: '{"logLevel":"ERROR"}'
+              timeout: 15s
+            fails: true
+          - goto: pub-sub-filter-pattern-failure
+    pub-sub-filter-pattern-failure:
+      steps:
+        - pub:
+            doc: |
+              Put a cloudwatch log event with LogLevel ERROR without matching accountId filter
+            chan: log
+            payload:
+              logLevel: 'ERROR'
+        - recv:
+            doc: |
+              Filter the cloudwatch logs and match on the expected logLevel
+            chan: log
+            pattern: '{"logLevel":"ERROR"}'
+            timeout: 15s
+          fails: true
