@@ -1,4 +1,24 @@
-package chans
+/*
+ * Copyright 2021 Comcast Cable Communications Management, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+// package cwl provides an AWS CloudWatch producer and consumer
+// channel (type).
+package cwl
 
 import (
 	"encoding/json"
@@ -26,7 +46,7 @@ func init() {
 	dsl.TheChanRegistry.Register(dsl.NewCtx(nil), "cwl", NewCWLChan)
 }
 
-// CWLOpts is the Cloudwatch Logs Options
+// CWLOpts specifies Cloudwatch Logs channel options.
 type CWLOpts struct {
 	_ struct{} `type:"structure"`
 	// Region is the region of the AWS Account
@@ -49,7 +69,9 @@ func (opts CWLOpts) String() string {
 	return awsutil.Prettify(opts)
 }
 
-// CWLChan is the Cloudwatch Logs Channel
+// CWLChan implements an AWS CloudWatch channel.
+//
+// This channel type can produce and consume AWS CloudWatch logs.
 type CWLChan struct {
 	c            chan dsl.Msg
 	ctl          chan bool
@@ -59,6 +81,13 @@ type CWLChan struct {
 	pollInterval time.Duration
 
 	opts *CWLOpts
+}
+
+func (c *CWLChan) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &CWLChan{},
+		Opts: &CWLOpts{},
+	}
 }
 
 // makeNowTimestamp creates a Unix Epoch timestamp

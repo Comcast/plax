@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package chans
+package kds
 
 import (
 	"encoding/json"
@@ -35,6 +35,7 @@ func init() {
 // KDSOpts is a configuration for a Kinesis consumer for a given
 // stream.
 type KDSOpts struct {
+	// StreamName is of course the name of the KDS.
 	StreamName string
 
 	// BufferSize is the size of the underlying channel buffer.
@@ -42,11 +43,21 @@ type KDSOpts struct {
 	BufferSize int
 }
 
+// KDSChan is a basic Kinesis stream consumer.
+//
+// This channel consumes messages from a Kinesis stream.
 type KDSChan struct {
 	c   chan dsl.Msg
 	ctl chan bool
 
 	opts *KDSOpts
+}
+
+func (c *KDSChan) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &KDSChan{},
+		Opts: &KDSOpts{},
+	}
 }
 
 func NewKDSChan(ctx *dsl.Ctx, o interface{}) (dsl.Chan, error) {
@@ -56,7 +67,7 @@ func NewKDSChan(ctx *dsl.Ctx, o interface{}) (dsl.Chan, error) {
 	}
 
 	opts := KDSOpts{
-		BufferSize: DefaultChanBufferSize,
+		BufferSize: dsl.DefaultChanBufferSize,
 	}
 
 	if err = json.Unmarshal(js, &opts); err != nil {

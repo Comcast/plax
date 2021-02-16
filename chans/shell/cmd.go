@@ -16,56 +16,66 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package dsl
+// Package shell provides a 'cmd' channel type.
+//
+// This package almost should be called 'cmd', but tends to have a
+// special meaning in Go.
+package shell
 
 import (
 	"fmt"
-	"strings"
 	"time"
+
+	"github.com/Comcast/plax/dsl"
 )
 
 func init() {
-	TheChanRegistry.Register(NewCtx(nil), "cmd", NewCmdChan)
+	dsl.TheChanRegistry.Register(dsl.NewCtx(nil), "cmd", NewCmdChan)
 }
 
 // CmdChan is a channel that's backed by a subprocess.
+//
+// This channel forwards messages to a shell's stdin, and messages
+// written to the shell's stdout and stderr are emitted.
 type CmdChan struct {
-	p *Process
+	p *dsl.Process
 
 	// to receives messages that are forwarded to the Process's stdin.
-	to chan Msg
+	to chan dsl.Msg
 
 	// from receives messages from the Process's stdin and stdout,
 	// and these messages are emitted from this channel for recv consideration.
-	from chan Msg
+	from chan dsl.Msg
 }
 
 // NewCmdChan obviously makes a new CmdChan.
 //
 // The cfg should represent a Process.
-func NewCmdChan(ctx *Ctx, cfg interface{}) (Chan, error) {
-	var p Process
-	if err := As(cfg, &p); err != nil {
+func NewCmdChan(ctx *dsl.Ctx, cfg interface{}) (dsl.Chan, error) {
+	var p dsl.Process
+	if err := dsl.As(cfg, &p); err != nil {
 		return nil, err
 	}
 	return &CmdChan{
 		p:    &p,
-		to:   make(chan Msg, 1024),
-		from: make(chan Msg, 1024),
+		to:   make(chan dsl.Msg, 1024),
+		from: make(chan dsl.Msg, 1024),
 	}, nil
 }
 
-func (c *CmdChan) Kind() ChanKind {
+func (c *CmdChan) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &CmdChan{},
+		Opts: &dsl.Process{},
+	}
+}
+
+func (c *CmdChan) Kind() dsl.ChanKind {
 	return "cmd"
 }
 
-func TrimEOL(s string) string {
-	s = strings.TrimSuffix(s, "\n")
-	return strings.TrimSuffix(s, "\r")
-}
-
 // Open starts the subprocess and the associated pipes.
-func (c *CmdChan) Open(ctx *Ctx) error {
+func (c *CmdChan) Open(ctx *dsl.Ctx) error {
 
 	if err := c.p.Start(ctx); err != nil {
 		return err
@@ -73,7 +83,7 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 
 	go func() {
 		out := func(topic, payload string) {
-			msg := Msg{
+			msg := dsl.Msg{
 				Topic:   topic,
 				Payload: payload,
 			}
@@ -105,7 +115,7 @@ func (c *CmdChan) Open(ctx *Ctx) error {
 }
 
 // Close attempts to terminate the underlying process.
-func (c *CmdChan) Close(ctx *Ctx) error {
+func (c *CmdChan) Close(ctx *dsl.Ctx) error {
 	ctx.Logf("CmdChan %s Close", c.p.Name)
 	return c.p.Term(ctx)
 }
@@ -113,7 +123,7 @@ func (c *CmdChan) Close(ctx *Ctx) error {
 // Sub doesn't currently do anything.
 //
 // ToDo: Have stdout and stderr "topics".
-func (c *CmdChan) Sub(ctx *Ctx, topic string) error {
+func (c *CmdChan) Sub(ctx *dsl.Ctx, topic string) error {
 	ctx.Logf("CmdChan %s Sub", c.p.Name)
 	return nil
 }
@@ -121,12 +131,12 @@ func (c *CmdChan) Sub(ctx *Ctx, topic string) error {
 // Pub sends the given message payload to the subprocess's stdin.
 //
 // The topic is ignored.
-func (c *CmdChan) Pub(ctx *Ctx, m Msg) error {
+func (c *CmdChan) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 	ctx.Logf("CmdChan %s Pub", c.p.Name)
 	return c.To(ctx, m)
 }
 
-func (c *CmdChan) Recv(ctx *Ctx) chan Msg {
+func (c *CmdChan) Recv(ctx *dsl.Ctx) chan dsl.Msg {
 	ctx.Logf("CmdChan %s Recv", c.p.Name)
 	return c.from
 }
@@ -134,14 +144,14 @@ func (c *CmdChan) Recv(ctx *Ctx) chan Msg {
 // Kill is not currently supported.  (It should be.)
 //
 // ToDo: Terminate the subprocess ungracefully.
-func (c *CmdChan) Kill(ctx *Ctx) error {
+func (c *CmdChan) Kill(ctx *dsl.Ctx) error {
 	return fmt.Errorf("CmdChan %s: Kill is not yet supported", c.p.Name)
 }
 
 // To sends the given message payload to the subprocess's stdin.
 //
 // The topic is ignored.
-func (c *CmdChan) To(ctx *Ctx, m Msg) error {
+func (c *CmdChan) To(ctx *dsl.Ctx, m dsl.Msg) error {
 	ctx.Logf("CmdChan %s To", c.p.Name)
 	m.ReceivedAt = time.Now().UTC()
 	select {

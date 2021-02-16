@@ -39,7 +39,7 @@ var (
 	DefaultChanBufferSize = 1024
 )
 
-// SQSOpts is a configuration for an SQS consumer/producer.
+// SQSOpts configures an SQS consumer/producer.
 //
 // For now, the target queue URL is provided when the channel is
 // created.  Eventually perhaps the queue URL could be the
@@ -48,7 +48,7 @@ type SQSOpts struct {
 	// Endpoint is optional AWS service endpoint, which can be
 	// provided to point to a non-standard endpoint (like a local
 	// implementation).
-	Endpoint string
+	Endpoint string `json:"Endpoint"` // Will eventually move to all lower-case.
 
 	// QueueURL is the target SQS queue URL.
 	QueueURL string
@@ -58,7 +58,9 @@ type SQSOpts struct {
 	// Defaults to zero.
 	DelaySeconds int64
 
-	// VisibilityTimeout is the default timeout for a message reappearing after a receive operation and before a delete operation.  Defaults to 10 seconds.
+	// VisibilityTimeout is the default timeout for a message
+	// reappearing after a receive operation and before a delete
+	// operation.  Defaults to 10 seconds.
 	VisibilityTimeout int64
 
 	// MaxMessages is the maximum number of message to request.
@@ -88,7 +90,7 @@ type SQSOpts struct {
 	WaitTimeSeconds int64
 }
 
-// SQSOpts is an SQS consumer/producer.
+// SQSChan is an SQS consumer/producer.
 //
 // In this implementation, message and subscription topics are
 // ignored.
@@ -122,6 +124,13 @@ func NewSQSChan(ctx *dsl.Ctx, o interface{}) (dsl.Chan, error) {
 		ctl:  make(chan bool),
 		opts: &opts,
 	}, nil
+}
+
+func (c *SQSChan) DocSpec() *dsl.DocSpec {
+	return &dsl.DocSpec{
+		Chan: &SQSChan{},
+		Opts: &SQSOpts{},
+	}
 }
 
 func (c *SQSChan) Kind() dsl.ChanKind {
