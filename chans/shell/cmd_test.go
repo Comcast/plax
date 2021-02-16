@@ -16,30 +16,33 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package dsl
+package shell
 
 import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Comcast/plax/dsl"
 )
+
+func TestDocs(t *testing.T) {
+	(&CmdChan{}).DocSpec().Write("cmd")
+}
 
 func TestNewCmdChan(t *testing.T) {
 	var (
-		ctx    = NewCtx(nil)
-		cmd    = exec.Cmd{}
+		ctx    = dsl.NewCtx(nil)
 		stdin  = make(chan string)
 		stdout = make(chan string)
 		stderr = make(chan string)
-		p      = Process{
+		p      = dsl.Process{
 			Name:    "test-echo",
 			Command: "echo",
 			Args:    []string{"howdy, world!"},
-			cmd:     &cmd,
 			Stderr:  stderr,
 			Stdin:   stdin,
 			Stdout:  stdout,
@@ -59,7 +62,7 @@ func TestNewCmdChan(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msg := Msg{
+	msg := dsl.Msg{
 		Topic:      "dummy",
 		Payload:    "the stars at night are big and bright",
 		ReceivedAt: time.Now(),
@@ -80,16 +83,14 @@ func TestNewCmdChan(t *testing.T) {
 
 func TestCmdStderr(t *testing.T) {
 	var (
-		ctx    = NewCtx(nil)
-		cmd    = exec.Cmd{}
+		ctx    = dsl.NewCtx(nil)
 		stdin  = make(chan string)
 		stdout = make(chan string)
 		stderr = make(chan string)
-		p      = Process{
+		p      = dsl.Process{
 			Name:    "test-echo",
 			Command: "bash",
 			Args:    []string{"-c", "echo 'more chips, please' >&2"},
-			cmd:     &cmd,
 			Stderr:  stderr,
 			Stdin:   stdin,
 			Stdout:  stdout,
@@ -135,17 +136,15 @@ func TestCmdStderr(t *testing.T) {
 
 func TestCmdTermEarly(t *testing.T) {
 	var (
-		ctx      = NewCtx(nil)
-		cmd      = exec.Cmd{}
+		ctx      = dsl.NewCtx(nil)
 		filename = "term-proof.tmp"
 		script   = fmt.Sprintf(`trap 'rm %s' SIGTERM SIGTERM; while true; do sleep 1; done`, filename)
 	)
 
-	p := Process{
+	p := dsl.Process{
 		Name:    "test-term",
 		Command: "bash",
 		Args:    []string{"-c", script},
-		cmd:     &cmd,
 	}
 
 	if err := ioutil.WriteFile(filename, []byte("process should delete me"), 0644); err != nil {
@@ -181,16 +180,14 @@ func TestCmdTermEarly(t *testing.T) {
 // process after it has existed doesn't blow anything up.
 func TestCmdTermLate(t *testing.T) {
 	var (
-		ctx    = NewCtx(nil)
-		cmd    = exec.Cmd{}
+		ctx    = dsl.NewCtx(nil)
 		script = `echo bye`
 	)
 
-	p := Process{
+	p := dsl.Process{
 		Name:    "test-term",
 		Command: "bash",
 		Args:    []string{"-c", script},
-		cmd:     &cmd,
 	}
 
 	c, err := NewCmdChan(ctx, p)

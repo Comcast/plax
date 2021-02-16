@@ -28,6 +28,10 @@ import (
 	"github.com/Comcast/plax/dsl"
 )
 
+func TestDocsSQS(t *testing.T) {
+	(&SQSChan{}).DocSpec().Write("sqs")
+}
+
 func TestSQS(t *testing.T) {
 
 	// We can use (say) https://github.com/p4tin/goaws to run a

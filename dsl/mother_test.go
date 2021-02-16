@@ -19,47 +19,39 @@
 package dsl
 
 import (
-	"bufio"
-	"strings"
+	"encoding/json"
+	"fmt"
+	"log"
 	"testing"
+
+	"github.com/alecthomas/jsonschema"
 )
 
-func TestDocsMock(t *testing.T) {
-	(&MockChan{}).DocSpec().Write("mock")
-}
+func TestDocsMother(t *testing.T) {
+	(&Mother{}).DocSpec().Write("mother")
 
-func TestMock(t *testing.T) {
-	ctx := NewCtx(nil)
-	c, err := NewMockChan(ctx, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if "mock" != c.Kind() {
-		t.Fatal(c.Kind())
-	}
+	if false {
 
-	if err = c.Open(ctx); err != nil {
-		t.Fatal(err)
-	}
+		s := jsonschema.Reflect(&MotherRequest{})
 
-	go func() {
-		m := c.(*MockChan)
-		in := bufio.NewReader(strings.NewReader("topic payload"))
-		if err = m.Read(ctx, in); err != nil {
+		{
+
+			x := s.Definitions["MotherMakeRequest"]
+			x.Description = "Hello"
+
+			ps := x.Properties
+			y, have := ps.Get("name")
+			y.(*jsonschema.Type).Description = "World"
+			log.Printf("hack %T %#v %#v", y, JSON(y), have)
+
+		}
+
+		bs, err := json.MarshalIndent(&s, "", "  ")
+		if err != nil {
 			t.Fatal(err)
 		}
-	}()
 
-	msg := <-c.Recv(ctx)
-	if msg.Topic != "topic" {
-		t.Fatal(msg.Topic)
-	}
-	if msg.Payload != "payload" {
-		t.Fatal(msg.Payload)
-	}
-
-	if err = c.Kill(ctx); err == nil {
-		t.Fatal("should have complained")
+		fmt.Printf("debug %s\n", bs)
 	}
 
 }

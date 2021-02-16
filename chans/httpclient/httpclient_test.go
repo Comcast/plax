@@ -30,6 +30,10 @@ import (
 	"github.com/Comcast/plax/dsl"
 )
 
+func TestDocs(t *testing.T) {
+	(&HTTPClient{}).DocSpec().Write("httpclient")
+}
+
 // TestHTTPRequestPolling check that a HTTPRequest channel actually
 // makes multiple requests when a PollInterval is given.
 func TestHTTPRequestPolling(t *testing.T) {

@@ -29,6 +29,10 @@ func init() {
 	TheChanRegistry.Register(NewCtx(nil), "mock", NewMockChan)
 }
 
+// MockChan is a channel type that just emits what it receives.
+//
+// This channel type is mostly used for testing.  A message published
+// to a mock channel is simply emitted as is (for test to receive).
 type MockChan struct {
 	c chan Msg
 }
@@ -37,6 +41,12 @@ func NewMockChan(ctx *Ctx, _ interface{}) (Chan, error) {
 	return &MockChan{
 		c: make(chan Msg, 1024),
 	}, nil
+}
+
+func (c *MockChan) DocSpec() *DocSpec {
+	return &DocSpec{
+		Chan: &MockChan{},
+	}
 }
 
 func (c *MockChan) Kind() ChanKind {

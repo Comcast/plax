@@ -37,14 +37,11 @@ type MotherMakeRequest struct {
 	// Name is the requested name for the channel to be created.
 	Name string `json:"name"`
 
-	// Type is something like KDSConsumer, MQTT (client), or
-	// SQSConsumer: types that are registered with a (or The)
-	// ChannelRegistry.
+	// Type is something like 'mqtt', 'httpclient', or 'sqs' (the
+	// types that are registered with a (or The) ChannelRegistry).
 	Type ChanKind `json:"type"`
 
-	// Config is the configuration for the requested channel.
-	//
-	// This value is usually deserialized from YAML.
+	// Config is the configuration (if any) for the requested channel.
 	Config interface{} `json:"config,omitempty"`
 }
 
@@ -64,7 +61,8 @@ type MotherResponse struct {
 
 // Mother is the mother of all (other) channels.
 //
-// A Mother can make channels, and a Mother is itself a Channel.
+// Mother ('mother') can make channels, and Mother is itself a
+// Channel.
 type Mother struct {
 	t *Test
 	c chan Msg
@@ -74,6 +72,14 @@ func NewMother(ctx *Ctx, _ interface{}) (*Mother, error) {
 	return &Mother{
 		c: make(chan Msg, 1024),
 	}, nil
+}
+
+func (c *Mother) DocSpec() *DocSpec {
+	return &DocSpec{
+		Chan:   &Mother{},
+		Input:  &MotherRequest{},
+		Output: &MotherResponse{},
+	}
 }
 
 func (c *Mother) Kind() ChanKind {

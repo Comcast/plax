@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"regexp"
 	"strings"
 
@@ -125,7 +124,6 @@ func (bs *Bindings) Sub(ctx *Ctx, src string) (string, error) {
 
 // SubOnce performs a single pass of bindings substitition on src.
 func (bs *Bindings) SubOnce(ctx *Ctx, src string) (string, error) {
-	log.Printf("DEBUG SubSOnce %T %#v", src, src)
 	var err error
 	if src, err = bs.StringSub(ctx, src); err != nil {
 		return "", err

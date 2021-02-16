@@ -27,7 +27,7 @@ import (
 	"math/rand"
 	"time"
 
-	_ "github.com/Comcast/plax/chans"
+	_ "github.com/Comcast/plax/chans/std"
 	"github.com/Comcast/plax/dsl"
 	"github.com/Comcast/plax/invoke"
 )

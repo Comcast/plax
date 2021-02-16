@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package chans
+package cwl
 
 import (
 	"context"
@@ -29,6 +29,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 )
+
+func TestCWLDocSpec(t *testing.T) {
+	(&CWLChan{}).DocSpec().Write("cwl")
+}
 
 // DescribeLogStreamsPagesResults mocks the return results of cloudwatchlogs.DescribeLogStreamsPages
 type DescribeLogStreamsPagesResults struct {

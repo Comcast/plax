@@ -4,8 +4,6 @@ doc: |
 
   Note the use of 'serialization: string' to avoid the default JSON
   (de)serialization of messages.
-labels:
-  - selftest
 spec:
   phases:
     phase1:
