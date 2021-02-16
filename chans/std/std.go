@@ -26,6 +26,7 @@ package std
 
 import (
 	_ "github.com/Comcast/plax/chans"
+	_ "github.com/Comcast/plax/chans/cwl"
 	_ "github.com/Comcast/plax/chans/httpclient"
 	_ "github.com/Comcast/plax/chans/httpserver"
 	_ "github.com/Comcast/plax/chans/kds"

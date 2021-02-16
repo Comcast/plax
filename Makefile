@@ -3,7 +3,7 @@ all:	chan-docs
 
 install: all
 
-test: unit-tests
+test: unit-tests chan-docs
 
 .PHONY: unit-tests
 unit-tests:

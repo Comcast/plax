@@ -1,10 +1,9 @@
 ## `cwl`
 
-CWLChan is the Cloudwatch Logs Channel
+This channel type can produce and consume AWS CloudWatch logs.
 
 ### Options
 
-CWLOpts is the Cloudwatch Logs Options
 
 1. `region` is the region of the AWS Account
 

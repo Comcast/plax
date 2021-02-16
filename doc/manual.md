@@ -146,16 +146,7 @@ following channel types:
 1. [`httpserver`](chan_httpserver.md): An HTTP server
 1. [`cmd`](chan_cmd.md): Shell I/O
 1. [`mock`](chan_mock.md): an echoing channel for testing
-
-2. `cwl`: A Cloudwatch Log publisher and consumer.  Options:
-
-	1. `Region` is the region of the AWS Account
-	2. `GroupName` is the Cloudwatch Log Group Name
-	3. `StreamNamePrefix` is the Cloudwatch Log Stream Name prefix
-	4. `FilterPattern` is based on the Cloudwatch Filter Pattern syntax;
-	    Reference: (https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html)
-	5. `StartTimePadding` defines the time in seconds to subtract from now
-	6. `PollInterval` defines the Cloudwatch log poll time interval in seconds
+2. [`cwl`](chan_cwl.md): A Cloudwatch Log publisher and consumer
 
 As the needs arise, we can add channel types like:
 
