@@ -6,6 +6,8 @@ We're trying [`goreleaser`](https://goreleaser.com/).
 
 To make and publish a new release:
 
+1. Install [`goreleaser`](https://goreleaser.com/).
+
 1. Figure out the tag for the release.  Consider using
    [`svu`](https://github.com/caarlos0/svu). Example `svu patch`.
 
