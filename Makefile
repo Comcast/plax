@@ -23,3 +23,15 @@ plax-demos: all
 plaxrun-demos: all
 	plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-test-group
 
+.PHONY: clean
+clean:
+	find . -name '*~' -exec rm \{\} \;
+	rm -rf dist
+
+.PHONY: dist
+dist: clean
+	goreleaser release --skip-publish --rm-dist
+
+.PHONY: release
+release: clean
+	goreleaser release --rm-dist
