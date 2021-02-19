@@ -1,0 +1,63 @@
+release:
+before:
+  hooks:
+    - go mod download
+    - go generate ./...
+builds:
+  - main: cmd/plax/main.go
+    id: plax
+    binary: plax
+    goos:
+      - linux
+      - darwin
+      - windows
+    ignore:
+      - goos: darwin
+        goarch: arm64
+  - main: cmd/plaxrun/main.go
+    id: plaxrun
+    binary: plaxrun
+    goos:
+      - linux
+      - darwin
+      - windows
+    ignore:
+      - goos: darwin
+        goarch: arm64
+  - main: cmd/yamlincl/main.go
+    id: yamlincl
+    binary: yamlincl
+    goos:
+      - linux
+      - darwin
+      - windows
+    ignore:
+      - goos: darwin
+        goarch: arm64
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - demos/*
+      - demos/*/*
+      - doc/*.md
+      - LICENSE
+      - NOTICE
+    wrap_in_directory: true
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
