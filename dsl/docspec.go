@@ -303,7 +303,7 @@ func (ds *DocSpec) Gen(out io.Writer, name string) error {
 			if ftyp != "" && !exported(ftyp) {
 				ftyp = fmt.Sprintf(" (%s) ", ftyp) // Sorry
 			} else {
-				ftyp = " "
+				ftyp = fmt.Sprintf(" (%v) ", f.Type)
 			}
 			if doc := get(typ.Name(), f.Name).Doc; doc != "" {
 				doc = dropFirstWord(doc)

@@ -13,7 +13,7 @@ written to the shell's stdout and stderr are emitted.
     
     Subject to expansion.
 
-1. `args` is the list of command-line arguments for the program.
+1. `args` ([]string) is the list of command-line arguments for the program.
     
     Subject to expansion.
 
