@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/Comcast/plax/dsl"
@@ -81,6 +82,7 @@ func (c *HTTPServer) Open(ctx *dsl.Ctx) error {
 
 	type Payload struct {
 		Path    string              `json:"path"`
+		Form    url.Values          `json:"form,omitempty"`
 		Headers map[string][]string `json:"headers,omitempty"`
 		Method  string              `json:"method"`
 		Body    interface{}         `json:"body,omitempty"`
@@ -108,8 +110,14 @@ func (c *HTTPServer) Open(ctx *dsl.Ctx) error {
 	}
 
 	f := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if err := r.ParseForm(); err != nil {
+			ctx.Logf("httpserver ParseForm error %v on %v", r.URL)
+		}
+
 		payload := &Payload{
 			Path:    r.URL.Path,
+			Form:    r.Form,
 			Headers: r.Header,
 			Method:  r.Method,
 		}
