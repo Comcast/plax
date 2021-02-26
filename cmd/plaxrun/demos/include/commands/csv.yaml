@@ -50,5 +50,4 @@ args:
       END { print "]" }
     '`
 
-    echo VALUE=$VALUE >&2
     echo $KEY="$VALUE"
