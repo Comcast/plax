@@ -1,6 +1,6 @@
 # Description
 # 
-# This command either returns the existing envionment variable value or execute the given command to fetch the value
+# This command either returns the existing environment variable value or executes the given command to fetch the value
 #
 # Usage
 #

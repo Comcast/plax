@@ -1,0 +1,53 @@
+# Description
+# 
+# This command either returns an array of JSON objects with key and values mapped from the input CSV
+#
+# Usage
+#
+# include: include/commands/csv.yaml
+# envs:
+#   CSV_PATH: ["My CSV Path Here"]
+#
+# Notes: 
+#   CSV_PATH is required
+
+cmd: bash
+args:
+  - -c
+  - |
+    : "${CSV_PATH:?Variable is not set or empty}"
+
+    if [ ! -f "${CSV_PATH}" ]; then
+      echo "cwd=`pwd`" >&2
+      echo "$CSV_PATH not found" >&2
+      exit 1
+    fi
+
+    VALUE=`cat $CSV_PATH | awk '
+      BEGIN { FS = ","; ORS = ""; print "[" }
+      NR==1 {
+        for (i=1; i<=NF; i++) {
+          hdrs[i] = $i
+          gsub(/^[ \t]+|[ \t\r]+$/,"", hdrs[i]) 
+        }
+        concat = 0
+      }
+      NR > 1 {
+        if (concat) {
+          printf(",") 
+        }
+        printf "{"
+        for (i=1; i<=NF; i++) {
+          gsub(/^[ \t]+|[ \t\r]+$/,"", $i) 
+          printf "\"%s\":\"%s\"", hdrs[i], $i
+          if (i < NF) {
+            printf "," 
+          }
+        }
+        printf "}"
+        concat = 1
+      }
+      END { print "]" }
+    '`
+
+    echo $KEY="$VALUE"

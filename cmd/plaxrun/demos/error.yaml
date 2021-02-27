@@ -1,0 +1,7 @@
+name: waitrun
+version: 0.0.1
+
+tests:
+  error:
+    path: invalid.yaml
+    version: github.com/Comcast/plax

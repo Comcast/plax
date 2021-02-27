@@ -156,6 +156,8 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		filenames = append(filenames, filename)
 	}
 
+	var res error = nil
+
 	// Run tests.
 	i := 0
 	for _, filename := range filenames {
@@ -184,6 +186,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		log.Printf("Running test %s", filename)
 
 		if err := inv.Run(dslCtx, t); err != nil {
+			res = err
 			if b, is := dsl.IsBroken(err); is {
 				problem = true
 				tc.Error = &junit.Error{
@@ -205,6 +208,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
+				res = fmt.Errorf("Negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}
@@ -270,7 +274,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		return fmt.Errorf("Prolem")
 	}
 
-	return nil
+	return res
 }
 
 // Load a test

@@ -1,6 +1,6 @@
 # Description
 # 
-# This command either returns the existing envionment variable value or prompt the user for a command with an optional default value
+# This command either returns the existing environment variable value or prompt the user for a command with an optional default value
 #
 # Usage
 #
