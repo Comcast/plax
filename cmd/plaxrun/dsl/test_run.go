@@ -113,7 +113,7 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 
 	tr.tfs = append(tr.tfs, tfs...)
 
-	if trps.SuiteName != nil {
+	if trps.SuiteName != nil && *trps.SuiteName != "" {
 		testSuite := TestSuiteRef{
 			name:  *trps.SuiteName,
 			tests: trps.Tests,
