@@ -43,6 +43,11 @@ func init() {
 				return nil, err
 			}
 
+			tests, err := def.GetPluginDefTests()
+			if err != nil {
+				return nil, err
+			}
+
 			params, err := def.GetPluginDefParams()
 			if err != nil {
 				return nil, err
@@ -65,7 +70,7 @@ func init() {
 				return nil, err
 			}
 
-			priority, err := def.GetPluginDefPriorty()
+			priority, err := def.GetPluginDefPriority()
 			if err != nil {
 				return nil, err
 			}
@@ -99,6 +104,7 @@ func init() {
 
 			i := plaxInvoke.Invocation{
 				SuiteName:         name,
+				Tests:             tests,
 				Bindings:          bps,
 				Seed:              seed,
 				Verbose:           verbose,

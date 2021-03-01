@@ -40,9 +40,10 @@ type TestDefMap map[string]TestDef
 // TestDefRef references a TestDef with its constraints
 type TestDefRef struct {
 	TestConstraints `yaml:",inline"`
-	Name            string
+	Name            string       `yaml:"name"`
 	Params          TestParamMap `yaml:"params"`
 	Guard           *TestGuard   `yaml:"guard,omitempty"`
+	tests           []string     `yaml:"-"`
 }
 
 // TestDefRefList is a list of TestDefRefs
@@ -101,12 +102,18 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 		priority = *tdr.Priority
 	}
 
+	labels := ""
+	if tdr.Labels != nil {
+		labels = *tdr.Labels
+	}
+
 	def := PluginDef{
 		PluginDefNameKey:     name,
 		PluginDefParamsKey:   bs,
 		PluginDefSeedKey:     tdr.Seed,
 		PluginDefPriorityKey: priority,
-		PluginDefLabelsKey:   tdr.Labels,
+		PluginDefLabelsKey:   labels,
+		PluginDefTestsKey:    tdr.tests,
 		PluginDefRetryKey:    strconv.Itoa(tdr.Retry),
 		PluginDefVerboseKey:  tr.trps.Verbose,
 		PluginDefLogLevelKey: tr.trps.LogLevel,
@@ -173,6 +180,10 @@ func (tl *TestList) getTaskFuncs(ctx *plaxDsl.Ctx, tr TestRun) ([]*async.TaskFun
 		name := fmt.Sprintf("%s-%s", tr.Name, tr.Version)
 
 		tdr := TestDefRef{
+			TestConstraints: TestConstraints{
+				Labels:   tr.trps.Labels,
+				Priority: tr.trps.Priority,
+			},
 			Name: n,
 		}
 

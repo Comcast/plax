@@ -54,11 +54,14 @@ func main() {
 			Groups:      dsl.TestGroupList{},
 			Verbose:     flag.Bool("v", true, "Verbosity"),
 			LogLevel:    flag.String("log", "info", "Log level (info, debug, none)"),
+			Labels:      flag.String("labels", "", "Labels for tests to run"),
+			SuiteName:   flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
+			Priority:    flag.Int("p", -1, "Test priority"),
 		}
 		version = flag.Bool("version", false, "Print version and then exit")
 	)
 
-	flag.Var(&trps.Bindings, "p", fmt.Sprintf("Parameter Bindings: %s", trps.Bindings.String()))
+	flag.Var(&trps.Bindings, "b", fmt.Sprintf("Bindings: %s", trps.Bindings.String()))
 	flag.Var(&trps.IncludeDirs, "I", "YAML include directories")
 	flag.Var(&trps.Groups, "g", fmt.Sprintf("Groups to execute: %s", trps.Groups.String()))
 	flag.Var(&trps.Tests, "t", fmt.Sprintf("Tests to execute: %s", trps.Tests.String()))
@@ -71,8 +74,8 @@ func main() {
 		return
 	}
 
-	if len(trps.Groups) == 0 && len(trps.Tests) == 0 {
-		log.Fatal(fmt.Errorf("at least 1 test or test group must be specified"))
+	if len(trps.Groups) == 0 && len(trps.Tests) == 0 && trps.SuiteName == nil {
+		log.Fatal(fmt.Errorf("at least 1 test or test group or test suite must be specified"))
 	}
 
 	ctx := dsl.NewCtx(context.Background())

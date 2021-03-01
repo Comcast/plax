@@ -33,17 +33,17 @@ func TestWanted(t *testing.T) {
 	tst := NewTest(ctx, "a", nil)
 	tst.Priority = 42
 	t.Run("priority-negative", func(t *testing.T) {
-		if !tst.Wanted(ctx, -1, nil) {
+		if !tst.Wanted(ctx, -1, nil, nil) {
 			t.Fatal(-1)
 		}
 	})
 	t.Run("priority-high", func(t *testing.T) {
-		if !tst.Wanted(ctx, 52, nil) {
+		if !tst.Wanted(ctx, 52, nil, nil) {
 			t.Fatal(52)
 		}
 	})
 	t.Run("priority-low", func(t *testing.T) {
-		if tst.Wanted(ctx, 1, nil) {
+		if tst.Wanted(ctx, 1, nil, nil) {
 			t.Fatal(1)
 		}
 	})

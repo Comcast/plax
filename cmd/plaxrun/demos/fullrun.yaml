@@ -71,8 +71,7 @@ groups:
       'MARGIN': 200
     tests:
       - name: demos
-        labels:
-          - selftest
+        labels: "selftest"
 
   wait-no-prompt:
     params:
