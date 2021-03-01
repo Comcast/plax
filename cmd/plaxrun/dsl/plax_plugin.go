@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/Comcast/plax/dsl"
 )
@@ -44,6 +43,8 @@ const (
 	PluginDefPriorityKey = "Priority"
 	// PluginDefLabelsKey of the PluginDef map
 	PluginDefLabelsKey = "Labels"
+	// PluginDefTestsKey of the PluginDef map
+	PluginDefTestsKey = "Tests"
 	// PluginDefLogLevelKey of the PluginDef map
 	PluginDefLogLevelKey = "LogLevels"
 	// PluginDefListKey of the PluginDef map
@@ -71,6 +72,21 @@ func (pd PluginDef) GetPluginDefName() (string, error) {
 	ret, ok := value.(string)
 	if !ok {
 		return "", fmt.Errorf("%s is not a string", PluginDefNameKey)
+	}
+
+	return ret, nil
+}
+
+// GetPluginDefTests returns the list of test to run
+func (pd PluginDef) GetPluginDefTests() ([]string, error) {
+	value, ok := pd[PluginDefTestsKey]
+	if !ok {
+		return []string{}, fmt.Errorf("%s was not provided in the plugin definition", PluginDefTestsKey)
+	}
+
+	ret, ok := value.([]string)
+	if !ok {
+		return []string{}, fmt.Errorf("%s is not a []string", PluginDefTestsKey)
 	}
 
 	return ret, nil
@@ -171,8 +187,8 @@ func (pd PluginDef) GetPluginDefLogLevel() (string, error) {
 	return *ret, nil
 }
 
-// GetPluginDefPriorty returns the Priority
-func (pd PluginDef) GetPluginDefPriorty() (int, error) {
+// GetPluginDefPriority returns the Priority
+func (pd PluginDef) GetPluginDefPriority() (int, error) {
 	value, ok := pd[PluginDefPriorityKey]
 	if !ok {
 		return -1, fmt.Errorf("%s was not provided in the plugin definition", PluginDefPriorityKey)
@@ -193,12 +209,12 @@ func (pd PluginDef) GetPluginDefLabels() (string, error) {
 		return "", fmt.Errorf("%s was not provided in the plugin definition", PluginDefLabelsKey)
 	}
 
-	ret, ok := value.([]string)
+	ret, ok := value.(string)
 	if !ok {
-		return "", fmt.Errorf("%s is not a []string", PluginDefLabelsKey)
+		return "", fmt.Errorf("%s is not a string", PluginDefLabelsKey)
 	}
 
-	return strings.Join(ret, ","), nil
+	return ret, nil
 }
 
 // GetPluginDefRetry returns the Retry

@@ -76,7 +76,7 @@ func TestSpecs(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if !tst.Wanted(ctx, -1, []string{"selftest"}) {
+			if !tst.Wanted(ctx, -1, []string{"selftest"}, []string{}) {
 				return
 			}
 

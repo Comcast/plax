@@ -39,15 +39,23 @@ Usage of plaxrun:
         Groups to execute: Test Group Name
   -json
         Emit JSON test output; instead of JUnit XML
+  -labels string
+        Labels for tests to run
   -log string
         Log level (info, debug, none) (default "info")
   -p value
         Parameter Bindings: PARAM=VALUE
+  -priority int
+        Test priority (default -1)
   -run string
         Filename for test run specification (default "spec.yaml")
+  -s string
+        Suite name to execute; -t options represent the tests in the suite to execute
   -t value
         Tests to execute: Test Name
   -v    Verbosity (default true)
+  -version
+        Print version and then exit
 ```
 
 Use `-run` to specify the the path to the test run specification file
@@ -66,11 +74,19 @@ To run a single test or set of tests, specify -t:
 
 `plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -t basic`
 
-*Note:* A combination of `-g` an `-t` is allowed
+To run a set of tests in a test suite, specify `-s` (plaxrun suite name references) and `-t` (plax test name references):
+
+`plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -s demos -t basic -t test-wait`
+
+*Note:* A combination of `-g` an `-t` is allowed unless `-s` is used
 
 Use `-json` to output a JSON representation of the test results instead of the Junit XML format.  This output includes `test.State` as the key `State` for each test case.
 
-Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-p` multiple times:
+Use `-labels` [string] to set the labels filter for tests to run
+
+Use `-priority` [int] to set the priority of tests to run
+
+Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-b` multiple times:
 
 `plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -p '?WAIT=600' -p '?MARGIN=200'`
 

@@ -34,6 +34,9 @@ type Test struct {
 	// Id usually comes from the filename that defines the test.
 	Id string `json:",omitempty" yaml:",omitempty"`
 
+	// Name is the test specification name
+	Name string `json:",omitempty" yaml:",omitempty"`
+
 	// Doc is an optional documentation string.
 	Doc string `json:",omitempty" yaml:",omitempty"`
 
@@ -109,6 +112,7 @@ type Test struct {
 	Registry ChanRegistry
 }
 
+// NewTest create a initialized NewTest from the id and Spec
 func NewTest(ctx *Ctx, id string, s *Spec) *Test {
 	return &Test{
 		Id:       id,
@@ -121,8 +125,8 @@ func NewTest(ctx *Ctx, id string, s *Spec) *Test {
 	}
 }
 
-// Wanted reports whether a test meets the given requirments.
-func (t *Test) Wanted(ctx *Ctx, lowestPriority int, labels []string) bool {
+// Wanted reports whether a test meets the given requirements.
+func (t *Test) Wanted(ctx *Ctx, lowestPriority int, labels []string, tests []string) bool {
 	if 0 <= lowestPriority && t.Priority > lowestPriority {
 		return false
 	}
@@ -136,6 +140,18 @@ LABELS:
 				continue LABELS
 			}
 		}
+		return false
+	}
+
+	// Iterate over specified suite tests to see if they are wanted
+	for _, name := range tests {
+		if t.Name == name {
+			// Suite tests is wanted
+			return true
+		}
+	}
+	// Reaching here means the suite test was not wanted
+	if len(tests) > 0 {
 		return false
 	}
 
@@ -397,8 +413,9 @@ func (t *Test) Validate(ctx *Ctx) []error {
 		for i := 0; i < len(p.Steps)-1; i++ {
 			s := p.Steps[i]
 			if s.Goto != "" {
-				fmt.Errorf("Goto step %d in phase '%s' is not the last step",
-					i, name)
+				errs = append(errs,
+					fmt.Errorf("Goto step %d in phase '%s' is not the last step",
+						i, name))
 			}
 		}
 	}

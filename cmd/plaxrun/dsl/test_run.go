@@ -113,12 +113,25 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 
 	tr.tfs = append(tr.tfs, tfs...)
 
-	tfs, err = trps.Tests.getTaskFuncs(ctx.Ctx, tr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process tests to execute: %w", err)
-	}
+	if trps.SuiteName != nil && *trps.SuiteName != "" {
+		testSuite := TestSuiteRef{
+			name:  *trps.SuiteName,
+			tests: trps.Tests,
+		}
+		tf, err := testSuite.getTaskFunc(ctx.Ctx, tr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process tests to execute: %w", err)
+		}
 
-	tr.tfs = append(tr.tfs, tfs...)
+		tr.tfs = append(tr.tfs, tf)
+	} else {
+		tfs, err = trps.Tests.getTaskFuncs(ctx.Ctx, tr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process tests to execute: %w", err)
+		}
+
+		tr.tfs = append(tr.tfs, tfs...)
+	}
 
 	return &tr, nil
 }
@@ -160,10 +173,13 @@ type TestRunParams struct {
 	Bindings    plaxDsl.Bindings
 	Groups      TestGroupList
 	Tests       TestList
+	SuiteName   *string
 	IncludeDirs IncludeDirList
 	Filename    *string
 	Dir         *string
 	EmitJSON    *bool
 	Verbose     *bool
 	LogLevel    *string
+	Labels      *string
+	Priority    *int
 }
