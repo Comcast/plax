@@ -33,8 +33,6 @@ To get help, run:
 Usage of plaxrun:
   -I value
         YAML include directories
-  -b value
-        Bindings: PARAM=VALUE
   -dir string
         Directory containing test files (default ".")
   -g value
@@ -45,7 +43,9 @@ Usage of plaxrun:
         Labels for tests to run
   -log string
         Log level (info, debug, none) (default "info")
-  -p int
+  -p value
+        Parameter Bindings: PARAM=VALUE
+  -priority int
         Test priority (default -1)
   -run string
         Filename for test run specification (default "spec.yaml")
@@ -84,9 +84,9 @@ Use `-json` to output a JSON representation of the test results instead of the J
 
 Use `-labels` [string] to set the labels filter for tests to run
 
-Use `-p` [int] to set the priority of tests to run
+Use `-priority` [int] to set the priority of tests to run
 
-Use `-b 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-b` multiple times:
+Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-b` multiple times:
 
 `plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -b '?WAIT=600' -b '?MARGIN=200'`
 
