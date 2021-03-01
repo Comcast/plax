@@ -88,7 +88,7 @@ Use `-priority` [int] to set the priority of tests to run
 
 Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-b` multiple times:
 
-`plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -b '?WAIT=600' -b '?MARGIN=200'`
+`plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -p '?WAIT=600' -p '?MARGIN=200'`
 
 ### Writing a Specification
 A plaxrun specification is a `.yaml` file which contains the following major elements:
