@@ -140,6 +140,10 @@ type HTTPRequestCtl struct {
 	// PollInterval, when not zero, will cause this channel to
 	// repeated the HTTP request at this interval.
 	//
+	// The timer starts after the last request has completed.
+	// (Previously the timer fired requests at this interval
+	// regardless of the latency of the previous HTTP request(s).)
+	//
 	// Value should be a string that time.ParseDuration can parse.
 	PollInterval string `json:"pollInterval"`
 
@@ -237,13 +241,13 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 			ctx.Logf("Warning HTTP request PollInterval %v", d)
 			d = time.Second
 		}
-		ticker := time.NewTicker(d)
+		timer := time.NewTimer(d)
 
 	LOOP:
 		for {
 			select {
 			case <-ctx.Done():
-			case <-ticker.C:
+			case <-timer.C:
 				ctx.Logf("%T making polling request", c)
 				if err := c.do(ctx, req); err != nil {
 					r := dsl.Msg{
@@ -254,6 +258,11 @@ func (c *HTTPClient) poll(ctx *dsl.Ctx, ctl chan bool, req *HTTPRequest) error {
 
 					go c.To(ctx, r)
 				}
+				// Start a new timer after the HTTP
+				// request completes (but perhaps
+				// before the response is forwarded to
+				// the consumers).
+				timer = time.NewTimer(d)
 			case <-ctl:
 				break LOOP
 			}

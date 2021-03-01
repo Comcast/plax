@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +38,8 @@ func TestDocs(t *testing.T) {
 // TestHTTPRequestPolling check that a HTTPRequest channel actually
 // makes multiple requests when a PollInterval is given.
 func TestHTTPRequestPolling(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+
 	var (
 		ctx      = dsl.NewCtx(context.Background())
 		interval = 50 * time.Millisecond // PollInterval
@@ -102,12 +105,12 @@ func TestHTTPRequestPolling(t *testing.T) {
 			t.Fatal("ctx done")
 		case <-to.C:
 			t.Fatal("timeout")
-		case <-ch:
+		case msg := <-ch:
 			// We got a message.
 			if 0 < i {
 				// All messages after the first one.
 				if elapsed := time.Now().Sub(then); elapsed < min {
-					t.Fatalf("too fast: %v", elapsed)
+					t.Fatalf("too fast: %v, i=%d msg=%s", elapsed, i, dsl.JSON(msg))
 				}
 				// The timer in the 'select' will
 				// complain about a slow poll.
