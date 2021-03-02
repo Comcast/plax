@@ -42,6 +42,10 @@ Currently this channel doesn't have any configuration.
     1. `pollInterval` (string) not zero, will cause this channel to
         repeated the HTTP request at this interval.
         
+        The timer starts after the last request has completed.
+        (Previously the timer fired requests at this interval
+        regardless of the latency of the previous HTTP request(s).)
+        
         Value should be a string that time.ParseDuration can parse.
 
     1. `terminate` (string) not zero, should be the Id of a previous polling
