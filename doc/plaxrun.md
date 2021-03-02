@@ -2,19 +2,23 @@
 
 ## Table of Contents
 
-- [Running](#running)
-- [Writing a Specification](#writing-a-specification)
-  - [General properties](#general-properties)
-  - [Tests Definition Section](#tests-definition-section)
-  - [Test Groups Section](#test-groups-section)
-  - [Test reference(s)](#test-references)
-  - [Group reference(s)](#group-references)
-  - [Test Group Parameters](#test-group-parameters)
-  - [Iteration](#iteration)
-  - [Guards](#guards)
-  - [Parameters definition section](#parameters-definition-section)
-- [Output](#output)
-- [References](#references)
+- [The `plaxrun` Manual](#the-plaxrun-manual)
+  - [Table of Contents](#table-of-contents)
+  - [Using `plaxrun`](#using-plaxrun)
+    - [Running](#running)
+    - [Writing a Specification](#writing-a-specification)
+      - [General properties](#general-properties)
+      - [Tests Definition Section](#tests-definition-section)
+      - [Test Groups Section](#test-groups-section)
+        - [Test reference(s)](#test-references)
+        - [Group reference(s)](#group-references)
+        - [Test Group Parameters](#test-group-parameters)
+        - [Iteration](#iteration)
+        - [Guards](#guards)
+      - [Parameters definition section](#parameters-definition-section)
+    - [Running the example tests](#running-the-example-tests)
+    - [Output](#output)
+  - [References](#references)
 
 
 ## Using `plaxrun`
@@ -35,38 +39,54 @@ Usage of plaxrun:
         Groups to execute: Test Group Name
   -json
         Emit JSON test output; instead of JUnit XML
+  -labels string
+        Labels for tests to run
   -log string
         Log level (info, debug, none) (default "info")
   -p value
         Parameter Bindings: PARAM=VALUE
+  -priority int
+        Test priority (default -1)
   -run string
         Filename for test run specification (default "spec.yaml")
+  -s string
+        Suite name to execute; -t options represent the tests in the suite to execute
   -t value
         Tests to execute: Test Name
   -v    Verbosity (default true)
+  -version
+        Print version and then exit
 ```
 
-Use `-run` to specifiy the the path to the test run specification file
+Use `-run` to specify the the path to the test run specification file
 
-Use `-dir` to specifiy the path to the root of the test files directory
+Use `-dir` to specify the path to the root of the test files directory
 
 To run a single test group, use -g once:
 
 `plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -g basic`
 
-To run multiple test groups, specify -g multipe times:
+To run multiple test groups, specify -g multiple times:
 
 `plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -g basic -g inclusion`
 
-To run a single test or set of tests, specifiy -t:
+To run a single test or set of tests, specify -t:
 
 `plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -t basic`
 
-*Note:* A combination of `-g` an `-t` is allowed
+To run a set of tests in a test suite, specify `-s` (plaxrun suite name references) and `-t` (plax test name references):
 
-Use `-json` to output a JSON respresentation of the test results instead of the Junit XML format.  This output includes `test.State` as the key `State` for each test case.
+`plaxrun -run cmd/plaxrun/demos/fullrun.yaml -dir demos -s demos -t basic -t test-wait`
 
-Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-p` multiple times:
+*Note:* A combination of `-g` an `-t` is allowed unless `-s` is used
+
+Use `-json` to output a JSON representation of the test results instead of the Junit XML format.  This output includes `test.State` as the key `State` for each test case.
+
+Use `-labels` [string] to set the labels filter for tests to run
+
+Use `-priority` [int] to set the priority of tests to run
+
+Use `-p 'PARAM=VALUE'` to pass bindings on the command line. You can specify `-b` multiple times:
 
 `plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -p '?WAIT=600' -p '?MARGIN=200'`
 
@@ -109,7 +129,7 @@ tests:
 
 - `wait:` is the test name used to reference the test from a test group
   - `path:` is the relative path to the test directory (Suite) or file (Test) based on `.` or the `-dir` option
-  - `version: github.com/Comcast/plax` represents the name of the module that implements the plax plugin compatible with the plax execution engine test syntax.  This is optional if the default version `github.com/Comcast/plax` is being targetted
+  - `version: github.com/Comcast/plax` represents the name of the module that implements the plax plugin compatible with the plax execution engine test syntax.  This is optional if the default version `github.com/Comcast/plax` is being targeted
   - `params:` is the list of parameter name dependencies referencing the parameters defined in the `params` section.  All listed parameters will be evaluated for parameter binded values
     - `- 'WAIT'` is a parameter required by the `test-wait.yaml` test
     - `- 'MARGIN'` is a parameter required by the `test-wait.yaml` test
@@ -126,7 +146,7 @@ groups:
       - name: wait
 ```
  
-- `wait-prompt:` is the group name. It is used to reference the test group from other test groups and the `-g` option; It shows how to define tests that likely require a prompt to enter tests paramater values not already bound
+- `wait-prompt:` is the group name. It is used to reference the test group from other test groups and the `-g` option; It shows how to define tests that likely require a prompt to enter tests parameter values not already bound
   - `params:` is the set of parameter key/value binding for the test group
     - `'WAIT': 600` is a parameter bound with the value `600`
     - `'MARGIN': 600` is a parameter bound with the value `200`
@@ -134,7 +154,7 @@ groups:
     - `name: wait` is a test `name` reference to a test named `wait`
   
 ##### Group reference(s)
-Test gruops can reference nesed test groups that have been defined as follows:
+Test groups can reference nested test groups that have been defined as follows:
 ```yaml
  wait-group:
     groups:
@@ -239,11 +259,11 @@ groups:
       - name: wait
 ```
   - `guard:` is the instruction for a guard
-    - `dependsOn:` evaulate the list of defined parameter references
+    - `dependsOn:` evaluate the list of defined parameter references
     - `libraries:` import the listed Javascript libraries
     - `src:` execute the Javascript code to evalutate the guard; must return boolean [true|false]
 #### Parameters definition section
-The `params:` paramter definition section defines the parameter names to be bound to a value or set of values returned by a shell command
+The `params:` parameter definition section defines the parameter names to be bound to a value or set of values returned by a shell command
 
 ```yaml
 params:
@@ -267,72 +287,56 @@ params:
   - `envs:` is the section that defines the environment variables for the `value.yaml` command
     - `DEFAULT: 100` is a required environment variable for the `value.yaml` command if the environment variable is not already set
 
-  *Note:* Each command has a different set of required or optional environemnt variables.  See each respective command `.yaml` file for additional information.
+The commands supported by plaxrun are greatly extensible.  Each command (simple include file) is composed of the following parts:
 
-  *Note:* To run the test specification described above
+```yaml
+cmd: bash
+args:
+  - -c
+  - |
+    if [ -n "${!KEY}" ]; then
+      echo $KEY=${!KEY}
+    else
+      : "${VALUE:?Variable is not set or empty}"
 
-  - The following command runs just the `wait-no-prompt` test group
-    ```
-    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -json | jq .
-    ```
-  - The following command runs just the `wait-prompt` test group
-    ```
-    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -json | jq .
-    ```
-  - The following command runs both the `wait-no-prmopt` and `wait-prompt` test group
-    ```
-    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -g wait-prompt -json | jq .
-    ```
-  - The following command runs the `wait` test group which combines the `wait-no-prompt` and `wait-prompt` test groups
-    ```
-    plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait -json | jq .
-    ```
-
-### Output
-
-After test execution, `plax` (or [`plaxrun`](plaxrun.md)) will output
-results in JUnit XML:
-
-```xml
-<testsuite tests="1" failures="0" errors="0">
-  <testcase name="tests/discovery-1.yaml" status="executed" time="11"></testcase>
-</testsuite>
+      echo $KEY=$VALUE
+    fi
 ```
+- `cmd:` is the command to execute.  `bash` makes for a great command execution script environment
+- `args:` are the arguments to pass to the command
 
-For `plax`, use `-test-suite NAME` to specify the suite's `name`.  For
-`plaxrun` a suite name will be generated.
+Within a command there is a preset environment variable call `KEY`.  `$KEY` is a reference to the name of the default parameter to which a value should be bound.  `${!KEY}` references the current value bound to `$KEY`.  The script should output to `stdout`, in this case via `echo` the key/value pair for the binding, e.g. `echo $KEY=$VALUE`.  The script can also echo out an other key/value pairs to bind more than one parameter value.  e.g. `echo MYPARAM="My Value"`
 
-For `plax` and `plaxrun` use `-json` to output a JSON respresentation
-of test result objects.  This output includes the following for each
-test case:
+The current built in commands are:
 
-```json
-[
-  {
-    "Type": "suite",
-    "Time": "2020-12-02T21:33:09.0728586Z",
-    "Tests": 1,
-    "Passed": 1,
-    "Failed": 0,
-    "Errors": 0
-  },
-  {
-    "Name": "/.../plax/demos/test-wait.yaml",
-    "Status": "executed",
-    "Skipped": null,
-    "Error": null,
-    "Failure": null,
-    "Timestamp": "2020-12-02T21:33:09.077102Z",
-    "Suite": "waitrun-0.0.1:wait-no-prompt:wait",
-    "N": 0,
-    "Type": "case",
-    "State": {
-      "then": "2020-12-02T21:33:09.0781375Z"
-    }
-  }
-]
-```
+- `command.yaml` returns the existing environment variable value or executes the given command to fetch the value
+- `csv.yaml` returns an array of JSON objects with key and values mapped from the input CSV
+- `prompt.yaml` returns the existing environment variable value or prompt the user for a command with an optional default value
+- `value.yaml` returns the existing environment variable value or returns a default value
 
+*Note:* Each command has a different set of required or optional environment variables (`envs`).  See each respective command `.yaml` file for additional information.
+
+More commands can easily be added by plaxrun specification authors, e.g. fetch secure parameter values from Vault or invoke AWS CLI commands and bind the results to a parameter.
+
+### Running the example tests
+To run the test specifications described above:
+
+- The following command runs just the `wait-no-prompt` test group
+  ```
+  plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -json | jq .
+  ```
+- The following command runs just the `wait-prompt` test group
+  ```
+  plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-prompt -json | jq .
+  ```
+- The following command runs both the `wait-no-prompt` and `wait-prompt` test group
+  ```
+  plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait-no-prompt -g wait-prompt -json | jq .
+  ```
+- The following command runs the `wait` test group which combines the `wait-no-prompt` and `wait-prompt` test groups
+  ```
+  plaxrun -run cmd/plaxrun/demos/waitrun.yaml -dir demos -g wait -json | jq .
+  ```
 ### Output
 
 After test execution, `plaxrun` will output results in JUnit XML:
@@ -345,7 +349,7 @@ After test execution, `plaxrun` will output results in JUnit XML:
 
 `plaxrun` will generate a suite name.
 
-Use `-json` to output a JSON respresentation of test result objects.
+Use `-json` to output a JSON representation of test result objects.
 This output includes the following for each test case:
 
 ```json

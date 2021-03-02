@@ -20,7 +20,7 @@ package dsl
 
 // TestConstraints used to constrain the tests run
 type TestConstraints struct {
-	Labels   []string     `yaml:"labels"`
+	Labels   *string      `yaml:"labels,omitempty"`
 	Priority *int         `yaml:"priority,omitempty"`
 	Retry    int          `yaml:"retry"`
 	Seed     int64        `yaml:"seed"`

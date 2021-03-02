@@ -55,6 +55,7 @@ type Invocation struct {
 	Seed              int64
 	Priority          int
 	Labels            string
+	Tests             []string
 	LogLevel          string
 	Verbose           bool
 	List              bool
@@ -156,6 +157,8 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		filenames = append(filenames, filename)
 	}
 
+	var res error = nil
+
 	// Run tests.
 	i := 0
 	for _, filename := range filenames {
@@ -164,7 +167,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 			log.Fatalf("Invocation of %s broken: %s", filename, err)
 		}
 
-		if !t.Wanted(dslCtx, inv.Priority, strings.Split(inv.Labels, ",")) {
+		if !t.Wanted(dslCtx, inv.Priority, strings.Split(inv.Labels, ","), inv.Tests) {
 			// Not marking this TestCase as "skipped".
 			continue
 		}
@@ -184,6 +187,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		log.Printf("Running test %s", filename)
 
 		if err := inv.Run(dslCtx, t); err != nil {
+			res = err
 			if b, is := dsl.IsBroken(err); is {
 				problem = true
 				tc.Error = &junit.Error{
@@ -205,6 +209,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
+				res = fmt.Errorf("Negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}
@@ -256,7 +261,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		}
 
 		fmt.Printf("%s\n", js)
-		return nil
+		return res
 	}
 
 	// Wire the XML representation of the JUnit test suite.
@@ -270,7 +275,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		return fmt.Errorf("Prolem")
 	}
 
-	return nil
+	return res
 }
 
 // Load a test
@@ -298,6 +303,11 @@ func (inv *Invocation) Load(ctx *dsl.Ctx, filename string) (*dsl.Test, error) {
 
 	if err := yaml.Unmarshal(bs, &t); err != nil {
 		return nil, dsl.NewBroken(fmt.Errorf("spec parse: %w", err))
+	}
+
+	if t.Name == "" {
+		basename := filepath.Base(filename)
+		t.Name = strings.TrimSuffix(basename, filepath.Ext(basename))
 	}
 
 	return t, nil

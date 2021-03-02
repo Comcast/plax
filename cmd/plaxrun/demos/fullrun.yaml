@@ -71,8 +71,7 @@ groups:
       'MARGIN': 200
     tests:
       - name: demos
-        labels:
-          - selftest
+        labels: "selftest"
 
   wait-no-prompt:
     params:
@@ -105,13 +104,20 @@ groups:
     tests:
       - name: wait
 
-  mqtt:
+  wait-csv-iterate:
+    iterate:
+      dependsOn:
+        - WAIT_ITERATE_PARAMS
+      params: "{WAIT_ITERATE_PARAMS}"
     tests:
-      - name: demos
-        labels:
-          - mqtt
+      - name: wait
 
 params:
+  'WAIT_ITERATE_PARAMS':
+    include: include/commands/csv.yaml
+    envs:
+      CSV_PATH: data/wait-iterate-test.csv
+
   'WAIT':
     include: include/commands/prompt.yaml
     envs:

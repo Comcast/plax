@@ -1,0 +1,48 @@
+doc: |
+  A demo of using a shell to execute AWS CLI commands and examine
+  their outputs.
+
+  This demo requires jq (https://stedolan.github.io/jq/) to transform
+  AWS CLI JSON output to a single line.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: shell
+                type: cmd
+                config:
+                  command: bash
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: |
+              Get some items from a DynamoDB table.
+            chan: shell
+            serialization: string
+            payload: |
+              aws dynamodb scan \
+                --max-items 3 \
+                --table-name MyTable | jq -c .
+        - recv:
+            chan: shell
+            pattern:
+              Items:
+                - "?*items"
+        - pub:
+            chan: shell
+            payload: |
+              aws dynamodb query \
+                --max-items 1 \
+                --table-name MyTable \
+                --key-condition-expression "id=:id" \
+                --expression-attribute-values '{":id":{"S":"x42"}}' | jq -c .
+        - recv:
+            chan: shell
+            pattern:
+              Items:
+                - "?*items"
