@@ -15,24 +15,24 @@ Currently this channel doesn't have any configuration.
 
 1. `url` (string) is the target for the request.
 
-1. `headers` is map of HTTP header names to values.
+1. `headers` (map[string][]string) is map of HTTP header names to values.
 
-1. `body` is the request body.
+1. `body` (interface {}) is the request body.
 
-1. `requestBodySerialization` specifies what serialization
+1. `requestBodySerialization` (dsl.Serialization) specifies what serialization
     (if any) to perform on the request's body.
     
     Possible values are 'string' and 'json' (default).
 
-1. `responseBodyDeserialization` specifies what deserialization
+1. `responseBodyDeserialization` (dsl.Serialization) specifies what deserialization
     (if any) to perform on the response's body.
     
     Possible values are 'string' and 'json' (default).
 
-1. `form` can contain form values, and you can specify these
+1. `form` (url.Values) can contain form values, and you can specify these
     values instead of providing an explicit Body.
 
-1. `ctl` is optional data for managing polling
+1. `ctl` (chans.HTTPRequestCtl) is optional data for managing polling
     requests.
 
     
@@ -58,7 +58,7 @@ Currently this channel doesn't have any configuration.
 
 1. `statuscode` (int) is the HTTP status code returned by the HTTP server.
 
-1. `body` is the either the raw body or parsed body returned by
+1. `body` (interface {}) is the either the raw body or parsed body returned by
     the HTTP server.
     
     The requests's ResponseBodyDeserialization determines if
@@ -67,5 +67,5 @@ Currently this channel doesn't have any configuration.
 1. `error` (string) describes a channel processing error (if any) that
     occured during the request or response.
 
-1. `headers` contains the response headers from the HTTP server.
+1. `headers` (map[string][]string) contains the response headers from the HTTP server.
 
