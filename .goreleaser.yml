@@ -14,9 +14,6 @@ builds:
       - linux
       - darwin
       - windows
-    ignore:
-      - goos: darwin
-        goarch: arm64
   - main: cmd/plaxrun/main.go
     id: plaxrun
     binary: plaxrun
@@ -24,9 +21,6 @@ builds:
       - linux
       - darwin
       - windows
-    ignore:
-      - goos: darwin
-        goarch: arm64
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl
@@ -34,9 +28,6 @@ builds:
       - linux
       - darwin
       - windows
-    ignore:
-      - goos: darwin
-        goarch: arm64
 archives:
   - replacements:
       darwin: Darwin
