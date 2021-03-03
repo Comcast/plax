@@ -1,4 +1,7 @@
 release:
+  github:
+    owner: Comcast
+    name: plax
 before:
   hooks:
     - go mod download
