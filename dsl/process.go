@@ -48,9 +48,10 @@ type Process struct {
 
 	cmd *exec.Cmd
 
-	Stdout chan string `json:"-"`
-	Stderr chan string `json:"-"`
-	Stdin  chan string `json:"-"`
+	Stdout   chan string `json:"-"`
+	Stderr   chan string `json:"-"`
+	Stdin    chan string `json:"-"`
+	ExitCode chan int    `json:"-"`
 
 	// ctl is only used to terminate goroutines when the Process
 	// is terminated.
@@ -97,6 +98,7 @@ func (p *Process) Start(ctx *Ctx) error {
 	p.Stderr = make(chan string)
 	p.Stdout = make(chan string)
 	p.ctl = make(chan bool)
+	p.ExitCode = make(chan int)
 
 	p.cmd = exec.Command(p.Command, p.Args...)
 
@@ -169,6 +171,14 @@ func (p *Process) Start(ctx *Ctx) error {
 		ctx.Logf("Process %s error on start: %s", p.Name, err)
 		return err
 	}
+
+	go func() {
+		if err := p.cmd.Wait(); err != nil {
+			ctx.Logf("Process %s error on wait: %s", p.Name, err)
+		}
+
+		p.ExitCode <- p.cmd.ProcessState.ExitCode()
+	}()
 
 	return nil
 }

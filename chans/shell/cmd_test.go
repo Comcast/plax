@@ -205,3 +205,61 @@ func TestCmdTermLate(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestCmdExit is just a cursory check that exiting the
+// process with an exit code return the exit code.
+func TestCmdExit(t *testing.T) {
+	var (
+		ctx    = dsl.NewCtx(nil)
+		script = `echo bye`
+	)
+
+	p := dsl.Process{
+		Name:    "test-term",
+		Command: "bash",
+		Args:    []string{"-c", script},
+	}
+
+	c, err := NewCmdChan(ctx, p)
+	if err != nil {
+		t.Fatal("could not create cmd channel: " + err.Error())
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	msg := dsl.Msg{
+		Payload:    "exit 2",
+		ReceivedAt: time.Now(),
+	}
+	if err = c.Pub(ctx, msg); err != nil {
+		t.Fatal(err)
+	}
+
+	var (
+		in = c.Recv(ctx)
+		to = time.NewTimer(time.Second)
+	)
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("ctx Done")
+	case <-to.C:
+		t.Fatal("timeout")
+	case msg := <-in:
+		switch msg.Topic {
+		case "exit":
+			if !strings.Contains(msg.Payload, "2") {
+				t.Fatal(msg.Payload)
+			}
+
+		}
+	}
+
+	time.Sleep(time.Second)
+
+	if err = c.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
