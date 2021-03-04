@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/Comcast/plax/dsl"
@@ -67,8 +68,10 @@ type HTTPServerOpts struct {
 
 func (c *HTTPServer) DocSpec() *dsl.DocSpec {
 	return &dsl.DocSpec{
-		Chan: &HTTPServer{},
-		Opts: &HTTPServerOpts{},
+		Chan:   &HTTPServer{},
+		Opts:   &HTTPServerOpts{},
+		Input:  &Request{},
+		Output: &Response{},
 	}
 }
 
@@ -76,23 +79,43 @@ func (c *HTTPServer) Kind() dsl.ChanKind {
 	return "httpserver"
 }
 
+type Request struct {
+	Path string `json:"path"`
+
+	// Form is the parsed form values.
+	Form url.Values `json:"form,omitempty"`
+
+	// Header is the map from header name to header values.
+	Headers map[string][]string `json:"headers,omitempty"`
+
+	// Method is the HTTP request method.
+	Method string `json:"method"`
+
+	// Body is the request body (if any).
+	//
+	// This body is parsed as JSON if ParsedJSON is true.
+	Body interface{} `json:"body,omitempty"`
+
+	// Error is a generic error message (if any).
+	Error string `json:"error,omitempty"`
+}
+
+type Response struct {
+	// Header is the map from header name to header values.
+	Headers map[string][]string `json:"headers,omitempty"`
+
+	// Body is the response body.
+	Body interface{} `json:"body,omitempty"`
+
+	StatusCode int `json:"statuscode,omitempty"`
+
+	// Serialization is the serialization used to make a string
+	// representation of the body.
+	Serialization *dsl.Serialization `json:"serialization,omitempty"`
+}
+
 func (c *HTTPServer) Open(ctx *dsl.Ctx) error {
 	addr := fmt.Sprintf("%s:%d", c.opts.Host, c.opts.Port)
-
-	type Payload struct {
-		Path    string              `json:"path"`
-		Headers map[string][]string `json:"headers,omitempty"`
-		Method  string              `json:"method"`
-		Body    interface{}         `json:"body,omitempty"`
-		Error   string              `json:"error,omitempty"`
-	}
-
-	type Response struct {
-		Headers       map[string][]string `json:"headers,omitempty"`
-		Body          interface{}         `json:"body,omitempty"`
-		StatusCode    int                 `json:"statuscode,omitempty"`
-		Serialization *dsl.Serialization  `json:"serialization,omitempty"`
-	}
 
 	punt := func(w http.ResponseWriter, err error) {
 		w.WriteHeader(501)
@@ -108,8 +131,14 @@ func (c *HTTPServer) Open(ctx *dsl.Ctx) error {
 	}
 
 	f := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		payload := &Payload{
+
+		if err := r.ParseForm(); err != nil {
+			ctx.Logf("httpserver ParseForm error %v on %v", r.URL)
+		}
+
+		payload := &Request{
 			Path:    r.URL.Path,
+			Form:    r.Form,
 			Headers: r.Header,
 			Method:  r.Method,
 		}
