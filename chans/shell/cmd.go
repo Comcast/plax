@@ -24,6 +24,7 @@ package shell
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/Comcast/plax/dsl"
@@ -107,6 +108,9 @@ func (c *CmdChan) Open(ctx *dsl.Ctx) error {
 				out("stdout", line)
 			case line := <-c.p.Stderr:
 				out("stderr", line)
+			case exitCode := <-c.p.ExitCode:
+				out("exit", strconv.Itoa(exitCode))
+				return
 			}
 		}
 	}()
