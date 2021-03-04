@@ -9,6 +9,7 @@ spec:
     phase1:
       steps:
         - pub:
+            chan: mother
             payload:
               make:
                 name: shell
@@ -58,3 +59,42 @@ spec:
             serialization: string
             regexp: |
               I like good queso\.
+        - pub:
+            doc: |
+              Exit the shell with an exit code 1
+            serialization:
+            payload: |
+              exit 1
+        - recv:
+            doc: |
+              Handle the shell exit code 1
+            topic: exit
+            regexp: 1
+        - goto: phase2
+    phase2:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: shell2
+                type: cmd
+                config:
+                  command: bash
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            chan: shell2
+            doc: |
+              Exit the shell with an exit code 0
+            serialization:
+            payload: |
+              exit 0
+        - recv:
+            chan: shell2
+            doc: |
+              Handle the shell exit code 0
+            topic: exit
+            regexp: 0
