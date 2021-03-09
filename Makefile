@@ -1,5 +1,5 @@
 all:	chan-docs
-	go install ./...
+	go install -ldflags="-X main.version=$$(git describe) -X main.commit=$$(git rev-parse HEAD) -X main.date=$$(date +%FT%H:%M:%S.%N)" ./...
 
 install: all
 

@@ -33,8 +33,20 @@ import (
 	"github.com/Comcast/plax/invoke"
 )
 
-// Version of plax.
-const Version = "NA"
+var (
+	// Default goreleaser ldflags:
+	//
+	// -X main.version={{.Version}}
+	// -X main.commit={{.Commit}}
+	// -X main.date={{.Date}}
+	// -X main.builtBy=goreleaser`
+	//
+	// See https://goreleaser.com/customization/build.
+
+	version = "NA"
+	commit  = "NA"
+	date    = "NA"
+)
 
 func main() {
 
@@ -57,7 +69,7 @@ func main() {
 		labels            = flag.String("labels", "", "Optional list of required test labels")
 		priority          = flag.Int("priority", -1, "Optional lowest priority (where larger numbers mean lower priority!); negative means all")
 		verbose           = flag.Bool("v", true, "Verbosity")
-		version           = flag.Bool("version", false, "Print version and then exit")
+		vers              = flag.Bool("version", false, "Print version and then exit")
 		listChanTypes     = flag.Bool("channel-types", false, "List known channel types and then exit")
 		seed              = flag.Int64("seed", 0, "Seed for random number generator")
 		nonzeroOnAnyError = flag.Bool("error-exit-code", false, "Return non-zero on any test failure")
@@ -72,8 +84,8 @@ func main() {
 
 	flag.Parse()
 
-	if *version {
-		fmt.Printf("plax %s\n", Version)
+	if *vers {
+		fmt.Printf("plax %s %s %s\n", version, commit, date)
 		return
 	}
 
