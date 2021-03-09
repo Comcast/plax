@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	_ "github.com/Comcast/plax/chans/std"
@@ -32,8 +33,8 @@ import (
 	"github.com/Comcast/plax/invoke"
 )
 
-// Version of plax
-const Version = "1.0.3"
+// Version of plax.
+const Version = "NA"
 
 func main() {
 
@@ -50,7 +51,7 @@ func main() {
 		// We make then their own type to enable flag.Var to parse multiple values.
 		bindings          = make(dsl.Bindings)
 		includeDirs       = IncludeDirs{"."}
-		specFilename      = flag.String("test", "test.yaml", "Filename for test specification")
+		specFilename      = flag.String("test", "", "Filename for test specification")
 		dir               = flag.String("dir", "", "Directory containing test specs")
 		list              = flag.Bool("list", false, "Show report of known tests; don't run anything.  Assumes -dir.")
 		labels            = flag.String("labels", "", "Optional list of required test labels")
@@ -71,9 +72,8 @@ func main() {
 
 	flag.Parse()
 
-	log.Printf("plax version %s", Version)
-
 	if *version {
+		fmt.Printf("plax %s\n", Version)
 		return
 	}
 
@@ -82,6 +82,12 @@ func main() {
 			fmt.Printf("%s\n", name)
 		}
 		return
+	}
+
+	if *specFilename == "" && *dir == "" {
+		fmt.Fprintf(os.Stderr, "To run a test, use \"-test FILENAME\" or \"-dir DIR\"\n\n")
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	iv := invoke.Invocation{
