@@ -35,8 +35,20 @@ import (
 	_ "github.com/Comcast/plax/cmd/plaxrun/plugins"
 )
 
-// Version of plaxrun
-const Version = "1.0.0"
+var (
+	// Default goreleaser ldflags:
+	//
+	// -X main.version={{.Version}}
+	// -X main.commit={{.Commit}}
+	// -X main.date={{.Date}}
+	// -X main.builtBy=goreleaser`
+	//
+	// See https://goreleaser.com/customization/build.
+
+	version = "NA"
+	commit  = "NA"
+	date    = "NA"
+)
 
 func main() {
 	wd, err := os.Getwd()
@@ -58,7 +70,7 @@ func main() {
 			SuiteName:   flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
 			Priority:    flag.Int("priority", -1, "Test priority"),
 		}
-		version = flag.Bool("version", false, "Print version and then exit")
+		vers = flag.Bool("version", false, "Print version and then exit")
 	)
 
 	flag.Var(&trps.Bindings, "p", fmt.Sprintf("Parameter Bindings: %s", trps.Bindings.String()))
@@ -68,9 +80,8 @@ func main() {
 
 	flag.Parse()
 
-	log.Printf("plax version %s", Version)
-
-	if *version {
+	if *vers {
+		fmt.Printf("plax %s %s %s\n", version, commit, date)
 		return
 	}
 
