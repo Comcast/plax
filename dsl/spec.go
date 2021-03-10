@@ -531,12 +531,13 @@ type Recv struct {
 	// validate incoming messages before other processing.
 	Schema string `json:",omitempty" yaml:",omitempty"`
 
-	// Expect only a single receipt of a message.  If the pattern or regex does not match then its a failure
-	Once bool `json:",omitempty" yaml:",omitempty`
+	// Max attempts to receive a message; optionally for a specific topic
+	Attempts int `json:",omitempty" yaml:",omitempty`
 
 	ch Chan
 }
 
+// Substitute bindings for the receiver
 func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	// Canonicalize r.Target.
@@ -550,7 +551,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	// Always remove "temporary" bindings.
-	for p, _ := range t.Bindings {
+	for p := range t.Bindings {
 		if strings.HasPrefix(p, "?*") {
 			delete(t.Bindings, p)
 		}
@@ -558,7 +559,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	if r.ClearBindings {
 		ctx.Indf("    Clearing bindings (%d) by request", len(t.Bindings))
-		for p, _ := range t.Bindings {
+		for p := range t.Bindings {
 			if !strings.HasPrefix(p, "?!") {
 				delete(t.Bindings, p)
 			}
@@ -575,7 +576,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	// Pattern must always be structured.  If we are given a
 	// string, it's interpreted as a JSON string.  But first we
-	// have to perform (string-based) substititions.
+	// have to perform (string-based) substitutions.
 
 	var s string
 	if src, is := r.Pattern.(string); !is {
@@ -623,17 +624,17 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	return &Recv{
-		Chan:    r.Chan,
-		Topic:   topic,
-		Pattern: pat,
-		Regexp:  reg,
-		Timeout: r.Timeout,
-		Target:  r.Target,
-		Guard:   guard,
-		Run:     run,
-		Schema:  r.Schema,
-		Once:    r.Once,
-		ch:      r.ch,
+		Chan:     r.Chan,
+		Topic:    topic,
+		Pattern:  pat,
+		Regexp:   reg,
+		Timeout:  r.Timeout,
+		Target:   r.Target,
+		Guard:    guard,
+		Run:      run,
+		Schema:   r.Schema,
+		Attempts: r.Attempts,
+		ch:       r.ch,
 	}, nil
 }
 
@@ -664,10 +665,12 @@ func validateSchema(ctx *Ctx, schemaURI string, payload string) error {
 	return nil
 }
 
+// Exec the receiver
 func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 	var (
-		timeout = r.Timeout
-		in      = r.ch.Recv(ctx)
+		timeout  = r.Timeout
+		in       = r.ch.Recv(ctx)
+		attempts = 0
 	)
 
 	if timeout == 0 {
@@ -883,8 +886,8 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				return nil
 			}
 
-			if r.Once && r.Topic == m.Topic {
-				ctx.Inddf("      once: %v", r.Once)
+			if (r.Attempts != 0 && attempts >= r.Attempts) && (r.Topic == "" || r.Topic == m.Topic) {
+				ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
 				ctx.Inddf("      topic: %s", r.Topic)
 				match := fmt.Sprintf("pattern: %s", r.Pattern)
 				if r.Regexp != "" {
@@ -892,6 +895,8 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 				return fmt.Errorf("expected only 1 message to match %s", match)
 			}
+
+			attempts++
 		}
 	}
 

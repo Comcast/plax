@@ -128,6 +128,14 @@ spec:
             doc: |
               Expect the shell exit code 0 not 2
             topic: exit
-            once: true
+            attempts: 1
             regexp: "0"
+          fails: true
+        - recv:
+            chan: shell3
+            doc: |
+              Expect the shell exit code 0 not 2
+            topic: exit
+            attempts: 1
+            timeout: 1s
           fails: true
