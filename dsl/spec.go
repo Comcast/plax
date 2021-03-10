@@ -531,6 +531,9 @@ type Recv struct {
 	// validate incoming messages before other processing.
 	Schema string `json:",omitempty" yaml:",omitempty"`
 
+	// Expect only a single receipt of a message.  If the pattern or regex does not match then its a failure
+	Once bool `json:",omitempty" yaml:",omitempty`
+
 	ch Chan
 }
 
@@ -629,6 +632,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 		Guard:   guard,
 		Run:     run,
 		Schema:  r.Schema,
+		Once:    r.Once,
 		ch:      r.ch,
 	}, nil
 }
@@ -688,6 +692,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			ctx.Indf("    Recv timeout (%v)", timeout)
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, r.Pattern)
 		case m := <-in:
+
 			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
 			ctx.Inddf("                   %s", m.Payload)
 
@@ -876,6 +881,16 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 
 				return nil
+			}
+
+			if r.Once && r.Topic == m.Topic {
+				ctx.Inddf("      once: %v", r.Once)
+				ctx.Inddf("      topic: %s", r.Topic)
+				match := fmt.Sprintf("pattern: %s", r.Pattern)
+				if r.Regexp != "" {
+					match = fmt.Sprintf("regexp: %s", r.Regexp)
+				}
+				return fmt.Errorf("expected only 1 message to match %s", match)
 			}
 		}
 	}
