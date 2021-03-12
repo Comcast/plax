@@ -893,7 +893,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				attempts++
 
 				// Verify the receiver attempts was specified (not 0) and that
-				// the actual number of attempts has been exceeded
+				// the actual number of attempts has been reached
 				if r.Attempts != 0 && attempts >= r.Attempts {
 					ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
 					ctx.Inddf("      topic: %s", r.Topic)
