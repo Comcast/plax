@@ -108,16 +108,17 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 	}
 
 	def := PluginDef{
-		PluginDefNameKey:     name,
-		PluginDefParamsKey:   bs,
-		PluginDefSeedKey:     tdr.Seed,
-		PluginDefPriorityKey: priority,
-		PluginDefLabelsKey:   labels,
-		PluginDefTestsKey:    tdr.tests,
-		PluginDefRetryKey:    strconv.Itoa(tdr.Retry),
-		PluginDefVerboseKey:  tr.trps.Verbose,
-		PluginDefLogLevelKey: tr.trps.LogLevel,
-		PluginDefEmitJSONKey: tr.trps.EmitJSON,
+		PluginDefNameKey:        name,
+		PluginDefParamsKey:      bs,
+		PluginDefSeedKey:        tdr.Seed,
+		PluginDefPriorityKey:    priority,
+		PluginDefLabelsKey:      labels,
+		PluginDefTestsKey:       tdr.tests,
+		PluginDefRetryKey:       strconv.Itoa(tdr.Retry),
+		PluginDefVerboseKey:     tr.trps.Verbose,
+		PluginDefLogLevelKey:    tr.trps.LogLevel,
+		PluginDefEmitJSONKey:    tr.trps.EmitJSON,
+		PluginDefIncludeDirsKey: tr.trps.IncludeDirs,
 	}
 
 	path := td.Path

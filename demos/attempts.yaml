@@ -1,0 +1,92 @@
+doc: |
+  Test attempts using the interaction with the cmd channel
+
+  Note the use of 'serialization: string' to avoid the default JSON
+  (de)serialization of messages.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: shell
+                type: cmd
+                config:
+                  command: bash
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: |
+              echo 3 times to test the exact number of attempts
+            serialization: string
+            payload: |
+              echo attempt 1
+              echo attempt 2
+              echo attempt 3
+        - recv:
+            doc: |
+              match on the 3rd stdout message with exactly 3 attempts
+            topic: stdout
+            regexp: "attempt 3"
+            attempts: 3
+            timeout: 1s
+        - goto: phase2
+    phase2:
+      steps:
+        - pub:
+            doc: |
+              echo 3 times to test not attempting enough
+            serialization: string
+            payload: |
+              echo attempt 1
+              echo attempt 2
+              echo attempt 3
+        - recv:
+            doc: |
+              match on the 3rd stdout message with only 2 attempts; should not match since its not enough attempts
+            topic: stdout
+            regexp: "attempt 3"
+            attempts: 2
+            timeout: 1s
+          fails: true
+        - goto: phase3
+    phase3:
+      steps:
+        - pub:
+            doc: |
+              echo 4 times; 2 on stdout and 2 on stderr to test attempts on any topic
+            serialization: string
+            payload: |
+              echo attempt 1
+              echo attempt 2 >&2
+              echo attempt 3
+              echo attempt 4 >&2
+        - recv:
+            doc: |
+              match on the 3rd message on any topic with 3 attempts
+            regexp: "attempt 3"
+            attempts: 3
+            timeout: 2s
+        - goto: phase4
+    phase4:
+      steps:
+        - pub:
+            doc: |
+              echo 4 times; 2 on stdout and 2 on stderr to test not attempting enough on any topic
+            serialization: string
+            payload: |
+              echo attempt 1
+              echo attempt 2 >&2
+              echo attempt 3
+              echo attempt 4 >&2
+        - recv:
+            doc: |
+              match on the 3rd message on any topic with 3 attempts
+            regexp: "attempt 4"
+            attempts: 3
+            timeout: 2s
+          fails: true

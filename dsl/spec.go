@@ -886,17 +886,27 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				return nil
 			}
 
-			if (r.Attempts != 0 && attempts >= r.Attempts) && (r.Topic == "" || r.Topic == m.Topic) {
-				ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
-				ctx.Inddf("      topic: %s", r.Topic)
-				match := fmt.Sprintf("pattern: %s", r.Pattern)
-				if r.Regexp != "" {
-					match = fmt.Sprintf("regexp: %s", r.Regexp)
-				}
-				return fmt.Errorf("expected only 1 message to match %s", match)
-			}
+			// Verify that either no receiver topic was provided or that the
+			// receiver topic matches the message topic
+			if r.Topic == "" || r.Topic == m.Topic {
+				// Only increment the number of attempts given a topic match
+				attempts++
 
-			attempts++
+				// Verify the receiver attempts was specified (not 0) and that
+				// the actual number of attempts has been exceeded
+				if r.Attempts != 0 && attempts >= r.Attempts {
+					ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
+					ctx.Inddf("      topic: %s", r.Topic)
+					match := fmt.Sprintf("pattern: %s", r.Pattern)
+					if r.Regexp != "" {
+						match = fmt.Sprintf("regexp: %s", r.Regexp)
+					}
+					if r.Topic != "" {
+						return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s on topic %s", attempts, r.Attempts, match, r.Topic)
+					}
+					return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s", attempts, r.Attempts, match)
+				}
+			}
 		}
 	}
 

@@ -134,7 +134,7 @@ spec:
         - recv:
             chan: shell3
             doc: |
-              Expect the shell exit code 0 which was already consumed, so it should timeout
+              Expect the shell exit code 0 which was already consumed above, so it should timeout
             topic: exit
             attempts: 1
             regexp: "0"
