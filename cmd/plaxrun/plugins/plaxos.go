@@ -101,11 +101,20 @@ func init() {
 			}
 
 			retry, err := def.GetPluginDefRetry()
+			if err != nil {
+				return nil, err
+			}
+
+			includeDirs, err := def.GetPluginDefIncludeDirsKey()
+			if err != nil {
+				return nil, err
+			}
 
 			i := plaxInvoke.Invocation{
 				SuiteName:         name,
 				Tests:             tests,
 				Bindings:          bps,
+				IncludeDirs:       includeDirs,
 				Seed:              seed,
 				Verbose:           verbose,
 				Priority:          priority,

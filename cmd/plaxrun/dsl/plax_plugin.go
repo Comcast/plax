@@ -21,7 +21,6 @@ package dsl
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/Comcast/plax/dsl"
 )
@@ -55,6 +54,8 @@ const (
 	PluginDefNonzeroOnAnyErrorKey = "NonzeroOnAnyErrorKey"
 	// PluginDefRetryKey of the PluginDef map
 	PluginDefRetryKey = "Retry"
+	// PluginDefIncludeDirsKey of the PluginDef map
+	PluginDefIncludeDirsKey = "IncludeDirs"
 )
 
 var (
@@ -224,12 +225,12 @@ func (pd PluginDef) GetPluginDefRetry() (string, error) {
 		return "", fmt.Errorf("%s was not provided in the plugin definition", PluginDefRetryKey)
 	}
 
-	ret, ok := value.(int)
+	ret, ok := value.(string)
 	if !ok {
-		return "", fmt.Errorf("%s is not a int", PluginDefRetryKey)
+		return "", fmt.Errorf("%s is not a string", PluginDefRetryKey)
 	}
 
-	return strconv.Itoa(ret), nil
+	return ret, nil
 }
 
 // GetPluginDefList returns the List flag
@@ -272,6 +273,21 @@ func (pd PluginDef) GetPluginDefNonzeroOnAnyErrorKey() (bool, error) {
 	ret, ok := value.(bool)
 	if !ok {
 		return false, fmt.Errorf("%s is not a bool", PluginDefNonzeroOnAnyErrorKey)
+	}
+
+	return ret, nil
+}
+
+// GetPluginDefIncludeDirsKey returns the Includes list
+func (pd PluginDef) GetPluginDefIncludeDirsKey() ([]string, error) {
+	value, ok := pd[PluginDefIncludeDirsKey]
+	if !ok || value == nil {
+		return []string{}, nil
+	}
+
+	ret, ok := value.(IncludeDirList)
+	if !ok {
+		return []string{}, fmt.Errorf("%s is not a IncludeDirList", PluginDefIncludeDirsKey)
 	}
 
 	return ret, nil

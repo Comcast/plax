@@ -531,9 +531,13 @@ type Recv struct {
 	// validate incoming messages before other processing.
 	Schema string `json:",omitempty" yaml:",omitempty"`
 
+	// Max attempts to receive a message; optionally for a specific topic
+	Attempts int `json:",omitempty" yaml:",omitempty`
+
 	ch Chan
 }
 
+// Substitute bindings for the receiver
 func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	// Canonicalize r.Target.
@@ -547,7 +551,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	// Always remove "temporary" bindings.
-	for p, _ := range t.Bindings {
+	for p := range t.Bindings {
 		if strings.HasPrefix(p, "?*") {
 			delete(t.Bindings, p)
 		}
@@ -555,7 +559,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	if r.ClearBindings {
 		ctx.Indf("    Clearing bindings (%d) by request", len(t.Bindings))
-		for p, _ := range t.Bindings {
+		for p := range t.Bindings {
 			if !strings.HasPrefix(p, "?!") {
 				delete(t.Bindings, p)
 			}
@@ -572,7 +576,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 
 	// Pattern must always be structured.  If we are given a
 	// string, it's interpreted as a JSON string.  But first we
-	// have to perform (string-based) substititions.
+	// have to perform (string-based) substitutions.
 
 	var s string
 	if src, is := r.Pattern.(string); !is {
@@ -620,16 +624,17 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 	}
 
 	return &Recv{
-		Chan:    r.Chan,
-		Topic:   topic,
-		Pattern: pat,
-		Regexp:  reg,
-		Timeout: r.Timeout,
-		Target:  r.Target,
-		Guard:   guard,
-		Run:     run,
-		Schema:  r.Schema,
-		ch:      r.ch,
+		Chan:     r.Chan,
+		Topic:    topic,
+		Pattern:  pat,
+		Regexp:   reg,
+		Timeout:  r.Timeout,
+		Target:   r.Target,
+		Guard:    guard,
+		Run:      run,
+		Schema:   r.Schema,
+		Attempts: r.Attempts,
+		ch:       r.ch,
 	}, nil
 }
 
@@ -660,10 +665,12 @@ func validateSchema(ctx *Ctx, schemaURI string, payload string) error {
 	return nil
 }
 
+// Exec the receiver
 func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 	var (
-		timeout = r.Timeout
-		in      = r.ch.Recv(ctx)
+		timeout  = r.Timeout
+		in       = r.ch.Recv(ctx)
+		attempts = 0
 	)
 
 	if timeout == 0 {
@@ -688,6 +695,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			ctx.Indf("    Recv timeout (%v)", timeout)
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, r.Pattern)
 		case m := <-in:
+
 			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
 			ctx.Inddf("                   %s", m.Payload)
 
@@ -876,6 +884,28 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 
 				return nil
+			}
+
+			// Verify that either no receiver topic was provided or that the
+			// receiver topic matches the message topic
+			if r.Topic == "" || r.Topic == m.Topic {
+				// Only increment the number of attempts given a topic match
+				attempts++
+
+				// Verify the receiver attempts was specified (not 0) and that
+				// the actual number of attempts has been reached
+				if r.Attempts != 0 && attempts >= r.Attempts {
+					ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
+					ctx.Inddf("      topic: %s", r.Topic)
+					match := fmt.Sprintf("pattern: %s", r.Pattern)
+					if r.Regexp != "" {
+						match = fmt.Sprintf("regexp: %s", r.Regexp)
+					}
+					if r.Topic != "" {
+						return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s on topic %s", attempts, r.Attempts, match, r.Topic)
+					}
+					return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s", attempts, r.Attempts, match)
+				}
 			}
 		}
 	}

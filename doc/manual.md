@@ -505,7 +505,8 @@ single operation.  Currently the following steps are supported:
 	   
 	1. `timeout`: Optional timeout in [Go
        syntax](https://golang.org/pkg/time/#ParseDuration).
-	
+
+  1. `attempts`: Optional number of (maximum) attempts when dequeuing a message for `recv`.  If a topic is provided the number of `attempts` is for the given topic only
 	1. `target`: Target is an optional switch to specify what part of
        	the incoming message is considered for matching.
 		

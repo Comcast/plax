@@ -64,12 +64,13 @@ spec:
               Exit the shell with an exit code 1
             serialization:
             payload: |
-              exit 1
+              ls ?
+              exit $?
         - recv:
             doc: |
               Handle the shell exit code 1
             topic: exit
-            regexp: 1
+            regexp: "2"
         - goto: phase2
     phase2:
       steps:
@@ -91,10 +92,51 @@ spec:
               Exit the shell with an exit code 0
             serialization:
             payload: |
+              echo Hello
               exit 0
         - recv:
             chan: shell2
             doc: |
               Handle the shell exit code 0
             topic: exit
-            regexp: 0
+            regexp: "0"
+        - goto: phase3
+    phase3:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: shell3
+                type: cmd
+                config:
+                  command: bash
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            chan: shell3
+            doc: |
+              Exit the shell with an exit code 2
+            serialization:
+            payload: |
+              echo Hmmm
+              exit 2
+        - recv:
+            chan: shell3
+            doc: |
+              Expect the shell exit code 0 not 2 but only one attempt
+            topic: exit
+            attempts: 1
+            regexp: "0"
+          fails: true
+        - recv:
+            chan: shell3
+            doc: |
+              Expect the shell exit code 0 which was already consumed above, so it should timeout
+            topic: exit
+            attempts: 1
+            regexp: "0"
+            timeout: 1s
+          fails: true
