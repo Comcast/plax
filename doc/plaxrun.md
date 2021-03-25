@@ -226,7 +226,7 @@ groups:
       dependsOn:
         - WAIT_LIST
         - ILLEGAL_WAIT
-      params: "{WAIT_LIST}"
+      params: '{WAIT_LIST}'
     tests:
       - name: wait
         guard:
@@ -251,7 +251,7 @@ groups:
       dependsOn:
         - WAIT_LIST
         - ILLEGAL_WAIT
-      params: "{WAIT_LIST}"
+      params: '{WAIT_LIST}'
       guard:
           src: |
             return bs["WAIT"] != bs["ILLEGAL_WAIT"];

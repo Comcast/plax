@@ -191,6 +191,8 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 
 		if err := inv.Run(dslCtx, t); err != nil {
 			if b, is := dsl.IsBroken(err); is {
+				// Any broken test is a failure (even
+				// for a 'negative' test).
 				res = err
 				problem = true
 				log.Printf("Test %s broken: %s", filename, b.Err)
@@ -217,6 +219,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
+				res = fmt.Errorf("negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}
