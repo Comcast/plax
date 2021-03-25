@@ -49,24 +49,38 @@ type Invocation struct {
 	Filename  string
 	// Dir will be added to ctx.IncludeDirs to resolve YAML (and
 	// perhaps other) includes.
-	Dir               string
-	IncludeDirs       []string
-	Env               map[string]string
-	Seed              int64
-	Priority          int
-	Labels            string
-	Tests             []string
-	LogLevel          string
-	Verbose           bool
-	List              bool
-	EmitJSON          bool
-	NonzeroOnAnyError bool
+	Dir         string
+	IncludeDirs []string
+	Env         map[string]string
+	Seed        int64
+	Priority    int
+	Labels      string
+	Tests       []string
+	LogLevel    string
+	Verbose     bool
+	List        bool
+	EmitJSON    bool
+
+	// ComplainOnAnyError will cause Exec() to return an error if
+	// any test case fails or is broken.
+	//
+	// The default (false) can make sense when the caller's
+	// perspective is that test failures are actually normal.
+	ComplainOnAnyError bool
+
 	// Retry will override a test's retry policy (if any).
-	Retry   string
+	Retry string
+
 	retries *dsl.Retries
 }
 
-// Exec the tests
+// Exec executes the Invocation.
+//
+// When ComplainOnAnyError is true, then the last test problem (if
+// any) is returned by this method.  Otherwise, only a non-test error
+// (if any) is returned.
+//
+// This method calls Run(t) for each test t in the Invocation.
 func (inv *Invocation) Exec(ctx context.Context) error {
 	dslCtx := dsl.NewCtx(ctx)
 
@@ -105,7 +119,6 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 	var (
 		ts        = junit.NewTestSuite()
 		filenames = make([]string, 0, 8)
-		problem   bool
 	)
 
 	ts.Name = strings.ReplaceAll(inv.SuiteName,
@@ -157,7 +170,14 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		filenames = append(filenames, filename)
 	}
 
-	var res error = nil // final result of test execution success/failure
+	var (
+		// problem will remember the last test failure (if any).
+		problem error = nil
+
+		// problemFilename will be the filename of the
+		// last test that failed (if any).
+		problemFilename string
+	)
 
 	// Run tests.
 	i := 0
@@ -187,32 +207,35 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		log.Printf("Running test %s", filename)
 
 		if err := inv.Run(dslCtx, t); err != nil {
-			res = err
 			if b, is := dsl.IsBroken(err); is {
-				problem = true
+				// Any broken test is a failure (even
+				// for a 'negative' test).
+				problem = err
+				problemFilename = filename
+				log.Printf("Test %s broken: %s", filename, b.Err)
 				tc.Error = &junit.Error{
 					Message: b.Err.Error(),
 				}
 			} else {
-				if !t.Negative {
-					problem = true
+				if t.Negative {
+					log.Printf("Test %s (negative) passed", filename)
+				} else {
+					problem = err
+					problemFilename = filename
 					log.Printf("Test %s failed: %s", filename, err)
 					tc.Failure = &junit.Failure{
 						Message: err.Error(),
 					}
-				} else {
-					// clear final result because this is not a problem due to negative :-(
-					res = nil
 				}
 			}
-		} else { // err nil
+		} else {
 			if t.Negative {
-				problem = true
+				problem = fmt.Errorf("negative test failure")
+				problemFilename = filename
 				log.Printf("Test %s (negative) failed (no error)", filename)
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
-				res = fmt.Errorf("negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}
@@ -264,21 +287,25 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		}
 
 		fmt.Printf("%s\n", js)
-		return res
+	} else {
+		bs, err := xml.MarshalIndent(ts, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s\n", bs)
 	}
 
-	// Wire the XML representation of the JUnit test suite.
-	bs, err := xml.MarshalIndent(ts, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%s\n", bs)
-
-	if inv.NonzeroOnAnyError && problem {
-		return fmt.Errorf("Prolem")
+	if problem != nil && inv.ComplainOnAnyError {
+		return fmt.Errorf("at least one test failed (%s: %s)", problemFilename, problem)
 	}
 
-	return res
+	// Unless we are asked to complain via inv.ComplainOnAnyError,
+	// we report that we are happy.
+	//
+	// We have some log.Fatal(err) calls above that could probably
+	// be replaced by 'return err', which should correctly report
+	// an error that is not a test error.
+	return nil
 }
 
 // Load a test

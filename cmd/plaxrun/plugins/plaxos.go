@@ -111,19 +111,19 @@ func init() {
 			}
 
 			i := plaxInvoke.Invocation{
-				SuiteName:         name,
-				Tests:             tests,
-				Bindings:          bps,
-				IncludeDirs:       includeDirs,
-				Seed:              seed,
-				Verbose:           verbose,
-				Priority:          priority,
-				Labels:            labels,
-				LogLevel:          logLevel,
-				List:              list,
-				EmitJSON:          emitJSON,
-				NonzeroOnAnyError: nonZeroOnAnyError,
-				Retry:             retry,
+				SuiteName:          name,
+				Tests:              tests,
+				Bindings:           bps,
+				IncludeDirs:        includeDirs,
+				Seed:               seed,
+				Verbose:            verbose,
+				Priority:           priority,
+				Labels:             labels,
+				LogLevel:           logLevel,
+				List:               list,
+				EmitJSON:           emitJSON,
+				ComplainOnAnyError: nonZeroOnAnyError,
+				Retry:              retry,
 			}
 
 			i.Dir, err = def.GetPluginDefDir()
