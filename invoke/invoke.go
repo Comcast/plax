@@ -157,6 +157,9 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		filenames = append(filenames, filename)
 	}
 
+	// res will be the overall result for the suite.
+	//
+	// If any test fails, err will be that error.
 	var res error = nil
 
 	// Run tests.
@@ -187,14 +190,18 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		log.Printf("Running test %s", filename)
 
 		if err := inv.Run(dslCtx, t); err != nil {
-			res = err
 			if b, is := dsl.IsBroken(err); is {
+				res = err
 				problem = true
+				log.Printf("Test %s broken: %s", filename, b.Err)
 				tc.Error = &junit.Error{
 					Message: b.Err.Error(),
 				}
 			} else {
-				if !t.Negative {
+				if t.Negative {
+					log.Printf("Test %s passed", filename)
+				} else {
+					res = err
 					problem = true
 					log.Printf("Test %s failed: %s", filename, err)
 					tc.Failure = &junit.Failure{
@@ -202,14 +209,14 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 					}
 				}
 			}
-		} else { // err nil
+		} else {
 			if t.Negative {
+				res = fmt.Errorf("negative test failure")
 				problem = true
 				log.Printf("Test %s (negative) failed (no error)", filename)
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
-				res = fmt.Errorf("Negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}
@@ -272,7 +279,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 	fmt.Printf("%s\n", bs)
 
 	if inv.NonzeroOnAnyError && problem {
-		return fmt.Errorf("Prolem")
+		return fmt.Errorf("problem: some test failed")
 	}
 
 	return res
