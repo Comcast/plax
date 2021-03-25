@@ -157,7 +157,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		filenames = append(filenames, filename)
 	}
 
-	var res error = nil
+	var res error = nil // final result of test execution success/failure
 
 	// Run tests.
 	i := 0
@@ -200,6 +200,9 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 					tc.Failure = &junit.Failure{
 						Message: err.Error(),
 					}
+				} else {
+					// clear final result because this is not a problem due to negative :-(
+					res = nil
 				}
 			}
 		} else { // err nil
@@ -209,7 +212,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				tc.Failure = &junit.Failure{
 					Message: "expected error for Negative test",
 				}
-				res = fmt.Errorf("Negative test failure")
+				res = fmt.Errorf("negative test failure")
 			} else {
 				log.Printf("Test %s passed", filename)
 			}

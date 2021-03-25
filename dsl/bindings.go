@@ -46,6 +46,9 @@ func (bs *Bindings) Copy() (*Bindings, error) {
 
 	ret := NewBindings()
 	err = json.Unmarshal(bytes, &ret)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ret, nil
 }
@@ -57,16 +60,28 @@ func (bs *Bindings) String() string {
 
 // SetKeyValue to set the binding key to the given JSON value.
 func (bs *Bindings) SetKeyValue(key string, value string) {
-	var v interface{}
-	if err := json.Unmarshal([]byte(value), &v); err != nil {
+	(*bs)[key] = value
+}
+
+// Set the parameter key=value pair using unmarshal.
+func (bs *Bindings) Set(value string) error {
+	pv := strings.SplitN(value, "=", 2)
+	if len(pv) != 2 {
+		return fmt.Errorf("bad binding: '%s'", value)
+	}
+
+	var v string
+	if err := json.Unmarshal([]byte(pv[1]), &v); err != nil {
 		v = value
 	}
 
-	(*bs)[key] = v
+	bs.SetKeyValue(pv[0], v)
+
+	return nil
 }
 
-// Set the parameter key=value pair.
-func (bs *Bindings) Set(value string) error {
+// Set the parameter key=value pair without unmarshal.
+func (bs *Bindings) SetString(value string) error {
 	pv := strings.SplitN(value, "=", 2)
 	if len(pv) != 2 {
 		return fmt.Errorf("bad binding: '%s'", value)
@@ -109,7 +124,7 @@ func (bs *Bindings) Sub(ctx *Ctx, src string) (string, error) {
 		if src, err = bs.SubOnce(ctx, src); err != nil {
 			return "", err
 		}
-		// Have we enountered this string before?
+		// Have we encountered this string before?
 		for _, previous := range acc {
 			if src == previous {
 				return src, nil
@@ -122,7 +137,7 @@ func (bs *Bindings) Sub(ctx *Ctx, src string) (string, error) {
 	return "", Brokenf("expansion limit (%d) exceeded at '%s' starting from '%s'", limit, src, acc[0])
 }
 
-// SubOnce performs a single pass of bindings substitition on src.
+// SubOnce performs a single pass of bindings substitution on src.
 func (bs *Bindings) SubOnce(ctx *Ctx, src string) (string, error) {
 	var err error
 	if src, err = bs.StringSub(ctx, src); err != nil {
@@ -230,7 +245,7 @@ func bangBangSub(ctx *Ctx, s string) (string, error) {
 	return y, nil
 }
 
-// StringSubOnce performs the following subsitutions in order: @@, !!,
+// StringSubOnce performs the following substitutions in order: @@, !!,
 // bindings.
 //
 // Bindings are substituted textually with added braces: a binding B=V
@@ -333,59 +348,59 @@ func (bs *Bindings) Bind(ctx *Ctx, x interface{}) interface{} {
 	return bs.replaceBindings(ctx, x)
 }
 
-// walk is not used.
-func walk(ctx *Ctx, x interface{}, f func(ctx *Ctx, x interface{}) (interface{}, error), limit int) (interface{}, error) {
-	if limit <= 0 {
-		return nil, Brokenf("walk() took too many steps")
-	}
+// walk is not used; commented out; for testing purposes only
+// func walk(ctx *Ctx, x interface{}, f func(ctx *Ctx, x interface{}) (interface{}, error), limit int) (interface{}, error) {
+// 	if limit <= 0 {
+// 		return nil, Brokenf("walk() took too many steps")
+// 	}
 
-	switch vv := x.(type) {
-	case map[string]interface{}:
-		acc := make(map[string]interface{}, len(vv))
-		for k, v := range vv {
-			k1, err := f(ctx, k)
-			if err != nil {
-				return nil, err
-			}
-			s, is := k1.(string)
-			if !is {
-				return nil, Brokenf("tried to set a %T map key (%#v)", k1, k1)
-			}
-			v1, err := walk(ctx, v, f, limit-1)
-			if err != nil {
-				return nil, err
-			}
-			if v1 != nil {
-				acc[s] = v1
-			}
-		}
-		return acc, nil
-	case string:
-		x, err := f(ctx, vv)
-		if err != nil {
-			return nil, err
-		}
-		if s, is := x.(string); is && s == vv {
-			// Nothing changed, so stop now.
-			return s, nil
-		}
-		y, err := walk(ctx, x, f, limit-1)
-		if err != nil {
-			return nil, err
-		}
-		return y, nil
-	case []interface{}:
-		acc := make([]interface{}, len(vv))
-		for i, x := range vv {
-			x1, err := walk(ctx, x, f, limit-1)
-			if err != nil {
-				return nil, err
-			}
-			acc[i] = x1
-		}
-		return acc, nil
-	default:
-		return x, nil
-	}
+// 	switch vv := x.(type) {
+// 	case map[string]interface{}:
+// 		acc := make(map[string]interface{}, len(vv))
+// 		for k, v := range vv {
+// 			k1, err := f(ctx, k)
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			s, is := k1.(string)
+// 			if !is {
+// 				return nil, Brokenf("tried to set a %T map key (%#v)", k1, k1)
+// 			}
+// 			v1, err := walk(ctx, v, f, limit-1)
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			if v1 != nil {
+// 				acc[s] = v1
+// 			}
+// 		}
+// 		return acc, nil
+// 	case string:
+// 		x, err := f(ctx, vv)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		if s, is := x.(string); is && s == vv {
+// 			// Nothing changed, so stop now.
+// 			return s, nil
+// 		}
+// 		y, err := walk(ctx, x, f, limit-1)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		return y, nil
+// 	case []interface{}:
+// 		acc := make([]interface{}, len(vv))
+// 		for i, x := range vv {
+// 			x1, err := walk(ctx, x, f, limit-1)
+// 			if err != nil {
+// 				return nil, err
+// 			}
+// 			acc[i] = x1
+// 		}
+// 		return acc, nil
+// 	default:
+// 		return x, nil
+// 	}
 
-}
+// }
