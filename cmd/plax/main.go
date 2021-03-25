@@ -103,20 +103,20 @@ func main() {
 	}
 
 	iv := invoke.Invocation{
-		SuiteName:         *testSuiteName,
-		Bindings:          bindings,
-		Seed:              *seed,
-		Verbose:           *verbose,
-		Filename:          *specFilename,
-		Dir:               *dir,
-		IncludeDirs:       includeDirs,
-		Priority:          *priority,
-		Labels:            *labels,
-		LogLevel:          *logLevel,
-		List:              *list,
-		EmitJSON:          *emitJSON,
-		NonzeroOnAnyError: *nonzeroOnAnyError,
-		Retry:             *retry,
+		SuiteName:          *testSuiteName,
+		Bindings:           bindings,
+		Seed:               *seed,
+		Verbose:            *verbose,
+		Filename:           *specFilename,
+		Dir:                *dir,
+		IncludeDirs:        includeDirs,
+		Priority:           *priority,
+		Labels:             *labels,
+		LogLevel:           *logLevel,
+		List:               *list,
+		EmitJSON:           *emitJSON,
+		ComplainOnAnyError: *nonzeroOnAnyError,
+		Retry:              *retry,
 	}
 
 	err := iv.Exec(context.Background())
