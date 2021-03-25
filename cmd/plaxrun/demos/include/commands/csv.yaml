@@ -50,4 +50,4 @@ args:
       END { print "]" }
     '`
 
-    echo $KEY="$VALUE"
+    echo $KEY=$VALUE

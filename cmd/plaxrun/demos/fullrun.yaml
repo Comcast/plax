@@ -12,8 +12,8 @@ tests:
   js-strings:
     path: js-strings.yaml
     params:
-      - 'WORLD'
-      - 'DATE'
+      - WORLD
+      - DATE
 
   demos:
     path: .
@@ -22,8 +22,8 @@ tests:
   wait:
     path: test-wait.yaml
     params:
-      - 'WAIT'
-      - 'MARGIN'
+      - WAIT
+      - MARGIN
 
 groups:
   nested:
@@ -32,13 +32,15 @@ groups:
     tests:
       - name: wait
         params:
-          'WAIT': 600
-          'MARGIN': 200
+          WAIT: 600
+          MARGIN: 200
+
   multi-tests:
     tests:
       - name: basic
       - name: inclusion
       - name: js-strings
+      - name: wait-combine-iterate
   
   basic:
     tests:
@@ -54,7 +56,7 @@ groups:
 
   js-strings-with-date:
     params:
-      'DATE': 'Tue Dec  1 18:49:53 CST 2020'
+      DATE: 'Tue Dec  1 18:49:53 CST 2020'
     tests:
       - name: js-strings
 
@@ -67,16 +69,16 @@ groups:
 
   selftest:
     params:
-      'WAIT': 600
-      'MARGIN': 200
+      WAIT: 600
+      MARGIN: 200
     tests:
       - name: demos
         labels: "selftest"
 
   wait-no-prompt:
     params:
-      'WAIT': 600
-      'MARGIN': 200
+      WAIT: 600
+      MARGIN: 200
     tests:        
       - name: wait
 
@@ -112,32 +114,74 @@ groups:
     tests:
       - name: wait
 
+  wait-combine-iterate:
+    iterate:
+      dependsOn:
+        - COMBINE_WAIT_LIST
+      params: "{COMBINE_WAIT_LIST}"
+    tests:
+      - name: wait
+
 params:
-  'WAIT_ITERATE_PARAMS':
+  WAIT_ITERATE_PARAMS:
     include: include/commands/csv.yaml
     envs:
       CSV_PATH: data/wait-iterate-test.csv
 
-  'WAIT':
+  WAIT:
     include: include/commands/prompt.yaml
     envs:
       KEY: WAIT
       PROMPT: Enter wait
       DEFAULT: 300
 
-  'MARGIN':
+  MARGIN:
     include: include/commands/prompt.yaml
     envs:
       KEY: MARGIN
       PROMPT: Enter margin
       DEFAULT: 100
 
-  'WORLD':
+  WORLD:
     include: include/commands/value.yaml
     envs:
       VALUE: universe
 
-  'DATE':
+  DATE:
     include: include/commands/command.yaml
     envs:
       COMMAND: date
+
+  WAIT_LIST_1:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: |
+        [
+          {
+            "WAIT": 300,
+            "MARGIN": 100
+          },
+          {
+            "WAIT": 600,
+            "MARGIN": 200
+          }
+        ]
+
+  WAIT_LIST_2:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: |
+        [
+          {
+            "WAIT": 900,
+            "MARGIN": 300
+          }
+        ]
+
+  COMBINE_WAIT_LIST:
+    dependsOn:
+      - WAIT_LIST_1
+      - WAIT_LIST_2
+    include: include/commands/combine.yaml
+    envs:
+      ARRAYS: '[{WAIT_LIST_1},{WAIT_LIST_2}]'

@@ -23,9 +23,14 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
+	"regexp"
 
 	plaxDsl "github.com/Comcast/plax/dsl"
+)
+
+var (
+	multiLinePropertyValueRegexp = regexp.MustCompile(`(\w+)=(.+(?:\\n   .*|\n[^=\n]+$)*)`)
+	quotedRegexp                 = regexp.MustCompile(`^"(.*)"$`)
 )
 
 // TestParamEnvMap type
@@ -95,7 +100,7 @@ type TestParamBinding struct {
 	// DependsOn is a list of dependent parameters
 	DependsOn TestParamDependencyList `json:"dependsOn" yaml:"dependsOn"`
 
-	// Cmd is the commmand name of the program.
+	// Cmd is the command name of the program.
 	//
 	// Subject to expansion.
 	Cmd string `json:"cmd" yaml:"cmd"`
@@ -108,7 +113,7 @@ type TestParamBinding struct {
 	// cmd is the private exec command
 	ec *exec.Cmd
 
-	// tpem is the map of environemnt variables to pass into the Run script
+	// tpem is the map of environment variables to pass into the Run script
 	Envs TestParamEnvMap `json:"envs" yaml:"envs"`
 }
 
@@ -123,14 +128,14 @@ func (tpb *TestParamBinding) environment(ctx *plaxDsl.Ctx, key string, bs *plaxD
 		if err != nil {
 			return fmt.Errorf("failed to bind envs for key=%s: %w", k, err)
 		}
-		ctx.Logdf("binding envs %s=%s", k, val)
+
 		tpb.ec.Env = append(tpb.ec.Env, fmt.Sprintf("%s=%s", k, val))
 	}
 
 	return nil
 }
 
-// substitute performs a string substitution of the enviornment variables with the Bindings
+// substitute performs a string substitution of the environment variables with the Bindings
 func (tpb *TestParamBinding) substitute(ctx *plaxDsl.Ctx, bs *plaxDsl.Bindings) (*TestParamBinding, error) {
 	// Substitute the environment variable bindings
 	tpem := make(TestParamEnvMap)
@@ -181,15 +186,21 @@ func (tpb *TestParamBinding) run(ctx *plaxDsl.Ctx, key string, bs *plaxDsl.Bindi
 	}
 
 	if tpb.ec.ProcessState.ExitCode() != 0 {
-		return fmt.Errorf("Param binding process termintated with exit code %d", tpb.ec.ProcessState.ExitCode())
+		return fmt.Errorf("param binding process terminated with exit code %d", tpb.ec.ProcessState.ExitCode())
 	}
 
-	output := strings.TrimSuffix(stdout.String(), "\n") // removing only the trailing newline
+	output := stdout.String()
+	output = quotedRegexp.ReplaceAllString(output, `$1`)
 
-	values := strings.Split(output, "\n")
-	for _, value := range values {
-		ctx.Logdf("Binding %s", value)
-		bs.Set(value)
+	matches := multiLinePropertyValueRegexp.FindAllStringSubmatch(output, -1)
+	for _, match := range matches {
+		if len(match) != 3 {
+			return fmt.Errorf("invalid key=value pair returned from command: match = %T", match)
+		}
+		k := match[1]
+		v := match[2]
+		ctx.Logdf("Binding %s=%s", k, v)
+		bs.SetKeyValue(k, v)
 	}
 
 	return nil

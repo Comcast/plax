@@ -25,7 +25,7 @@ groups:
     iterate:
       dependsOn:
         - WAIT_LIST
-      params: "{WAIT_LIST}"
+      params: '{WAIT_LIST}'
     tests:
       - name: wait
 
@@ -40,7 +40,7 @@ groups:
       dependsOn:
         - WAIT_LIST
         - ILLEGAL_WAIT
-      params: "{WAIT_LIST}"
+      params: '{WAIT_LIST}'
     tests:
       - name: wait
         guard:
@@ -65,10 +65,18 @@ groups:
       dependsOn:
         - WAIT_LIST
         - ILLEGAL_WAIT
-      params: "{WAIT_LIST}"
+      params: '{WAIT_LIST}'
       guard:
           src: |
             return bs["WAIT"] != bs["ILLEGAL_WAIT"];
+    tests:
+      - name: wait
+
+  wait-combine-iterate:
+    iterate:
+      dependsOn:
+        - COMBINE_WAIT_LIST
+      params: "{COMBINE_WAIT_LIST}"
     tests:
       - name: wait
 
@@ -77,7 +85,9 @@ groups:
       - name: wait-iterate
       - name: wait-guard-test
       - name: wait-guard-group
-      - name: wait-guard-iterate       
+      - name: wait-guard-iterate
+      - name: wait-combine-iterate
+
 params:
   WAIT:
     include: include/commands/prompt.yaml
@@ -118,3 +128,36 @@ params:
     envs:
       VALUE: true
     
+  WAIT_LIST_1:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: |
+        [
+          {
+            "WAIT": 300,
+            "MARGIN": 100
+          },
+          {
+            "WAIT": 600,
+            "MARGIN": 200
+          }
+        ]
+
+  WAIT_LIST_2:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: |
+        [
+          {
+            "WAIT": 900,
+            "MARGIN": 300
+          }
+        ]
+
+  COMBINE_WAIT_LIST:
+    dependsOn:
+      - WAIT_LIST_1
+      - WAIT_LIST_2
+    include: include/commands/combine.yaml
+    envs:
+      ARRAYS: '[{WAIT_LIST_1},{WAIT_LIST_2}]'
