@@ -338,10 +338,24 @@ type Pub struct {
 	Topic string
 
 	// Schema is an optional URI for a JSON Schema that's used to
-	// validate incoming messages before other processing.
+	// validate outgoing messages.
 	Schema string `json:",omitempty" yaml:",omitempty"`
 
 	Payload interface{}
+
+	payload string
+
+	// Serialization specifies how a string Payload should be
+	// deserialized (if at all).
+	//
+	// Legal values: 'json', 'text'.  Default is 'json'.
+	//
+	// If given a non-string, that value is always used as is.
+	//
+	// If given a string, if serialization is 'json' or not
+	// specified, then the string is parsed as JSON.  If the
+	// serialization is 'text', then the string is used as is.
+	Serialization string `json:",omitempty" yaml:",omitempty"`
 
 	Run string `json:",omitempty" yaml:",omitempty"`
 
@@ -349,24 +363,15 @@ type Pub struct {
 }
 
 func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
+
 	topic, err := t.Bindings.StringSub(ctx, p.Topic)
 	if err != nil {
 		return nil, err
 	}
 	ctx.Inddf("    Effective topic: %s", topic)
 
-	var payload string
-	if s, is := p.Payload.(string); is {
-		payload = s
-	} else {
-		js, err := json.Marshal(&p.Payload)
-		if err != nil {
-			return nil, err
-		}
-		payload = string(js)
-	}
-
-	if payload, err = t.Bindings.Sub(ctx, payload); err != nil {
+	payload, err := t.Bindings.SerialSub(ctx, p.Serialization, p.Payload)
+	if err != nil {
 		return nil, err
 	}
 	ctx.Inddf("    Effective payload: %s", payload)
@@ -380,33 +385,30 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	}
 
 	return &Pub{
-		Chan:    p.Chan,
-		Topic:   topic,
-		Payload: payload,
-		Run:     run,
-		ch:      p.ch,
+		Chan:          p.Chan,
+		Topic:         topic,
+		Payload:       p.Payload,
+		Serialization: p.Serialization,
+		payload:       payload,
+		Run:           run,
+		ch:            p.ch,
 	}, nil
 
 }
 
 func (p *Pub) Exec(ctx *Ctx, t *Test) error {
 	ctx.Indf("    Pub topic '%s'", p.Topic)
-	ctx.Inddf("        payload %s", p.Payload)
-
-	payload, is := p.Payload.(string)
-	if !is {
-		return Brokenf("internal error: payload is a %T", p.Payload)
-	}
+	ctx.Inddf("        payload %s", p.payload)
 
 	if p.Schema != "" {
-		if err := validateSchema(ctx, p.Schema, payload); err != nil {
+		if err := validateSchema(ctx, p.Schema, p.payload); err != nil {
 			return err
 		}
 	}
 
 	err := p.ch.Pub(ctx, Msg{
 		Topic:   p.Topic,
-		Payload: payload,
+		Payload: p.payload,
 	})
 
 	if err != nil {
@@ -550,63 +552,42 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 		return nil, NewBroken(fmt.Errorf("bad Recv Target: '%s'", r.Target))
 	}
 
-	// Always remove "temporary" bindings.
-	for p := range t.Bindings {
-		if strings.HasPrefix(p, "?*") {
-			delete(t.Bindings, p)
-		}
-	}
-
-	if r.ClearBindings {
-		ctx.Indf("    Clearing bindings (%d) by request", len(t.Bindings))
-		for p := range t.Bindings {
-			if !strings.HasPrefix(p, "?!") {
-				delete(t.Bindings, p)
-			}
-		}
-	}
+	t.Bindings.Clean(ctx, r.ClearBindings)
 
 	topic, err := t.Bindings.StringSub(ctx, r.Topic)
 	if err != nil {
 		return nil, err
 	}
-	if topic != r.Topic {
-		ctx.Indf("    Topic expansion: %s", topic)
-	}
+	ctx.Inddf("    Effective topic: %s", topic)
 
-	// Pattern must always be structured.  If we are given a
-	// string, it's interpreted as a JSON string.  But first we
-	// have to perform (string-based) substitutions.
-
-	var s string
-	if src, is := r.Pattern.(string); !is {
-		js, err := json.Marshal(&r.Pattern)
+	var pat = r.Pattern
+	var reg = r.Regexp
+	if r.Regexp == "" {
+		// ToDo: Probably go with an explicit
+		// 'PatternSerialization' property.  Might also need a
+		// 'MessageSerialization' property, too.  Alternately,
+		// rely on regex matching for non-text messages and
+		// patterns.
+		js, err := t.Bindings.SerialSub(ctx, "", r.Pattern)
 		if err != nil {
 			return nil, err
 		}
-		s = string(js)
+		var x interface{}
+		if err = json.Unmarshal([]byte(js), &x); err != nil {
+			// See the ToDo above.  If we can't
+			// deserialize, we'll just go with the string
+			// literal.
+			pat = js
+		} else {
+			pat = x
+		}
+
+		ctx.Inddf("    Effective pattern: %s", JSON(pat))
+
 	} else {
-		s = src
-	}
-
-	if s, err = t.Bindings.Sub(ctx, s); err != nil {
-		return nil, err
-	}
-
-	var pat interface{}
-	if err = json.Unmarshal([]byte(s), &pat); err != nil {
-		return nil, err
-	}
-
-	ctx.Inddf("    Effective pattern: %s", JSON(pat))
-
-	var reg string = r.Regexp
-	if r.Regexp != "" {
 		if r.Pattern != nil {
 			return nil, Brokenf("can't have both Pattern and Regexp")
 		}
-		ctx.Inddf("    Given regexp: %s", reg)
-		// We'll have syntax conflicts ...
 		if reg, err = t.Bindings.StringSub(ctx, reg); err != nil {
 			return nil, err
 		}
@@ -682,7 +663,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 	if r.Regexp != "" {
 		ctx.Inddf("    Recv regexp %s", r.Regexp)
 	} else {
-		ctx.Inddf("    Recv pattern %s", r.Pattern)
+		ctx.Inddf("    Recv pattern (%T) %v", r.Pattern, r.Pattern)
 	}
 
 	ctx.Inddf("    Recv target %s", r.Target)
@@ -713,9 +694,9 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				}
 				bss, err = RegexpMatch(r.Regexp, m.Payload)
 			} else {
-				ctx.Inddf("      pattern: %s", JSON(r.Pattern))
+				ctx.Inddf("      pattern:       %s", JSON(r.Pattern))
 
-				// target will be the target for matching.
+				// target will be the target (message) for matching.
 				var target interface{}
 				if err = json.Unmarshal([]byte(m.Payload), &target); err != nil {
 					return err
@@ -736,7 +717,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					return Brokenf("bad Recv Target: '%s'", r.Target)
 				}
 
-				ctx.Inddf("      msg:     %s", JSON(target))
+				ctx.Inddf("      match target:  %s", JSON(target))
 
 				if r.Schema != "" {
 					if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
@@ -744,27 +725,11 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					}
 				}
 
-				// We are giving empty bindings to
-				// 'Match' because we have already
-				// substituted bindings in pat as part of
-				// our recursive, fancy substitution
-				// logic (that includes '!!' and '@@'
-				// substitutions along with bindings
-				// substitions, which can occur in
-				// string contexts in additional to
-				// structural contexts.
-				//
-				// If we waited to do structural
-				// bindings substitution until now,
-				// then string-context bindings
-				// substitution would be inconsistent
-				// with that late use of bindings
-				// here.
-				//
-				// ToDo: Reconsider.
-
 				target = Canon(target)
-				bss, err = match.Match(r.Pattern, target, match.NewBindings())
+				t.Bindings.Clean(ctx, r.ClearBindings)
+				pattern := t.Bindings.Bind(ctx, r.Pattern)
+				ctx.Inddf("      bound pattern: %s", JSON(pattern))
+				bss, err = match.Match(pattern, target, match.NewBindings())
 			}
 
 			if err != nil {

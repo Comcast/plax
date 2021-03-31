@@ -21,33 +21,10 @@ package subst
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/Comcast/sheens/match"
 )
-
-type Ctx struct {
-	IncludeDirs []string
-	Tracing     bool
-}
-
-func NewCtx(dirs []string) *Ctx {
-	return &Ctx{
-		IncludeDirs: dirs,
-	}
-}
-
-func (c *Ctx) trf(format string, args ...interface{}) {
-	if !c.Tracing {
-		return
-	}
-	log.Printf(format, args...)
-}
-
-func (c *Ctx) Logf(format string, args ...interface{}) {
-	log.Printf(format, args...)
-}
 
 func Brokenf(format string, args ...interface{}) error {
 	return fmt.Errorf(format, args...)
@@ -140,4 +117,19 @@ func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) interface{} {
 // Bind replaces all bindings in the given (structured) thing.
 func (bs *Bindings) Bind(ctx *Ctx, x interface{}) interface{} {
 	return bs.replaceBindings(ctx, x)
+}
+
+// UnmarshalBind is a Proc.
+func (bs *Bindings) UnmarshalBind(ctx *Ctx, js string) (string, error) {
+	var x interface{}
+	if err := json.Unmarshal([]byte(js), &x); err != nil {
+		return "", fmt.Errorf("Bindings.UnmarshalBind unmarshal %s: %w", js, err)
+	}
+	x = bs.replaceBindings(ctx, x)
+	s, err := json.Marshal(&x)
+	if err != nil {
+		return "", fmt.Errorf("Bindings.UnmarshalBind marshall %s: %w", js, err)
+	}
+	return string(s), err
+
 }

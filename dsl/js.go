@@ -67,6 +67,8 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		}
 		bss, err := match.Match(pat, msg, bs)
 		if err != nil {
+			// This panic is caught.  (That's how we
+			// return errors.)
 			panic(js.ToValue(err.Error()))
 		}
 		// Strip type (match.Bindings) to enable standard

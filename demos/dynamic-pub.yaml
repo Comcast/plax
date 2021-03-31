@@ -9,7 +9,7 @@ spec:
         - '$include<include/mock.yaml>'
         - pub:
             doc: |
-              Publish a message to ourself to simulate an in-coming message.
+              Publish a message to ourself to simulate an incoming message.
             payload: '{"want":"tacos","n":3}'
         - recv:
             doc: |

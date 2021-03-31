@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,11 +31,20 @@ import (
 	"github.com/itchyny/gojq"
 )
 
-type Subber struct {
-	pipePattern *regexp.Regexp
-}
+var (
+	DefaultDelimiters    = "{}"
+	DefaultSerialization = "json"
+	DefaultLimit         = 10
+)
 
-var DefaultDelimiters = "{}"
+type Proc func(*Ctx, string) (string, error)
+
+type Subber struct {
+	pipePattern          *regexp.Regexp
+	Procs                []Proc
+	Limit                int
+	DefaultSerialization string
+}
 
 func NewSubber(delimeters string) (*Subber, error) {
 	if delimeters == "" {
@@ -63,14 +73,13 @@ func NewSubber(delimeters string) (*Subber, error) {
 	exp := fmt.Sprintf(
 		// Phantom key for splicing value.  Can be either "{}" or "".
 		`("(?:%s *%s)?" *: *)?`+
-			`"?%s`+ // Optional double-quotes are later dropped.
-			`([?@]?[.a-zA-Z0-9!]*)`+ // Source (variable) name
+			`("?)`+ // Optional opening quote
+			`%s`+
+			`([?@]?[.a-zA-Z0-9!]+)`+ // Source (variable) name
 			`( *\| *(.*?))?`+ // optional processor (e.g., jq)
 			`( *\| *([a-z]*[@$]?))?`+ // optional serialization and interpolation
-			`%s"?`,
-		// ToDo: If an opening double-quote is present, then
-		// we should require a closing quote.  We currently
-		// don't.
+			`%s`+
+			`("?)`, // Optional closing quote
 		string(left), string(right),
 		string(left), string(right))
 
@@ -80,10 +89,36 @@ func NewSubber(delimeters string) (*Subber, error) {
 	}
 
 	s := &Subber{
-		pipePattern: re,
+		pipePattern:          re,
+		Procs:                make([]Proc, 0, 4),
+		Limit:                DefaultLimit,
+		DefaultSerialization: DefaultSerialization,
 	}
 
 	return s, nil
+}
+
+func (b *Subber) Copy() *Subber {
+	ps := make([]Proc, 0, len(b.Procs))
+	for _, p := range b.Procs {
+		ps = append(ps, p)
+	}
+	return &Subber{
+		pipePattern:          b.pipePattern,
+		Procs:                ps,
+		Limit:                b.Limit,
+		DefaultSerialization: b.DefaultSerialization,
+	}
+}
+
+func (b *Subber) WithProcs(ps ...Proc) *Subber {
+	acc := b.Procs
+	for _, p := range ps {
+		acc = append(acc, p)
+	}
+	b = b.Copy()
+	b.Procs = acc
+	return b
 }
 
 func readFile(ctx *Ctx, name string) ([]byte, error) {
@@ -104,7 +139,7 @@ func parseSerialization(s string) (serial string, spliceMode string, err error) 
 	spliceMode = "inplace"
 	switch s {
 	case "":
-		serial = "json" // ToDo: Expose.
+		serial = "default"
 	case "string", "text":
 		serial = "string"
 	case "string$", "text$":
@@ -168,7 +203,14 @@ func serialString(x interface{}, spliceMode string) (string, error) {
 	case "inplace", "":
 		s, is := x.(string)
 		if !is {
-			return "", fmt.Errorf("can't string-serialize %#v (%T)", x, x)
+			// With shame, we'll try to JSON-serialize.
+			//
+			// ToDo: Reconsider.
+			js, err := json.Marshal(&x)
+			if err != nil {
+				return "", err
+			}
+			return string(js), nil
 		}
 		acc = s
 	case "array": // Doubtful
@@ -196,7 +238,7 @@ func serial(x interface{}, serialization, spliceMode string) (string, error) {
 	switch serialization {
 	case "json":
 		return serialJSON(x, spliceMode)
-	case "string":
+	case "text", "string":
 		return serialString(x, spliceMode)
 	case "trim":
 		s, err := serialString(x, spliceMode)
@@ -210,12 +252,15 @@ func serial(x interface{}, serialization, spliceMode string) (string, error) {
 }
 
 type pipe struct {
-	source       string
-	procsrc      string
-	proc         func(interface{}) (interface{}, error)
-	serial       string
-	spliceMode   string
-	pairKeyColon string
+	source                string
+	procsrc               string
+	proc                  func(interface{}) (interface{}, error)
+	leftQuote, rightQuote string
+	serial                string
+	spliceMode            string
+	pairKeyColon          string
+
+	submatch []string
 }
 
 func unescapeQuotes(s string) string {
@@ -229,8 +274,10 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	}
 
 	pairKey := ss[1]
-
 	copy(ss[1:], ss[2:])
+	leftQuote := ss[1]
+	copy(ss[1:], ss[2:])
+	rightQuote := ss[len(ss)-1]
 
 	if ss[5] == "" {
 		ss[4], ss[5] = ss[2], ss[3]
@@ -241,9 +288,12 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	proc := ss[3]
 
 	p := &pipe{
+		submatch:     ss,
 		source:       ss[1],
 		procsrc:      proc,
 		pairKeyColon: pairKey,
+		leftQuote:    leftQuote,
+		rightQuote:   rightQuote,
 	}
 
 	if proc != "" {
@@ -284,6 +334,16 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("debug serial=%s quoted=%v", serial, p.quoted())
+	if serial == "default" {
+		// ToDo: consider more/better heuristics here.
+		if !p.quoted() {
+			serial = "text"
+		} else {
+			serial = b.DefaultSerialization
+		}
+	}
+	log.Printf("debug now serial=%s", serial)
 	p.serial = serial
 	p.spliceMode = mode
 
@@ -333,7 +393,7 @@ func (p *pipe) process(ctx *Ctx, bs Bindings) (string, error) {
 			}
 			v = x
 		} else {
-			return "", fmt.Errorf("source '%s' variable not bound", p.source)
+			return "", fmt.Errorf("source '%s' variable not bound in '%s'", p.source, p.submatch[0])
 		}
 	}
 
@@ -358,7 +418,17 @@ func (p *pipe) process(ctx *Ctx, bs Bindings) (string, error) {
 		}
 	}
 
+	// We drop a pair of double quotes, but we restore other
+	// configurations.
+	if !p.quoted() {
+		s = p.leftQuote + s + p.rightQuote
+	}
+
 	return s, err
+}
+
+func (p *pipe) quoted() bool {
+	return p.leftQuote == `"` && p.rightQuote == `"`
 }
 
 func (b *Subber) pipeSub(ctx *Ctx, bs Bindings, s string) (string, error) {
@@ -387,23 +457,29 @@ func (b *Subber) pipeSub(ctx *Ctx, bs Bindings, s string) (string, error) {
 	return y, nil
 }
 
-func (b *Subber) SubOnce(ctx *Ctx, bs Bindings, s string) (string, error) {
+func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 	var (
 		// s0 is just for an error message (if required).
 		s0 = s
 
-		limit = 10
-
 		// acc remembers all previous values to detect loops.
-		acc = make([]string, 0, limit)
+		acc = make([]string, 0, b.Limit)
 	)
 
-	for i := 0; i < limit; i++ {
+	for i := 0; i < b.Limit; i++ {
 		var err error
 		s, err = b.pipeSub(ctx, bs, s)
 		if err != nil {
 			return "", err
 		}
+
+		for j, f := range b.Procs {
+			log.Printf("debug Subber Sub proc %d %#v", j, s)
+			if s, err = f(ctx, s); err != nil {
+				return "", fmt.Errorf("subst proc %d: %w", j, err)
+			}
+		}
+
 		// Have we encountered this string before?
 		for _, s1 := range acc {
 			if s == s1 {
@@ -414,38 +490,5 @@ func (b *Subber) SubOnce(ctx *Ctx, bs Bindings, s string) (string, error) {
 		acc = append(acc, s)
 	}
 
-	return "", fmt.Errorf("expansion limit (%d) exceeded on at '%s' starting from '%s'", limit, s, s0)
-}
-
-// Sub computes the fixed point of SubOnce.
-func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
-	// Computes the fixed point.
-
-	var (
-		// s0 is just for an error message (if required).
-		s0 = s
-
-		limit = 10
-
-		// acc remembers all previous values to detect loops.
-		acc = make([]string, 0, limit)
-	)
-
-	for i := 0; i < limit; i++ {
-		var err error
-		s, err = b.SubOnce(ctx, bs, s)
-		if err != nil {
-			return "", err
-		}
-		// Have we encountered this string before?
-		for _, s1 := range acc {
-			if s == s1 {
-				return s, nil
-			}
-		}
-		// Nope.  Remember it.
-		acc = append(acc, s)
-	}
-
-	return "", fmt.Errorf("expansion limit (%d) exceeded on at '%s' starting from '%s'", limit, s, s0)
+	return "", fmt.Errorf("recursive subst limit (%d) exceeded on at '%s' starting from '%s'", b.Limit, s, s0)
 }

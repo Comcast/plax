@@ -19,11 +19,12 @@
 package subst
 
 import (
+	"context"
 	"testing"
 )
 
 func TestJSExec(t *testing.T) {
-	ctx := NewCtx(nil)
+	ctx := NewCtx(context.Background(), nil)
 
 	t.Run("bindings", func(t *testing.T) {
 		x, err := JSExec(ctx, "1+x", map[string]interface{}{

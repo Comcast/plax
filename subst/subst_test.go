@@ -19,12 +19,13 @@
 package subst
 
 import (
+	"context"
 	"testing"
 )
 
 func TestSub(t *testing.T) {
 	var (
-		ctx = NewCtx([]string{"."})
+		ctx = NewCtx(context.Background(), []string{"."})
 
 		check = func(err error, want, got string, t *testing.T) {
 			if err != nil {
