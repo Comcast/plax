@@ -22,5 +22,6 @@ require (
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/pbnjay/strptime v0.0.0-20140226051138-5c05b0d668c9 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0
+	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )

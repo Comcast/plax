@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/itchyny/gojq"
+	"gopkg.in/yaml.v1"
 )
 
 var (
@@ -362,18 +363,19 @@ func parseFilename(s string) (name string, ext string, ok bool) {
 }
 
 func deserialize(ctx *Ctx, bs []byte, syntax string) (interface{}, error) {
+	var x interface{}
+	var err error
 	switch syntax {
 	case "json":
-		var x interface{}
-		if err := json.Unmarshal(bs, &x); err != nil {
-			return nil, err
-		}
-		return x, nil
+		err = json.Unmarshal(bs, &x)
+	case "yaml":
+		err = yaml.Unmarshal(bs, &x)
 	case "string", "txt", "text", "":
-		return string(bs), nil
+		x = string(bs)
 	default:
 		return nil, fmt.Errorf("unknown serialization syntax %s", syntax)
 	}
+	return x, err
 }
 
 func (p *pipe) process(ctx *Ctx, bs Bindings) (string, error) {

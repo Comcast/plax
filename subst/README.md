@@ -20,8 +20,8 @@ In this examine, `$ORDER` could be bound to value represented by:
 {"tacos":3,"chips":1}
 ```
 
-Today you can also use YAML "includes" to embed some YAML into a large
-YAML structure.  This YAML inclusion supports splicing into arrays and
+Today you can also use YAML "includes" to embed some YAML into a YAML
+structure.  This YAML inclusion supports splicing into arrays and
 maps.  Simple example:
 
 ```YAML
@@ -30,8 +30,8 @@ deliver:
 ```
 
 This RFC generalizes both all of these types of substitution.  Bonus:
-This RFC allows you to do some processing of values before they are
-serialized/used.
+This RFC also allows you to do some processing of values before they
+are serialized/used.
 
 The goal is to remain backwards-compatible.
 
@@ -62,7 +62,7 @@ valid JSON.
 A variable can be a normal parameter name, which should exist as key
 in the given parameters.
 
-In addition, if a "variable" starts with `@`, the rest of the variable
+Alternately, if the _VAR_ starts with `@`, then rest of the _VAR_
 should be a filename that can be found in an include path.  The
 contents of this file are read, and the result is deserialized based
 on the filename extension (e.g., `.yaml`, `.json`, `.txt`).  The
