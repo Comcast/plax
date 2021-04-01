@@ -1,31 +1,46 @@
 # RFC: Fancier substitutions
 
-## Background
+## Introduction
 
-Today in Plax you can substitute parameters in expressions.  We mostly
-deal in JSON-serializable payloads here, but we also need to support
-plain text.
+Today in Plax you can substitute parameters within strings.  Example:
+
+```
+"I like {$LIKED}."
+```
+
+You can also substitute parameter values structurally.  Example:
+
+```JSON
+{"deliver":"$ORDER"}
+```
+
+In this examine, `$ORDER` could be bound to value represented by:
+
+```JSON
+{"tacos":3,"chips":1}
+```
 
 Today you can also use YAML "includes" to embed some YAML into a large
 YAML structure.  This YAML inclusion supports splicing into arrays and
-maps.
+maps.  Simple example:
 
-This RFC generalizes both types of substitution.
+```YAML
+deliver:
+  - include: items.yaml
+```
 
-## Fancier substitutions
-
-This [RFC](https://en.wikipedia.org/wiki/Request_for_Comments) offers
-fancier substitutions that allow for more control of how substitutions
-behave.  In addition, this RFC attempts to demonstrate that YAML
-inclusions are really just a form of parameter substitution.
+This RFC generalizes both all of these types of substitution.  Bonus:
+This RFC allows you to do some processing of values before they are
+serialized/used.
 
 The goal is to remain backwards-compatible.
 
+
 ## String substitutions
 
-All subtitutions are based on single string that contains zero or more
-substitution specifications.  In its most general form, a substitution
-specification looks like this:
+All substitutions are based on single string that contains zero or
+more substitution specifications.  In its most general form, a
+substitution specification looks like this:
 
 > `{`_VAR_`|`_PROC_`|`_SERIALIZATION_`}`
 
@@ -63,10 +78,10 @@ The specification of a processor looks like
 
 > *PROCESSOR_TYPE* *SRC* ...
 
-In this RFC, there are two processor types processors: Javascript and
-[jq](https://github.com/itchyny/gojq).  The _SRC_ is either Javascript
+In this RFC, there are two processor types processors: JavaScript and
+[jq](https://github.com/itchyny/gojq).  The _SRC_ is either JavaScript
 or an `jq` expression according to *PROCESSOR_TYPE*.  When using the
-Javascript processor, `$` is bound to the (structured) value given by
+JavaScript processor, `$` is bound to the (structured) value given by
 _VAR_.
 
 ## Serializations
@@ -76,7 +91,7 @@ The _SERIALIZATION_ specifies how to render the result:
 1. `text`: Assuming the object is string, just use that string as is
    (no delimiting quotes).
 1. `text$`: Assuming the object is an array of strings, join that
-   array with a comma and then use that result literially (without any
+   array with a comma and then use that result literally (without any
    delimiting quotes). 
 1. `trim`: Same as `text` but all leading and trailing whitespace is trimmed.
 1. `json`: Serialize as JSON.
