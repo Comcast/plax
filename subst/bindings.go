@@ -70,7 +70,7 @@ func (bs *Bindings) SetJSON(k, v string) error {
 }
 
 func (bs *Bindings) String() string {
-	return "PARAM=VALUE"
+	return JSON(*bs)
 }
 
 func (bs *Bindings) Set(value string) error {
@@ -127,11 +127,20 @@ func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) (interface{}, error
 	case map[string]interface{}:
 		acc := make(map[string]interface{}, len(vv))
 		for k, v := range vv {
-			y, err := bs.replaceBindings(ctx, v)
+			bk, err := bs.replaceBindings(ctx, k)
 			if err != nil {
 				return nil, err
 			}
-			acc[k] = y
+			s, is := bk.(string)
+			if !is {
+				return nil, fmt.Errorf("%s isn't a %T (for a map key)",
+					bk, s)
+			}
+			bv, err := bs.replaceBindings(ctx, v)
+			if err != nil {
+				return nil, err
+			}
+			acc[s] = bv
 		}
 		return acc, nil
 	case []interface{}:

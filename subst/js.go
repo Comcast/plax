@@ -20,6 +20,7 @@ package subst
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Comcast/sheens/match"
@@ -39,18 +40,12 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 
 	js := goja.New()
 
-	for k, v := range env {
-		js.Set(k, v)
-	}
-
 	js.Set("print", func(args ...interface{}) {
-		var acc string
-		for i, x := range args {
-			if 0 < i {
-				acc += " "
-			}
-			acc += fmt.Sprintf("%s", JSON(x))
+		acc := make([]string, 0, len(args))
+		for _, x := range args {
+			acc = append(acc, JSON(x))
 		}
+		fmt.Printf("%s\n", strings.Join(acc, ","))
 	})
 
 	js.Set("now", func() interface{} {
@@ -81,6 +76,10 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		}
 		return t.UnixNano() / 1000 / 1000
 	})
+
+	for k, v := range env {
+		js.Set(k, v)
+	}
 
 	v, err := js.RunString(src)
 	if err != nil {
