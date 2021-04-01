@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"regexp"
 )
 
 func maybeUnmarshalString(s string) (string, bool) {
-	log.Printf("maybeUnmarshalString %s", s)
 	var x interface{}
 	if err := json.Unmarshal([]byte(s), &x); err == nil {
 		if s, is := x.(string); is {
