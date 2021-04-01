@@ -23,12 +23,19 @@ import (
 	"log"
 )
 
+// Ctx mostly provides a list of directories a Subber will search to
+// find files.
+//
+// Instead of using a context.Context-like struct, we could have
+// IncludeDirs as a field in a Subber.  However, the current approach
+// feels slightly more natural to use if still a little embarrassing.
 type Ctx struct {
 	context.Context
 	IncludeDirs []string
 	Tracing     bool
 }
 
+// NewCtx makes a new Ctx with the given IncludeDirs.
 func NewCtx(ctx context.Context, dirs []string) *Ctx {
 	return &Ctx{
 		Context:     ctx,
@@ -36,21 +43,21 @@ func NewCtx(ctx context.Context, dirs []string) *Ctx {
 	}
 }
 
+// Copy makes a deep copy of the Ctx.
 func (c *Ctx) Copy() *Ctx {
+	dirs := make([]string, len(c.IncludeDirs))
+	copy(dirs, c.IncludeDirs)
 	return &Ctx{
 		Context:     c.Context,
-		IncludeDirs: c.IncludeDirs,
+		IncludeDirs: dirs,
 		Tracing:     c.Tracing,
 	}
 }
 
+// trf is a log.Printf switched by Ctx.Tracing.
 func (c *Ctx) trf(format string, args ...interface{}) {
 	if c != nil && !c.Tracing {
 		return
 	}
-	log.Printf(format, args...)
-}
-
-func (c *Ctx) Logf(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }

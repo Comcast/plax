@@ -23,7 +23,37 @@ import (
 	"testing"
 )
 
-func TestBind(t *testing.T) {
+func TestBindCopy(t *testing.T) {
+	// Could be a deeper test.
+
+	bs := NewBindings()
+	bs.SetValue("?ENJOY", "queso")
+	bs1, err := bs.Copy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bs1.SetValue("?ENJOY", "tacos")
+
+	check := func(bs *Bindings, want string) {
+		x, have := (*bs)["?ENJOY"]
+		if !have {
+			t.Fatal(*bs)
+		}
+		s, is := x.(string)
+		if !is {
+			t.Fatal(x)
+		}
+		if s != want {
+			t.Fatal(s)
+		}
+	}
+
+	check(&bs, "queso")
+	check(bs1, "tacos")
+
+}
+
+func TestBindBasic(t *testing.T) {
 	var (
 		ctx = NewCtx(context.Background(), []string{"."})
 	)

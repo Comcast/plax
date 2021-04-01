@@ -21,7 +21,6 @@ package subst
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 func JSON(x interface{}) string {
@@ -32,30 +31,4 @@ func JSON(x interface{}) string {
 		})
 	}
 	return string(js)
-}
-
-func MaybeParseJSON(x interface{}) interface{} {
-	if s, is := x.(string); is {
-		var y interface{}
-		if err := json.Unmarshal([]byte(s), &y); err == nil {
-			return y
-		}
-	}
-	return x
-}
-
-func ParseJSON(js string) (interface{}, error) {
-	var x interface{}
-	if err := json.Unmarshal([]byte(js), &x); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-func MustParseJSON(js string) interface{} {
-	x, err := ParseJSON(js)
-	if err != nil {
-		log.Fatalf("MustParseJSON: failed to parse '%s': %s", js, err)
-	}
-	return x
 }

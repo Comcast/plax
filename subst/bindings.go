@@ -27,10 +27,8 @@ import (
 	"github.com/itchyny/gojq"
 )
 
-func Brokenf(format string, args ...interface{}) error {
-	return fmt.Errorf(format, args...)
-}
-
+// Bindings maps variables to their values, which should probably all
+// be native Go values.
 type Bindings map[string]interface{}
 
 func NewBindings() Bindings {
@@ -38,7 +36,7 @@ func NewBindings() Bindings {
 	return bindings
 }
 
-// Copy the bindings deeply.
+// Copy bindings deeply.
 func (bs *Bindings) Copy() (*Bindings, error) {
 	bytes, err := json.Marshal(bs)
 	if err != nil {
@@ -54,25 +52,31 @@ func (bs *Bindings) Copy() (*Bindings, error) {
 	return &ret, nil
 }
 
+// SetValue sets a binding explicitly (without any deserialization).
 func (bs *Bindings) SetValue(k string, v interface{}) {
 	(*bs)[k] = v
 }
 
-func (bs *Bindings) SetJSON(k, v string) error {
+// SetJSON parses the value as JSON and stores the result at the given
+// key.
+func (bs *Bindings) SetJSON(key, value string) error {
 	var x interface{}
-	if err := json.Unmarshal([]byte(v), &x); err != nil {
+	if err := json.Unmarshal([]byte(value), &x); err != nil {
 		return err
 	}
 
-	bs.SetValue(k, x)
+	bs.SetValue(key, x)
 
 	return nil
 }
 
+// String returns a JSON repreentation of the Bindings.
 func (bs *Bindings) String() string {
 	return JSON(*bs)
 }
 
+// Set (for flag.Var) parses KEY=VALUE, where VALUE is a JSON
+// representation of a value.  Then key set to that value.
 func (bs *Bindings) Set(value string) error {
 	pv := strings.SplitN(value, "=", 2)
 	if len(pv) != 2 {
@@ -163,7 +167,10 @@ func (bs *Bindings) Bind(ctx *Ctx, x interface{}) (interface{}, error) {
 	return bs.replaceBindings(ctx, x)
 }
 
-// UnmarshalBind is a Proc.
+// UnmarshalBind is a Proc for a Subber.
+//
+// The given string is parsed as JSON, and bs.Bind is called on that
+// value.  The result is JSON-serialized and returned.
 func (bs *Bindings) UnmarshalBind(ctx *Ctx, js string) (string, error) {
 	var x interface{}
 	if err := json.Unmarshal([]byte(js), &x); err != nil {

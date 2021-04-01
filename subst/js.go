@@ -31,7 +31,7 @@ import (
 func JSExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, error) {
 	x, err := jsExec(ctx, src, env)
 	if err != nil {
-		return nil, Brokenf("Javascript problem: %s", err)
+		return nil, fmt.Errorf("JavaScript problem: %w", err)
 	}
 	return x, nil
 }
