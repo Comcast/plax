@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# (cd ../cmd/plaxsubst && go install)
+
 set -v
 
 echo '{"deliver":"{?want}"}' | plaxsubst -p '?want="tacos"'
