@@ -32,13 +32,28 @@ import (
 )
 
 var (
-	DefaultDelimiters    = "{}"
+	// DefaultDelimiters are the default opening and closing
+	// deliminers for a pipe expression.
+	DefaultDelimiters = "{}"
+
+	// DefaultSerialization is the default serialization for a
+	// pipe expression when the Subber doesn't think it knows
+	// better.
 	DefaultSerialization = "json"
-	DefaultLimit         = 10
+
+	// DefaultLimit is the default limit for the number of
+	// recursive substitution calls a Subber will make.
+	//
+	// If you hit this limit intentionally, then that's pretty
+	// impressive.  However, probably not something to brag about.
+	DefaultLimit = 10
 )
 
+// Proc is a "processor" that a Subber can call.
 type Proc func(*Ctx, string) (string, error)
 
+// Subber performs string-oriented substitutions based on a syntax
+// like {VAR | PROC | SERIALIZATION}.
 type Subber struct {
 	pipePattern          *regexp.Regexp
 	Procs                []Proc
@@ -46,6 +61,12 @@ type Subber struct {
 	DefaultSerialization string
 }
 
+// NewSubber makes a new Subber with the pipe expression delimiters
+// given by the first and second runes of the given string.
+//
+// Uses DefaultDelimiters by default.
+//
+// Uses DefaultSerialization and DefaultLimit.
 func NewSubber(delimeters string) (*Subber, error) {
 	if delimeters == "" {
 		delimeters = DefaultDelimiters
@@ -98,11 +119,10 @@ func NewSubber(delimeters string) (*Subber, error) {
 	return s, nil
 }
 
+// Copy makes a deep copy of a Subber.
 func (b *Subber) Copy() *Subber {
 	ps := make([]Proc, 0, len(b.Procs))
-	for _, p := range b.Procs {
-		ps = append(ps, p)
-	}
+	copy(ps, b.Procs)
 	return &Subber{
 		pipePattern:          b.pipePattern,
 		Procs:                ps,
@@ -111,13 +131,12 @@ func (b *Subber) Copy() *Subber {
 	}
 }
 
+// WithProcs returns a copied Subber with the given Procs added.
 func (b *Subber) WithProcs(ps ...Proc) *Subber {
-	acc := b.Procs
-	for _, p := range ps {
-		acc = append(acc, p)
-	}
 	b = b.Copy()
-	b.Procs = acc
+	for _, p := range ps {
+		b.Procs = append(b.Procs, p)
+	}
 	return b
 }
 
@@ -457,6 +476,8 @@ func (b *Subber) pipeSub(ctx *Ctx, bs Bindings, s string) (string, error) {
 	return y, nil
 }
 
+// Sub performs recursive, string-based Bindings substitutions on the
+// given input string.
 func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 	var (
 		// s0 is just for an error message (if required).
