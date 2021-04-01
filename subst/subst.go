@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -334,7 +333,6 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("debug serial=%s quoted=%v", serial, p.quoted())
 	if serial == "default" {
 		// ToDo: consider more/better heuristics here.
 		if !p.quoted() {
@@ -343,7 +341,7 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 			serial = b.DefaultSerialization
 		}
 	}
-	log.Printf("debug now serial=%s", serial)
+
 	p.serial = serial
 	p.spliceMode = mode
 
@@ -474,7 +472,6 @@ func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 		}
 
 		for j, f := range b.Procs {
-			log.Printf("debug Subber Sub proc %d %#v", j, s)
 			if s, err = f(ctx, s); err != nil {
 				return "", fmt.Errorf("subst proc %d: %w", j, err)
 			}

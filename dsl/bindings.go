@@ -134,7 +134,7 @@ func (b *Bindings) SubX(ctx *Ctx, src interface{}, dst *interface{}) error {
 	return json.Unmarshal([]byte(s), &dst)
 }
 
-func (b *Bindings) Bind(ctx *Ctx, x interface{}) interface{} {
+func (b *Bindings) Bind(ctx *Ctx, x interface{}) (interface{}, error) {
 	bs := (*subst.Bindings)(b)
 	return bs.Bind(nil, x)
 }

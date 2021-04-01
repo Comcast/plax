@@ -727,7 +727,10 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 
 				target = Canon(target)
 				t.Bindings.Clean(ctx, r.ClearBindings)
-				pattern := t.Bindings.Bind(ctx, r.Pattern)
+				pattern, err := t.Bindings.Bind(ctx, r.Pattern)
+				if err != nil {
+					return err
+				}
 				ctx.Inddf("      bound pattern: %s", JSON(pattern))
 				bss, err = match.Match(pattern, target, match.NewBindings())
 			}

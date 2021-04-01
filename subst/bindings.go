@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/Comcast/sheens/match"
+	"github.com/itchyny/gojq"
 )
 
 func Brokenf(format string, args ...interface{}) error {
@@ -87,35 +88,69 @@ func (bs *Bindings) Set(value string) error {
 // This operation is destructive (and probably shouldn't be).
 //
 // An array or map should have interface{}-typed elements or values.
-func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) interface{} {
+func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) (interface{}, error) {
 	b := *bs
 	switch vv := x.(type) {
 	case string:
 		if match.DefaultMatcher.IsVariable(vv) {
+			parts := strings.SplitN(vv, "|", 2)
+			if len(parts) == 2 {
+				if 1 < len(parts[1]) {
+					v := strings.TrimRight(parts[0], " ")
+					expr := strings.TrimSpace(parts[1][1:])
+					if !strings.HasPrefix(expr, "jq ") {
+						return nil, fmt.Errorf("bad pipe expr in '%s'", expr)
+					}
+					src := strings.TrimSpace(expr[2:])
+					q, err := gojq.Parse(unescapeQuotes(src))
+					if err != nil {
+						return nil, fmt.Errorf("jq parse error: %s on %s", err, expr[3:])
+					}
+					binding, have := b[v]
+					if have {
+						i := q.Run(binding)
+						// Only consider the first thing returned.
+						// ToDo: Elaborate.
+						y, _ := i.Next()
+						if err, is := y.(error); is {
+							return nil, err
+						}
+						return y, nil
+					}
+				}
+			}
 			if binding, have := b[vv]; have {
-				return binding
+				return binding, nil
 			}
 		}
-		return x
+		return x, nil
 	case map[string]interface{}:
 		acc := make(map[string]interface{}, len(vv))
 		for k, v := range vv {
-			acc[k] = bs.replaceBindings(ctx, v)
+			y, err := bs.replaceBindings(ctx, v)
+			if err != nil {
+				return nil, err
+			}
+			acc[k] = y
 		}
-		return acc
+		return acc, nil
 	case []interface{}:
 		acc := make([]interface{}, len(vv))
 		for i, y := range vv {
-			acc[i] = bs.replaceBindings(ctx, y)
+			y, err := bs.replaceBindings(ctx, y)
+			if err != nil {
+				return nil, err
+			}
+			acc[i] = y
 		}
-		return acc
+		return acc, nil
 	default:
-		return x
+		return x, nil
 	}
 }
 
 // Bind replaces all bindings in the given (structured) thing.
-func (bs *Bindings) Bind(ctx *Ctx, x interface{}) interface{} {
+func (bs *Bindings) Bind(ctx *Ctx, x interface{}) (interface{}, error) {
 	return bs.replaceBindings(ctx, x)
 }
 
@@ -125,7 +160,10 @@ func (bs *Bindings) UnmarshalBind(ctx *Ctx, js string) (string, error) {
 	if err := json.Unmarshal([]byte(js), &x); err != nil {
 		return "", fmt.Errorf("Bindings.UnmarshalBind unmarshal %s: %w", js, err)
 	}
-	x = bs.replaceBindings(ctx, x)
+	x, err := bs.replaceBindings(ctx, x)
+	if err != nil {
+		return "", err
+	}
 	s, err := json.Marshal(&x)
 	if err != nil {
 		return "", fmt.Errorf("Bindings.UnmarshalBind marshall %s: %w", js, err)
