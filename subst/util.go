@@ -23,6 +23,8 @@ import (
 	"fmt"
 )
 
+// JSON attempts to serialize its input with a fallback to Go '%#v'
+// serialization.
 func JSON(x interface{}) string {
 	js, err := json.Marshal(&x)
 	if err != nil {

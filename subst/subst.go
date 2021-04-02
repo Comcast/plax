@@ -50,15 +50,34 @@ var (
 )
 
 // Proc is a "processor" that a Subber can call.
+//
+// A Proc computes an entire replacement for the given string.
+//
+// Classic example is deserialization a JSON string input, doing
+// structural replacement of bindings, and then reserializing.  See
+// Bindings.UnmarshalBind, which does exactly that.
 type Proc func(*Ctx, string) (string, error)
 
 // Subber performs string-oriented substitutions based on a syntax
 // like {VAR | PROC | SERIALIZATION}.
 type Subber struct {
-	pipePattern          *regexp.Regexp
-	Procs                []Proc
-	Limit                int
+	// Procs is a list of processors that are called during
+	// (recursive) substitution processing.
+	Procs []Proc
+
+	// Limit is the maximum number of recursive Sub calls.
+	//
+	// Default is DefaultLimit.
+	Limit int
+
+	// DefaultSerialization is the serialization when an explicit
+	// serialization isn't provided and the Subber doesn't think
+	// it knows better (via scruffy heuristics).
 	DefaultSerialization string
+
+	// pipePattern is the (compiled) Regexp that included the
+	// delimiters provided to NewSubber.
+	pipePattern *regexp.Regexp
 }
 
 // NewSubber makes a new Subber with the pipe expression delimiters
@@ -121,7 +140,7 @@ func NewSubber(delimeters string) (*Subber, error) {
 
 // Copy makes a deep copy of a Subber.
 func (b *Subber) Copy() *Subber {
-	ps := make([]Proc, 0, len(b.Procs))
+	ps := make([]Proc, len(b.Procs))
 	copy(ps, b.Procs)
 	return &Subber{
 		pipePattern:          b.pipePattern,
@@ -140,6 +159,8 @@ func (b *Subber) WithProcs(ps ...Proc) *Subber {
 	return b
 }
 
+// readFile searches ctx.IncludeDirs to find the file with the give
+// name.
 func readFile(ctx *Ctx, name string) ([]byte, error) {
 	for _, dir := range ctx.IncludeDirs {
 		path := filepath.Join(dir, name)
@@ -155,6 +176,9 @@ func readFile(ctx *Ctx, name string) ([]byte, error) {
 }
 
 func parseSerialization(s string) (serial string, spliceMode string, err error) {
+	// ToDo: Make these serializations pluggable (sort of like Procs).
+
+	s = strings.TrimSpace(s)
 	spliceMode = "inplace"
 	switch s {
 	case "":
@@ -271,15 +295,34 @@ func serial(x interface{}, serialization, spliceMode string) (string, error) {
 }
 
 type pipe struct {
-	source                string
-	procsrc               string
-	proc                  func(interface{}) (interface{}, error)
-	leftQuote, rightQuote string
-	serial                string
-	spliceMode            string
-	pairKeyColon          string
 
+	// submatch is the result of the raw regexp match.
 	submatch []string
+
+	// source is the "VAR", which is either a key in Bindings or
+	// "@FILENAME".
+	source string
+
+	// proc is the parsed processor (if any).
+	proc func(interface{}) (interface{}, error)
+
+	// leftQuote and rightQuote are the double-quotes surrounding
+	// a pipe expression.  These quotes are sometimes dropped
+	// during substitution.
+	leftQuote, rightQuote string
+
+	// serial, which should probably be an enum (ToDo), indicates
+	// how to serialize a value before putting it into a string.
+	serial string
+
+	// spliceMode, which should be an enum (ToDo), indicates
+	// if/how to splice a value into a larger structure.  Legal
+	// values: "map", "array", or "".
+	spliceMode string
+
+	// pairKeyColon is part of the match that has the leading
+	// colon with the pipe is a map value.
+	pairKeyColon string
 }
 
 func unescapeQuotes(s string) string {
@@ -291,25 +334,38 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	if ss == nil {
 		return nil, nil
 	}
-
 	pairKey := ss[1]
+
+	// Get the delimiters if provided.
 	copy(ss[1:], ss[2:])
 	leftQuote := ss[1]
 	copy(ss[1:], ss[2:])
 	rightQuote := ss[len(ss)-1]
 
-	if ss[5] == "" {
-		ss[4], ss[5] = ss[2], ss[3]
-		ss[2] = ""
-		ss[3] = ""
+	// Find the (trailing) serialization (if any).  We should
+	// probably not use '|' to prefix a serialization since that
+	// symbol would be ambigious.
+
+	var serial, spliceMode string
+	for i := len(ss) - 1; 0 < i; i-- {
+		maybe := ss[i]
+		if maybe == "" {
+			continue
+		}
+		var err error
+		if serial, spliceMode, err = parseSerialization(maybe); err == nil {
+			// We found the explicit serialization.
+			ss[i] = ""
+			break
+		}
 	}
 
+	// The processor (if any) is here.
 	proc := ss[3]
 
 	p := &pipe{
 		submatch:     ss,
-		source:       ss[1],
-		procsrc:      proc,
+		source:       ss[1], // The "VAR"
 		pairKeyColon: pairKey,
 		leftQuote:    leftQuote,
 		rightQuote:   rightQuote,
@@ -349,11 +405,7 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 		}
 	}
 
-	serial, mode, err := parseSerialization(ss[5])
-	if err != nil {
-		return nil, err
-	}
-	if serial == "default" {
+	if serial == "default" || serial == "" {
 		// ToDo: consider more/better heuristics here.
 		if !p.quoted() {
 			serial = "text"
@@ -363,7 +415,7 @@ func (b *Subber) parsePipe(ctx *Ctx, s string) (*pipe, error) {
 	}
 
 	p.serial = serial
-	p.spliceMode = mode
+	p.spliceMode = spliceMode
 
 	return p, nil
 }
@@ -389,6 +441,20 @@ func deserialize(ctx *Ctx, bs []byte, syntax string) (interface{}, error) {
 		err = json.Unmarshal(bs, &x)
 	case "yaml":
 		err = yaml.Unmarshal(bs, &x)
+
+		// The map[interface{}]interface{} YAML
+		// deserialization rears its ugly head again.
+		//
+		// subst_test.go:32: %!v(PANIC=Error method: invalid
+		// value: map[enjoys:tacos])
+		//
+		// From map[interface {}]interface {} map[interface
+		// {}]interface {}{"enjoys":"tacos"}
+
+		if err == nil {
+			x, err = StringKeys(x)
+		}
+
 	case "string", "txt", "text", "":
 		x = string(bs)
 	default:
@@ -488,14 +554,17 @@ func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 	)
 
 	for i := 0; i < b.Limit; i++ {
+		ctx.trf("Subber.Sub at %s", s)
 		var err error
 		s, err = b.pipeSub(ctx, bs, s)
 		if err != nil {
+			ctx.trf("Subber.Sub error at %s", s)
 			return "", err
 		}
 
 		for j, f := range b.Procs {
 			if s, err = f(ctx, s); err != nil {
+				ctx.trf("Subber.Sub proc error at %s", s)
 				return "", fmt.Errorf("subst proc %d: %w", j, err)
 			}
 		}
@@ -503,6 +572,7 @@ func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 		// Have we encountered this string before?
 		for _, s1 := range acc {
 			if s == s1 {
+				ctx.trf("Subber.Sub output %s", s)
 				return s, nil
 			}
 		}
@@ -510,5 +580,6 @@ func (b *Subber) Sub(ctx *Ctx, bs Bindings, s string) (string, error) {
 		acc = append(acc, s)
 	}
 
+	ctx.trf("Subber.Sub limited at %s", s)
 	return "", fmt.Errorf("recursive subst limit (%d) exceeded on at '%s' starting from '%s'", b.Limit, s, s0)
 }

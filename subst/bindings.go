@@ -37,6 +37,9 @@ func NewBindings() Bindings {
 }
 
 // Copy bindings deeply.
+//
+// This method shamelessly uses JSON serialization, which can break on
+// certains types of values.
 func (bs *Bindings) Copy() (*Bindings, error) {
 	bytes, err := json.Marshal(bs)
 	if err != nil {

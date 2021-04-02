@@ -58,8 +58,42 @@ func TestSub(t *testing.T) {
 
 	t.Run("", func(t *testing.T) {
 		bs := NewBindings()
+		bs.Set(`enjoy=["chips","queso"]`)
+		got, err := b.Sub(ctx, bs, "Enjoy {enjoy|text$}.")
+		check(err, "Enjoy chips,queso.", got, t)
+	})
+
+	t.Run("", func(t *testing.T) {
+		bs := NewBindings()
+		bs.Set(`enjoy=["chips","queso"]`)
+		got, err := b.Sub(ctx, bs, "Enjoy {enjoy|text}.")
+		check(err, `Enjoy ["chips","queso"].`, got, t)
+	})
+
+	t.Run("", func(t *testing.T) {
+		bs := NewBindings()
 		got, err := b.Sub(ctx, bs, "I would like a {@foo.txt | trim}.")
 		check(err, "I would like a quesadilla.", got, t)
+	})
+
+	t.Run("", func(t *testing.T) {
+		bs := NewBindings()
+		bs.SetValue("?ENJOY", "tacos")
+		got, err := b.Sub(ctx, bs, "I would like {?ENJOY}.")
+		check(err, "I would like tacos.", got, t)
+	})
+
+	t.Run("", func(t *testing.T) {
+		bs := NewBindings()
+		bs.SetJSON("?ENJOY", `["tacos"]`)
+		got, err := b.Sub(ctx, bs, "I would like {?ENJOY | jq .[0]}.")
+		check(err, "I would like tacos.", got, t)
+	})
+
+	t.Run("", func(t *testing.T) {
+		bs := NewBindings()
+		got, err := b.Sub(ctx, bs, "I would like {@foo.yaml | jq .enjoys}.")
+		check(err, "I would like tacos.", got, t)
 	})
 
 	t.Run("", func(t *testing.T) {
@@ -134,4 +168,91 @@ func TestSub(t *testing.T) {
 		check(err, `{"deliver":{"chips":1,"queso":2,"tacos":3}}`, got, t)
 	})
 
+}
+
+func TestSubberCopy(t *testing.T) {
+	var (
+		bs    = NewBindings()
+		procs = []Proc{bs.UnmarshalBind}
+	)
+	s, err := NewSubber("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Procs = procs
+
+	s1 := s.Copy()
+	s1.Procs[0] = nil
+
+	if s.Procs[0] == nil {
+		t.Fatal(s.Procs)
+	}
+}
+
+func TestSubberWithProcs(t *testing.T) {
+	var (
+		bs    = NewBindings()
+		proc  = bs.UnmarshalBind
+		procs = []Proc{proc}
+	)
+	s, err := NewSubber("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Procs = procs
+
+	s1 := s.WithProcs(proc)
+
+	if len(s.Procs) != 1 {
+		t.Fatal(s.Procs)
+	}
+	if len(s1.Procs) != 2 {
+		t.Fatal(s1.Procs)
+	}
+	if s1.Procs[1] == nil {
+		t.Fatal(s1.Procs)
+	}
+
+}
+
+func TestLimit(t *testing.T) {
+	var (
+		ctx    = NewCtx(context.Background(), nil)
+		bs     = NewBindings()
+		b, err = NewSubber("")
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bs.SetValue("?GOTO", "and {?GOTO}")
+
+	// ctx.Tracing = true
+
+	s, err := b.Sub(ctx, bs, `{?GOTO}`)
+	if err == nil {
+		t.Fatal(s)
+	}
+}
+
+func TestProcs(t *testing.T) {
+	var (
+		ctx    = NewCtx(context.Background(), nil)
+		bs     = NewBindings()
+		proc   = bs.UnmarshalBind
+		b, err = NewSubber("")
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b = b.WithProcs(proc)
+	bs.SetValue("?ENJOY", "queso")
+
+	s, err := b.Sub(ctx, bs, `"?ENJOY"`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != `"queso"` {
+		t.Fatal(s)
+	}
 }

@@ -62,9 +62,11 @@ func TestBindBasic(t *testing.T) {
 		bs := NewBindings()
 		bs.SetValue("?NEED", "tacos")
 		bs.SetValue("?SEND", "send")
+		bs.SetValue("?YOU", "you")
 		// Make sure keys are processed, too.
 		var x interface{} = map[string]interface{}{
 			"?SEND": "?NEED",
+			"to":    []interface{}{"me", "?YOU"},
 		}
 		y, err := bs.Bind(ctx, x)
 		if err != nil {
@@ -85,6 +87,26 @@ func TestBindBasic(t *testing.T) {
 		if s != "tacos" {
 			t.Fatal(s)
 		}
+
+		to, have := m["to"]
+		if !have {
+			t.Fatal(m)
+		}
+		xs, is := to.([]interface{})
+		if !is {
+			t.Fatal(xs)
+		}
+		if len(xs) != 2 {
+			t.Fatal(xs)
+		}
+		s, is = xs[1].(string)
+		if !is {
+			t.Fatal(xs[1])
+		}
+		if s != "you" {
+			t.Fatal(s)
+		}
+
 	})
 
 }
@@ -113,4 +135,46 @@ func TestBindingsPipe(t *testing.T) {
 		t.Fatal(z)
 	}
 
+}
+
+func TestBindUnmarshalHappy(t *testing.T) {
+	var (
+		bs   = NewBindings()
+		ctx  = NewCtx(nil, nil)
+		js   = `{"enjoy":"?QUESO"}`
+		want = `{"enjoy":"queso"}`
+	)
+	bs.SetValue("?QUESO", "queso")
+	s, err := bs.UnmarshalBind(ctx, js)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != want {
+		t.Fatal(s)
+	}
+}
+
+func TestBindUnmarshalSad(t *testing.T) {
+	var (
+		bs   = NewBindings()
+		ctx  = NewCtx(nil, nil)
+		ugly = func() {}
+	)
+	bs.SetValue("?UGLY", ugly)
+
+	t.Run("", func(t *testing.T) {
+		js := `{"not going to parse"}`
+		_, err := bs.UnmarshalBind(ctx, js)
+		if err == nil {
+			t.Fatal()
+		}
+	})
+
+	t.Run("", func(t *testing.T) {
+		js := `{"trouble":"?UGLY"}`
+		_, err := bs.UnmarshalBind(ctx, js)
+		if err == nil {
+			t.Fatal()
+		}
+	})
 }

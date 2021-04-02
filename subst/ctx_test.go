@@ -18,27 +18,23 @@
 
 package subst
 
-import (
-	"encoding/json"
-	"log"
-	"strings"
-	"testing"
-)
+import "testing"
 
-func MustParseJSON(js string) interface{} {
-	var x interface{}
-	if err := json.Unmarshal([]byte(js), &x); err != nil {
-		log.Fatalf("MustParseJSON: failed to parse '%s': %s", js, err)
+func TestCtxCopy(t *testing.T) {
+	var (
+		ctx  = NewCtx(nil, []string{"here"})
+		ctx1 = ctx.Copy()
+	)
+
+	ctx.IncludeDirs[0] = "there"
+
+	if ctx.IncludeDirs[0] == ctx1.IncludeDirs[0] {
+		t.Fatal(ctx.IncludeDirs)
 	}
-	return x
 }
 
-func TestJSONSad(t *testing.T) {
-	var (
-		x = func() {} // Can't JSON-serialize.
-		s = JSON(&x)  // Try anyway.
-	)
-	if !strings.Contains(s, "func") {
-		t.Fatal(s)
-	}
+func TestCtxTrf(t *testing.T) {
+	ctx := NewCtx(nil, nil)
+	ctx.Tracing = false
+	ctx.trf("nothing to see here")
 }

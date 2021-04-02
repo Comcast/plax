@@ -35,11 +35,13 @@ type Ctx struct {
 	Tracing     bool
 }
 
-// NewCtx makes a new Ctx with the given IncludeDirs.
+// NewCtx makes a new Ctx with (a copy of) the given IncludeDirs.
 func NewCtx(ctx context.Context, dirs []string) *Ctx {
+	acc := make([]string, len(dirs))
+	copy(acc, dirs)
 	return &Ctx{
 		Context:     ctx,
-		IncludeDirs: dirs,
+		IncludeDirs: acc,
 	}
 }
 
