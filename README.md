@@ -36,6 +36,9 @@ Execution of the test verifies that the expected output occurred.
    are here).  Documentation is [here](doc/manual.md).
 1. [`plaxrun`](cmd/plaxrun): Tool to run lots of Plax tests with
    various configurations.  Documentation is [here](doc/plaxrun.md).
+1. [`plaxsubst`](cmd/plaxsubst): Utility to test/use parameter
+   substitution independently from other Plax functionality.  Related
+   documenation is [here](subst/README.md).
 1. [`yamlincl`](cmd/yamlincl): YAML include processor utility.
    Documenation is [here](doc/manual.md#including-yaml-in-other-yaml).
 
