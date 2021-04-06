@@ -1,0 +1,33 @@
+name: basic
+doc: |
+  Just a very pub/recv simple test.
+
+  We ask the mother channel to make a "mock" channel, which just emits
+  what it receives.  Then we test that mock channel.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            doc: |
+              Ask Mother to make a mock channel.
+            channel: mother
+            payload:
+              make:
+                name: mock
+                type: mock
+        - recv:
+            doc: |
+              Check that our request succeeded.
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            channel: mock
+            payload: '{"want":"?want"}'
+        - recv:
+            channel: mock
+            pattern: '{"want":"?want"}'
+

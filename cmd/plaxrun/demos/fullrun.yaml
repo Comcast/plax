@@ -122,6 +122,13 @@ groups:
     tests:
       - name: wait
 
+  basic-iterate:
+    iterate:
+      dependsOn:
+        - STRING_LIST_ITERATE
+      params: "{COMBINE_WAIT_LIST}"
+    tests:
+      - name: wait
 params:
   WAIT_ITERATE_PARAMS:
     include: include/commands/csv.yaml
@@ -185,3 +192,8 @@ params:
     include: include/commands/combine.yaml
     envs:
       ARRAYS: '[{WAIT_LIST_1},{WAIT_LIST_2}]'
+
+  STRING_LIST_ITERATE:
+    include: include/commands/value.yaml
+    envs:
+      VALUE: '["str1","str2"]'

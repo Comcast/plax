@@ -20,6 +20,7 @@ package dsl
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -63,6 +64,10 @@ func (tpm TestParamMap) bind(ctx *plaxDsl.Ctx, bs *plaxDsl.Bindings) error {
 		pv, err := bs.StringSub(ctx, tpv)
 		if err != nil {
 			return fmt.Errorf("failed to substitute test parameter: %w", err)
+		}
+		var v string
+		if err := json.Unmarshal([]byte(pv), &v); err != nil {
+			v = pv
 		}
 		bs.SetKeyValue(tpk, pv)
 	}

@@ -60,7 +60,12 @@ func (bs *Bindings) String() string {
 
 // SetKeyValue to set the binding key to the given JSON value.
 func (bs *Bindings) SetKeyValue(key string, value string) {
-	(*bs)[key] = value
+	var v string
+	if err := json.Unmarshal([]byte(value), &v); err != nil {
+		v = value
+	}
+
+	(*bs)[key] = v
 }
 
 // Set the parameter key=value pair using unmarshal.
@@ -70,12 +75,7 @@ func (bs *Bindings) Set(value string) error {
 		return fmt.Errorf("bad binding: '%s'", value)
 	}
 
-	var v string
-	if err := json.Unmarshal([]byte(pv[1]), &v); err != nil {
-		v = value
-	}
-
-	bs.SetKeyValue(pv[0], v)
+	bs.SetKeyValue(pv[0], pv[1])
 
 	return nil
 }
