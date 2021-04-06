@@ -28,6 +28,11 @@ import (
 
 type Bindings subst.Bindings
 
+func NewBindings() *Bindings {
+	bs := (Bindings)(subst.NewBindings())
+	return &bs
+}
+
 var subber *subst.Subber
 
 func init() {
@@ -57,7 +62,7 @@ func (bs *Bindings) StringSub(ctx *Ctx, s string) (string, error) {
 
 func proc(ctx *Ctx, f func(*Ctx, string) (string, error)) subst.Proc {
 	return func(_ *subst.Ctx, s string) (string, error) {
-		return bangBangSub(ctx, s)
+		return f(ctx, s)
 	}
 }
 
