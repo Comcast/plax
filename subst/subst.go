@@ -115,7 +115,20 @@ func NewSubber(delimeters string) (*Subber, error) {
 		`("(?:%s *%s)?" *: *)?`+
 			`("?)`+ // Optional opening quote
 			`%s`+
-			`([?@]?[.a-zA-Z0-9!]+)`+ // Source (variable) name
+
+			// Source (variable) name.  Leading ? or @ not
+			// required.  Allowed characters as follows.
+			// Note that the var must have at least one of
+			// those legal characters.  The set of legal
+			// characters is probably too large.  ToDo:
+			// Reconsider, but note that any reduction
+			// would be a breaking change.
+			//
+			// Note that this syntax is only for
+			// brace/pipe/string-based substitutions and
+			// not structural bindings subsitutions.
+			`([?@]?[-.a-zA-Z0-9!_?]+)`+
+
 			`( *\| *(.*?))?`+ // optional processor (e.g., jq)
 			`( *\| *([a-z]*[@$]?))?`+ // optional serialization and interpolation
 			`%s`+

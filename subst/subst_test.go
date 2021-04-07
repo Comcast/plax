@@ -20,6 +20,8 @@ package subst
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -254,5 +256,57 @@ func TestProcs(t *testing.T) {
 	}
 	if s != `"queso"` {
 		t.Fatal(s)
+	}
+}
+
+func TestVarSyntax(t *testing.T) {
+	var (
+		cases = map[string]bool{
+			"SHOULD_WORK": true,
+			"SHOULD-WORK": true,
+			"OKAY?":       true,
+			"?this":       true,
+			"?!THIS":      true,
+			"!EVEN_THIS":  true,
+			"NOT THIS":    false,
+			"NOT/THIS":    false,
+			"NOT|THIS":    false,
+			"42":          true, // Currently supported!
+		}
+
+		ctx  = NewCtx(context.Background(), []string{"."})
+		x    = []interface{}{"chips", "tacos"}
+		tmpl = `{"deliver":"{%s}"}`
+	)
+
+	b, err := NewSubber("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for v, ok := range cases {
+		// ToDo: Maybe use cleaner test names?
+		t.Run(v, func(t *testing.T) {
+			bs := NewBindings()
+			bs.SetValue(v, x)
+			s := fmt.Sprintf(tmpl, v)
+			got, err := b.Sub(ctx, bs, s)
+			if err != nil {
+				if ok {
+					t.Fatal(err)
+				}
+				return
+			}
+
+			if ok {
+				if strings.Contains(got, v) {
+					t.Fatal(got)
+				}
+			} else {
+				if !strings.Contains(got, v) {
+					t.Fatal(got)
+				}
+			}
+		})
 	}
 }
