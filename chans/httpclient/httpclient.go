@@ -206,6 +206,7 @@ func extractHTTPRequest(ctx *dsl.Ctx, m dsl.Msg) (*HTTPRequest, error) {
 
 	if req.Body != nil {
 		real.Body = ioutil.NopCloser(bytes.NewReader(req.body))
+		real.ContentLength = int64(len(req.body))
 	}
 
 	req.req = real
