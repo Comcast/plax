@@ -5,16 +5,16 @@
 Today in Plax you can substitute parameters within strings.  Example:
 
 ```
-"I like {$LIKED}."
+"I like {?LIKED}."
 ```
 
 You can also substitute parameter values structurally.  Example:
 
 ```JSON
-{"deliver":"$ORDER"}
+{"deliver":"?ORDER"}
 ```
 
-In this examine, `$ORDER` could be bound to value represented by:
+In this examine, `?ORDER` could be bound to value represented by:
 
 ```JSON
 {"tacos":3,"chips":1}
@@ -118,41 +118,41 @@ The `$` indicates array splicing, and the `@` indicates map splicing.
 See [`demo.sh`](demo.sh):
 
 ```
-echo '{"deliver":"{?want}"}' | plaxbs -p '?want="tacos"'
+echo '{"deliver":"{?want}"}' | plaxsubst -p '?want="tacos"'
 {"deliver":"tacos"}
 
-echo 'I like {?want|text}.' | plaxbs -p '?want="tacos"'
+echo 'I like {?want|text}.' | plaxsubst -p '?want="tacos"'
 I like tacos.
 
-echo '{"deliver":"{?want}"}' | plaxbs -p '?want=["tacos","chips"]'
+echo '{"deliver":"{?want}"}' | plaxsubst -p '?want=["tacos","chips"]'
 {"deliver":["tacos","chips"]}
 
-echo '{"deliver":["beer","{?want|json$}"]}' | plaxbs -p '?want=["tacos","chips"]'
+echo '{"deliver":["beer","{?want|json$}"]}' | plaxsubst -p '?want=["tacos","chips"]'
 {"deliver":["beer","tacos","chips"]}
 
-echo '{"deliver":"{?want}","n":{?want | js $.length | json}}' | plaxbs -p '?want=["tacos","chips"]'
+echo '{"deliver":"{?want}","n":{?want | js $.length | json}}' | plaxsubst -p '?want=["tacos","chips"]'
 {"deliver":["tacos","chips"],"n":2}
 
-echo '{"deliver":"{?want | jq .[0] | json}"}' | plaxbs -p '?want=["tacos","chips"]'
+echo '{"deliver":"{?want | jq .[0] | json}"}' | plaxsubst -p '?want=["tacos","chips"]'
 {"deliver":"tacos"}
 
-echo 'The order: {?want|text$}.' | plaxbs -p '?want=["tacos","chips"]'
+echo 'The order: {?want|text$}.' | plaxsubst -p '?want=["tacos","chips"]'
 The order: tacos,chips.
 
-echo 'The first item: {?want|jq .[0]|text}.' | plaxbs -p '?want=["tacos","chips"]'
+echo 'The first item: {?want|jq .[0]|text}.' | plaxsubst -p '?want=["tacos","chips"]'
 The first item: tacos.
 
 echo '{"deliver":{"chips":2,"":"{?want|json@}"}}' |
-    plaxbs -p '?want={"tacos":2,"salsa":1}' -check-json-in -check-json-out
+    plaxsubst -p '?want={"tacos":2,"salsa":1}' -check-json-in -check-json-out
 {"deliver":{"chips":2,"salsa":1,"tacos":2}}
 
-echo 'I want <?want|text>.' | plaxbs -d "<>" -p '?want="tacos"'
+echo 'I want <?want|text>.' | plaxsubst -d "<>" -p '?want="tacos"'
 I want tacos.
 
-echo '{"deliver":"?want"}' | plaxbs -bind -p '?want={"tacos":3}'
+echo '{"deliver":"?want"}' | plaxsubst -bind -p '?want={"tacos":3}'
 {"deliver":{"tacos":3}}
 
-echo '{"deliver":"?want | jq .[0]"}' | plaxbs -bind -p '?want=[{"tacos":3},{"queso":1}]'
+echo '{"deliver":"?want | jq .[0]"}' | plaxsubst -bind -p '?want=[{"tacos":3},{"queso":1}]'
 {"deliver":{"tacos":3}}
 ```
 
