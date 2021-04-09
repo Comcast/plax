@@ -58,29 +58,35 @@ func (bs *Bindings) String() string {
 	return "PARAM=VALUE"
 }
 
-// SetKeyValue to set the binding key to the given JSON value.
-func (bs *Bindings) SetKeyValue(key string, value string) {
+// SetKeyValue to set the binding key to the given (native) value.
+func (bs *Bindings) SetKeyValue(key string, value interface{}) {
 	(*bs)[key] = value
 }
 
-// Set the parameter key=value pair using unmarshal.
-func (bs *Bindings) Set(value string) error {
-	pv := strings.SplitN(value, "=", 2)
-	if len(pv) != 2 {
-		return fmt.Errorf("bad binding: '%s'", value)
+// Set the parameter key=value pair assuming the value is either
+// JSON-serialized or not.
+//
+// If we can't deserialize the value, we use the literal string (for
+// backwards compatibility).
+func (bs *Bindings) Set(kv string) error {
+	parts := strings.SplitN(kv, "=", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("bad binding: '%s'", kv)
+	}
+	k, v := parts[0], parts[1]
+
+	var val interface{}
+	if err := json.Unmarshal([]byte(v), &val); err != nil {
+		val = v
 	}
 
-	var v string
-	if err := json.Unmarshal([]byte(pv[1]), &v); err != nil {
-		v = value
-	}
-
-	bs.SetKeyValue(pv[0], v)
+	bs.SetKeyValue(k, val)
 
 	return nil
 }
 
-// Set the parameter key=value pair without unmarshal.
+// Set the parameter key=value pair (without any attempted
+// value unmarshalling).
 func (bs *Bindings) SetString(value string) error {
 	pv := strings.SplitN(value, "=", 2)
 	if len(pv) != 2 {
