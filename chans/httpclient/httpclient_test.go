@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -149,4 +150,64 @@ func TestHTTPRequestPolling(t *testing.T) {
 	case <-ch:
 		t.Fatal("received another request")
 	}
+}
+
+func TestContentLength(t *testing.T) {
+	var (
+		ctx      = dsl.NewCtx(context.Background())
+		interval = 50 * time.Millisecond // PollInterval
+
+		// Four is the only number that has the same number of
+		// letters as its value.  Fun fact.
+		body = "four"
+
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if int(r.ContentLength) != len(body) {
+				bs, _ := ioutil.ReadAll(r.Body)
+				t.Fatalf("%d: %s", r.ContentLength, bs)
+			}
+			fmt.Fprintln(w, "{}")
+		}))
+	)
+
+	defer ts.Close()
+
+	c, err := NewHTTPClientChan(ctx, &HTTPClientOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := c.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	payload, err := json.Marshal(&HTTPRequest{
+		Method: "POST",
+		URL:    ts.URL,
+		HTTPRequestCtl: HTTPRequestCtl{
+			PollInterval: interval.String(),
+		},
+		Body:                     body,
+		RequestBodySerialization: "string",
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Pub(ctx, dsl.Msg{
+		Payload: string(payload),
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	<-c.Recv(ctx)
 }
