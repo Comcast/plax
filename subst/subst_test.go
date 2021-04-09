@@ -217,6 +217,30 @@ func TestSubberWithProcs(t *testing.T) {
 
 }
 
+func TestUnbound(t *testing.T) {
+	var (
+		ctx    = NewCtx(context.Background(), nil)
+		bs     = NewBindings()
+		b, err = NewSubber("")
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := b.Sub(ctx, bs, `{?NOPE}`)
+	if err == nil {
+		t.Fatal(s)
+	}
+	// source '?NOPE' variable not bound in '{?NOPE}'
+
+	// We do not want to complain (in recv cases at least) if a
+	// structured VAR isn't bound.
+	s, err = b.Sub(ctx, bs, `"?NOPE"`)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestLimit(t *testing.T) {
 	var (
 		ctx    = NewCtx(context.Background(), nil)

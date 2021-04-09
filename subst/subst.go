@@ -78,6 +78,16 @@ type Subber struct {
 	// pipePattern is the (compiled) Regexp that included the
 	// delimiters provided to NewSubber.
 	pipePattern *regexp.Regexp
+
+	// ToDo: We might want a switch that controls whether the
+	// Subber returns an error when it encounters a string-based
+	// VAR that is not bound.  There are some (exotic?) situations
+	// where an unbound VAR is a string-based substitution
+	// expression should be left as is and without and error.
+	// Note that a structured unbound VAR is usually fine in a
+	// 'recv' context because the point can be to bind that var
+	// via pattern matching.  A switch could be helpful to get the
+	// right behavior in different contexts.
 }
 
 // NewSubber makes a new Subber with the pipe expression delimiters

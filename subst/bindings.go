@@ -89,12 +89,8 @@ func (bs *Bindings) Set(value string) error {
 	return bs.SetJSON(pv[0], pv[1])
 }
 
-// replaceBindings replaces all variables in x with their
-// corresponding values in bs (if any).
-//
-// This operation is destructive (and probably shouldn't be).
-//
-// An array or map should have interface{}-typed elements or values.
+// replaceBindings replaces all structural variables in x with their
+// corresponding values in bs (if any).  See docs for Bindings.Bind().
 func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) (interface{}, error) {
 	b := *bs
 	switch vv := x.(type) {
@@ -165,7 +161,15 @@ func (bs *Bindings) replaceBindings(ctx *Ctx, x interface{}) (interface{}, error
 	}
 }
 
-// Bind replaces all bindings in the given (structured) thing.
+// Bind replaces all structural variables in x with their
+// corresponding values in bs (if any).
+//
+// This operation is destructive (and probably shouldn't be).
+//
+// An array or map should have interface{}-typed elements or values.
+//
+// An unbound variable does not result in an error.  See some comments
+// in the Subber type.
 func (bs *Bindings) Bind(ctx *Ctx, x interface{}) (interface{}, error) {
 	return bs.replaceBindings(ctx, x)
 }
