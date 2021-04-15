@@ -66,6 +66,19 @@ func proc(ctx *Ctx, f func(*Ctx, string) (string, error)) subst.Proc {
 	}
 }
 
+// Set the parameter key=value pair (without any attempted
+// value unmarshalling).
+func (bs *Bindings) SetString(value string) error {
+	pv := strings.SplitN(value, "=", 2)
+	if len(pv) != 2 {
+		return fmt.Errorf("bad binding: '%s'", value)
+	}
+
+	bs.SetKeyValue(pv[0], pv[1])
+
+	return nil
+}
+
 func (bs *Bindings) Sub(ctx *Ctx, s string) (string, error) {
 	c := ctx.subst()
 	b := subber.WithProcs(proc(ctx, bangBangSub), proc(ctx, atAtSub))
@@ -152,23 +165,35 @@ func (b *Bindings) Copy() (*Bindings, error) {
 	return &acc, nil
 }
 
-// SetKeyValue to set the binding key to the given string (litera) value.
-func (bs *Bindings) SetKeyValue(key string, value string) {
+// SetKeyValue to set the binding key to the given (native) value.
+func (bs *Bindings) SetKeyValue(key string, value interface{}) {
 	(*bs)[key] = value
 }
 
+// Set the parameter key=value pair assuming the value is either
+// JSON-serialized or not.
+//
+// If we can't deserialize the value, we use the literal string (for
+// backwards compatibility).
 func (bs *Bindings) Set(value string) error {
-	pv := strings.SplitN(value, "=", 2)
-	if len(pv) != 2 {
+	parts := strings.SplitN(value, "=", 2)
+	if len(parts) != 2 {
 		return fmt.Errorf("bad binding: '%s'", value)
 	}
 
 	var v string
-	if err := json.Unmarshal([]byte(pv[1]), &v); err != nil {
+	if err := json.Unmarshal([]byte(parts[1]), &v); err != nil {
 		v = value
 	}
 
-	(*bs)[pv[0]] = v
+	k, v := parts[0], parts[1]
+
+	var val interface{}
+	if err := json.Unmarshal([]byte(v), &val); err != nil {
+		val = v
+	}
+
+	bs.SetKeyValue(k, val)
 
 	return nil
 }
