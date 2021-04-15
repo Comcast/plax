@@ -555,7 +555,7 @@ func (t *Test) prepareSource(ctx *Ctx, code string) (string, error) {
 }
 
 // Bind replaces all bindings in the given (structured) thing.
-func (t *Test) Bind(ctx *Ctx, x interface{}) interface{} {
+func (t *Test) Bind(ctx *Ctx, x interface{}) (interface{}, error) {
 	return t.Bindings.Bind(ctx, x)
 }
 

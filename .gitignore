@@ -2,3 +2,4 @@ TAGS
 .vscode/
 dist/
 vendor/
+*~
