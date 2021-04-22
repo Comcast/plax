@@ -1,0 +1,20 @@
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: mock
+                type: mock
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            payload: '{"want":"?WANT"}'
+        - recv:
+            pattern: '{"want":"?x"}'
+            timeout: 1s
+            guard: |
+              return bs["?x"] == bs["?WANT"] && bs["?x"].substring(0,1) != '"'
