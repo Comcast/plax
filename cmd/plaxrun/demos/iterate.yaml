@@ -1,0 +1,19 @@
+name: iterate
+tests:
+  basic:
+    path: iterate.yaml
+
+groups:
+  iterate-v1:
+    tests:
+      - name: basic
+    iterate:
+      params: |
+        [{"WANT":"tacos"},{"WANT":"chips"}]
+  iterate-v2:
+    tests:
+      - name: basic
+    iterate:
+      param: "WANT"
+      params: |
+        ["tacos","chips"]

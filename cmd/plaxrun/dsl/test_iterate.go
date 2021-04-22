@@ -83,12 +83,7 @@ func (ti TestIterate) getBindings(ctx *plaxDsl.Ctx, tr TestRun, bs *plaxDsl.Bind
 
 		if pm, ok := param.(map[string]interface{}); ok && ti.Param == nil {
 			for k, v := range pm {
-				bytes, err := json.Marshal(v)
-				if err != nil {
-					return nil, fmt.Errorf("failed to marshal parameter binding: %v", err)
-				}
-
-				fbs.SetKeyValue(k, string(bytes))
+				fbs.SetKeyValue(k, v)
 			}
 		} else if ps, ok := param.(string); ok && ti.Param != nil {
 			name = fmt.Sprintf("iteration-%s", ps)
