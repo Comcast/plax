@@ -21,6 +21,7 @@ package dsl
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/Comcast/plax/subst"
@@ -123,14 +124,20 @@ func (bs *Bindings) SerialSub(ctx *Ctx, serialization string, payload interface{
 		s = str
 	} else {
 		structured = true
+		log.Printf("DEBUG 1 %#v", payload)
 		js, err := subst.JSONMarshal(&payload)
 		if err != nil {
 			return "", err
 		}
+		log.Printf("DEBUG 2 %#v", payload)
 		s = string(js)
 	}
 
 	if structured {
+		{
+			x, _ := bs.Sub(ctx, s)
+			log.Printf("DEBUG 3 %#v", x)
+		}
 		return bs.Sub(ctx, s)
 	}
 

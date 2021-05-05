@@ -27,9 +27,9 @@ import (
 // JSON attempts to serialize its input with a fallback to Go '%#v'
 // serialization.
 func JSON(x interface{}) string {
-	js, err := json.Marshal(&x)
+	js, err := JSONMarshal(&x)
 	if err != nil {
-		js, _ = json.Marshal(map[string]interface{}{
+		js, _ = JSONMarshal(map[string]interface{}{
 			fmt.Sprintf("%T", x): fmt.Sprintf("%#v", x),
 		})
 	}

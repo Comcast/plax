@@ -22,12 +22,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/Comcast/plax/subst"
 )
 
 func JSON(x interface{}) string {
-	js, err := json.Marshal(&x)
+	js, err := subst.JSONMarshal(&x)
 	if err != nil {
-		js, _ = json.Marshal(map[string]interface{}{
+		js, _ = subst.JSONMarshal(map[string]interface{}{
 			fmt.Sprintf("%T", x): fmt.Sprintf("%#v", x),
 		})
 	}
