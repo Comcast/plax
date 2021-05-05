@@ -123,7 +123,7 @@ func (bs *Bindings) SerialSub(ctx *Ctx, serialization string, payload interface{
 		s = str
 	} else {
 		structured = true
-		js, err := json.Marshal(&payload)
+		js, err := subst.JSONMarshal(&payload)
 		if err != nil {
 			return "", err
 		}
@@ -139,7 +139,7 @@ func (bs *Bindings) SerialSub(ctx *Ctx, serialization string, payload interface{
 }
 
 func (b *Bindings) SubX(ctx *Ctx, src interface{}, dst *interface{}) error {
-	js, err := json.Marshal(&src)
+	js, err := subst.JSONMarshal(&src)
 	if err != nil {
 		return err
 	}
@@ -201,7 +201,7 @@ func (bs *Bindings) Set(value string) error {
 func (bs *Bindings) String() string {
 	acc := make([]string, 0, len(*bs))
 	for k, v := range *bs {
-		js, err := json.Marshal(&v)
+		js, err := subst.JSONMarshal(&v)
 		if err != nil {
 			js = []byte(fmt.Sprintf("%#v", v))
 		}

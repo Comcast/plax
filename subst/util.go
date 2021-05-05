@@ -19,6 +19,7 @@
 package subst
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -33,4 +34,31 @@ func JSON(x interface{}) string {
 		})
 	}
 	return string(js)
+}
+
+// JSONMarshal exists to SetEscapeHTML(false) to avoid messing with <,
+// >, and &.
+//
+// Strangely (to me), SetEscapeHTML(false) also seems to change
+// newline treatment.  See TestJSONMarshal's 'newline' test.
+func JSONMarshal(x interface{}) ([]byte, error) {
+	var (
+		buf = &bytes.Buffer{}
+		enc = json.NewEncoder(buf)
+	)
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(x)
+
+	if err != nil {
+		return nil, err
+	}
+	bs := buf.Bytes()
+
+	if 0 < len(bs) {
+		if bs[len(bs)-1] == 0x0a {
+			bs = bs[0 : len(bs)-1]
+		}
+	}
+
+	return bs, nil
 }

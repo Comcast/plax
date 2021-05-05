@@ -374,6 +374,7 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ctx.Inddf("    Effective payload: %s", payload)
 
 	run, err := t.Bindings.StringSub(ctx, p.Run)

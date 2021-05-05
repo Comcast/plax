@@ -231,7 +231,7 @@ func serialJSON(x interface{}, spliceMode string) (string, error) {
 	var acc string
 	switch spliceMode {
 	case "inplace", "":
-		js, err := json.Marshal(&x)
+		js, err := JSONMarshal(&x)
 		if err != nil {
 			return "", err
 		}
@@ -241,7 +241,7 @@ func serialJSON(x interface{}, spliceMode string) (string, error) {
 		if !is {
 			return "", fmt.Errorf("%#v isn't an %T for splice mode %s", x, xs, spliceMode)
 		}
-		js, err := json.Marshal(&xs)
+		js, err := JSONMarshal(&xs)
 		if err != nil {
 			return "", err
 		}
@@ -251,7 +251,7 @@ func serialJSON(x interface{}, spliceMode string) (string, error) {
 		if !is {
 			return "", fmt.Errorf("%#v isn't an %T for splice mode %s", x, m, spliceMode)
 		}
-		js, err := json.Marshal(&m)
+		js, err := JSONMarshal(&m)
 		if err != nil {
 			return "", err
 		}
@@ -272,7 +272,7 @@ func serialString(x interface{}, spliceMode string) (string, error) {
 			// With shame, we'll try to JSON-serialize.
 			//
 			// ToDo: Reconsider.
-			js, err := json.Marshal(&x)
+			js, err := JSONMarshal(&x)
 			if err != nil {
 				return "", err
 			}
