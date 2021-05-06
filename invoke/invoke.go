@@ -335,6 +335,24 @@ func (inv *Invocation) Load(ctx *dsl.Ctx, filename string) (*dsl.Test, error) {
 		return nil, dsl.NewBroken(fmt.Errorf("spec parse: %w", err))
 	}
 
+	// We are seeing reports of t.Name (below) causing a panic due
+	// to an invalid memory address or nil pointer deference.  The
+	// following check attempts to gather more information when
+	// that situation occurs.
+	//
+	// Warning: The logging output will include data that could be
+	// sensitive.
+	//
+	// This check is executed only if the environment variable
+	// PLAX_DEBUG is not empty.
+	if 0 < len(os.Getenv("PLAX_DEBUG")) {
+		if t == nil {
+			log.Printf("internal error: nil test in Invoke.Load\n%s\n", bs)
+			log.Printf("internal error test: %#v", t)
+			return nil, dsl.NewBroken(fmt.Errorf("internal error: nil test in Invoke.Load"))
+		}
+	}
+
 	if t.Name == "" {
 		basename := filepath.Base(filename)
 		t.Name = strings.TrimSuffix(basename, filepath.Ext(basename))
