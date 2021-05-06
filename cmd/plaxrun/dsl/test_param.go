@@ -205,7 +205,9 @@ func (tpb *TestParamBinding) run(ctx *plaxDsl.Ctx, key string, bs *plaxDsl.Bindi
 		k := match[1]
 		v := match[2]
 		ctx.Logdf("Binding %s=%s", k, v)
-		bs.SetKeyValue(k, v)
+
+		// We might need to JSON-deserialize the value.
+		bs.Set(fmt.Sprintf("%s=%s", k, v))
 	}
 
 	return nil
