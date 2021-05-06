@@ -89,6 +89,11 @@ func main() {
 		return
 	}
 
+	switch *logLevel {
+	case "debug", "DEBUG":
+		log.Printf("plax version %s %s %s\n", version, commit, date)
+	}
+
 	if *listChanTypes {
 		for name, _ := range dsl.TheChanRegistry {
 			fmt.Printf("%s\n", name)
