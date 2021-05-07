@@ -1,0 +1,13 @@
+# Description
+# 
+# This command is for testing only; this is only a test
+#
+# Usage
+#
+# include: include/commands/test.yaml
+cmd: bash
+args:
+  - -c
+  - |
+    echo KEY1=
+    echo KEY2=
