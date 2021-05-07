@@ -1,6 +1,9 @@
 doc: Test empty binding
 labels:
   - selftest
+bindings:
+  '?KEY1': ''
+  '?KEY2': ''
 spec:
   phases:
     phase1:
