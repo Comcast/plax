@@ -1,0 +1,15 @@
+doc: Test empty binding
+labels:
+  - selftest
+bindings:
+  '?KEY1': ''
+  '?KEY2': ''
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"want":"{?KEY1}","need":"{?KEY2}"}'
+        - recv:
+            pattern: '{"want":"", "need":""}'

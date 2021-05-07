@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	multiLinePropertyValueRegexp = regexp.MustCompile(`(\w+)=(.+(?:\\n   .*|\n[^=\n]+$)*)`)
+	multiLinePropertyValueRegexp = regexp.MustCompile(`(\w+)=(.*(?:\\n   .*|\n[^=\n]+$)*)`)
 	quotedRegexp                 = regexp.MustCompile(`^"(.*)"$`)
 )
 
