@@ -10,8 +10,7 @@ tests:
   empty-command-param:
     path: empty-binding.yaml
     params:
-      - 'KEY1'
-      - 'KEY2'
+      - EMPTY
 
 groups:
   all:
