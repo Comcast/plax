@@ -81,8 +81,13 @@ func main() {
 	flag.Parse()
 
 	if *vers {
-		fmt.Printf("plax %s %s %s\n", version, commit, date)
+		fmt.Printf("plaxrun %s %s %s\n", version, commit, date)
 		return
+	}
+
+	switch *trps.LogLevel {
+	case "debug", "DEBUG":
+		log.Printf("plaxrun version %s %s %s\n", version, commit, date)
 	}
 
 	if len(trps.Groups) == 0 && len(trps.Tests) == 0 && trps.SuiteName == nil {
