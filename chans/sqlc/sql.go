@@ -24,6 +24,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
+	"plugin"
 
 	"github.com/Comcast/plax/dsl"
 
@@ -64,6 +66,15 @@ type Opts struct {
 	// results from the database.  Default is
 	// DefaultChanBufferSize.
 	BufferSize int
+
+	// DriverPlugin, if given, should be the filename of a Go
+	// plugin for a Go SQL driver.
+	//
+	// See https://golang.org/pkg/plugin/.
+	//
+	// The subdirectory 'chans/sqlc/mysql' has an example for
+	// loading a MySQL driver at runtime.
+	DriverPlugin string
 }
 
 // Chan is channel type that talks to a SQL database.
@@ -123,6 +134,14 @@ func NewChan(ctx *dsl.Ctx, o interface{}) (dsl.Chan, error) {
 
 	if err = json.Unmarshal(js, &opts); err != nil {
 		return nil, dsl.NewBroken(err)
+	}
+
+	if opts.DriverPlugin != "" {
+		log.Printf("DEBUG loading SQL driver plugin %s", opts.DriverPlugin)
+		if _, err := plugin.Open(opts.DriverPlugin); err != nil {
+			return nil, fmt.Errorf("failed to open SQL driver plugin %s: %s",
+				opts.DriverPlugin, err)
+		}
 	}
 
 	return &Chan{

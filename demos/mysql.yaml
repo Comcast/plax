@@ -1,5 +1,8 @@
 doc: |
-  Experimental example of using the SQL channel type.
+  Experimental example of using MySQL driver loaded at runtime.
+
+  Need to do 'go build -buildmode=plugin' in chans/sqlc/mysql to have
+  a chance of working.
 spec:
   phases:
     phase1:
@@ -10,8 +13,9 @@ spec:
                 name: sql
                 type: sql
                 config:
-                  drivername: "sqlite"
-                  datasourcename: ":memory:"
+                  drivername: "mysql"
+                  datasourcename: "user:password@/dbname"
+                  driverplugin: chans/sqlc/mysql/mysql.so
         - recv:
             chan: mother
             pattern:
