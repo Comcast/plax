@@ -1,0 +1,40 @@
+doc: |
+  An example of an HTTP client channel.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            chan: mother
+            payload:
+              make:
+                name: client
+                type: httpclient
+        - recv:
+            doc: Check that our request succeeded.
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            doc: |
+              Make a request with a JSON body.
+            chan: client
+            payload:
+              url: 'https://reqres.in/api/users'
+              method: POST
+              body: {?BODY}
+              headers:
+                'Content-type':
+                  - 'application/json; charset=UTF-8'
+        - recv:
+            doc: |
+              Get the response to the HTTP request.  The body has
+              already been parsed as JSON, so we can use structured
+              pattern matching to extract a value (id).  The matched
+              value is stored in test.Bindings, which is automatically
+              used in the next step to expand any embedded variables
+              in payloads.
+            chan: client
+            pattern:
+              body:
+                id: "?id"
