@@ -18,17 +18,20 @@ spec:
                   driverplugin: chans/sqlc/mysql/mysql.so
         - recv:
             chan: mother
+            timeout: 1s
             pattern:
               success: true
         - pub:
             payload:
               exec: 'CREATE TABLE IF NOT EXISTS foo (x INTEGER)'
         - recv:
+            timeout: 1s
             pattern:
               rowsAffected: 0
         - pub:
             payload:
               exec: 'INSERT INTO foo VALUES (42)'
         - recv:
+            timeout: 1s
             pattern:
               rowsAffected: 1
