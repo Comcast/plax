@@ -30,7 +30,6 @@ import (
 	"github.com/Comcast/plax/dsl"
 
 	_ "modernc.org/sqlite"
-	// github.com/go-sql-driver/mysql
 )
 
 func init() {
