@@ -41,7 +41,7 @@ func NewBindings() Bindings {
 // This method shamelessly uses JSON serialization, which can break on
 // certains types of values.
 func (bs *Bindings) Copy() (*Bindings, error) {
-	bytes, err := json.Marshal(bs)
+	bytes, err := JSONMarshal(bs)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (bs *Bindings) UnmarshalBind(ctx *Ctx, js string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s, err := json.Marshal(&x)
+	s, err := JSONMarshal(&x)
 	if err != nil {
 		return "", fmt.Errorf("Bindings.UnmarshalBind marshall %s: %w", js, err)
 	}
