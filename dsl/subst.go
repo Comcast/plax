@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+
+	"github.com/Comcast/plax/subst"
 )
 
 func maybeUnmarshalString(s string) (string, bool) {
@@ -21,7 +23,7 @@ func maybeMarshalString(s string, maybe bool) (string, error) {
 	if !maybe {
 		return s, nil
 	}
-	js, err := json.Marshal(&s)
+	js, err := subst.JSONMarshal(&s)
 	if err != nil {
 		return "", err
 	}
@@ -79,7 +81,7 @@ func bangBangSub(ctx *Ctx, s string) (string, error) {
 		str, is := x.(string)
 		if !is {
 			var js []byte
-			if js, err = json.Marshal(&x); err != nil {
+			if js, err = subst.JSONMarshal(&x); err != nil {
 				return fmt.Sprintf("<error: %s>", err)
 			}
 			str = string(js)
