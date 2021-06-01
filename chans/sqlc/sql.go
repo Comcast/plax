@@ -49,9 +49,14 @@ var (
 // https://golang.org/pkg/database/sql/#Open.
 type Opts struct {
 	// DriverName names the (Go) SQL database driver, which must
-	// be loaded previously (usually at compile-time).  This
-	// package has a cgo-free SQLite driver (modernc.org/sqlite)
-	// already loaded, so "sqlite" works here.
+	// be loaded previously (usually at compile-time or via a Go
+	// plug-in).
+	//
+	// This package has a cgo-free SQLite driver
+	// (modernc.org/sqlite) already loaded, so "sqlite" works
+	// here.  Also see the 'mysql' subdirectory, which contains a
+	// package that can be compiled as a Go plug-in that provides
+	// a driver for MySQL.
 	DriverName string
 
 	// DatasourceName is the URI for the connection.  See your
