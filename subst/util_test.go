@@ -19,6 +19,7 @@
 package subst
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"strings"
@@ -41,4 +42,46 @@ func TestJSONSad(t *testing.T) {
 	if !strings.Contains(s, "func") {
 		t.Fatal(s)
 	}
+}
+
+func TestJSONMarshal(t *testing.T) {
+	t.Run("ampersand", func(t *testing.T) {
+		x := "chips & salsa"
+
+		js1, err := json.Marshal(&x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		ampersandByte := "&"[0] // To mimick ...
+
+		// Check that the stock json.Marshal encoded the ampersand.
+		if bytes.Contains(js1, []byte{ampersandByte}) {
+			t.Fatal(string(js1))
+		}
+
+		js2, err := JSONMarshal(&x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(js2, []byte{ampersandByte}) {
+			t.Fatal(string(js2))
+		}
+	})
+
+	t.Run("newline", func(t *testing.T) {
+		x := "chips and salsa"
+
+		js1, err := json.Marshal(&x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		js2, err := JSONMarshal(&x)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(js1) != string(js2) {
+			t.Fatalf("% X != % X", js1, js2)
+		}
+	})
 }

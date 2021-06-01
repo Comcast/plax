@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/Comcast/plax/subst"
 )
 
 // MotherRequest is the structure for a request to Mother.
@@ -115,7 +117,7 @@ func (c *Mother) Pub(ctx *Ctx, m Msg) error {
 			resp.Success = false
 			resp.Error = err.Error()
 		}
-		js, err := json.Marshal(&resp)
+		js, err := subst.JSONMarshal(&resp)
 		if err != nil {
 			return err
 		}

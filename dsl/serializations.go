@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Comcast/plax/subst"
 	"gopkg.in/yaml.v3"
 )
 
@@ -65,7 +66,7 @@ func (s *Serialization) Serialize(x interface{}) (string, error) {
 	switch ser {
 	case serJSON:
 		var js []byte
-		if js, err = json.Marshal(&x); err == nil {
+		if js, err = subst.JSONMarshal(&x); err == nil {
 			dst = string(js)
 		}
 	case serString:

@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Comcast/plax/subst"
 	"github.com/Comcast/sheens/match"
 	jschema "github.com/xeipuuv/gojsonschema"
 )
@@ -374,6 +375,7 @@ func (p *Pub) Substitute(ctx *Ctx, t *Test) (*Pub, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	ctx.Inddf("    Effective payload: %s", payload)
 
 	run, err := t.Bindings.StringSub(ctx, p.Run)
@@ -800,7 +802,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					json.Unmarshal(js, &bindingss)
 					// And again ...
 					var bs interface{}
-					js, _ = json.Marshal(&bss[0])
+					js, _ = subst.JSONMarshal(&bss[0])
 					json.Unmarshal(js, &bs)
 
 					env := t.jsEnv(ctx)
@@ -932,7 +934,7 @@ func (i *Ingest) Substitute(ctx *Ctx, t *Test) (*Ingest, error) {
 	if s, is := i.Payload.(string); is {
 		pay = s
 	} else {
-		js, err := json.Marshal(&i.Payload)
+		js, err := subst.JSONMarshal(&i.Payload)
 		if err != nil {
 			return nil, err
 		}
@@ -955,7 +957,7 @@ func (i *Ingest) Substitute(ctx *Ctx, t *Test) (*Ingest, error) {
 func (i *Ingest) Exec(ctx *Ctx, t *Test) error {
 	payload, is := i.Payload.(string)
 	if !is {
-		js, err := json.Marshal(&i.Payload)
+		js, err := subst.JSONMarshal(&i.Payload)
 		if err != nil {
 			return err
 		}
