@@ -6,7 +6,7 @@ tests:
   http-client-body-param:
     path: http-client-body-param.yaml
     params:
-      - 'BODY'
+      - BODY
   empty-command-param:
     path: empty-binding.yaml
     params:
@@ -16,12 +16,17 @@ groups:
   all:
     tests:
       - name: http-client-body-param
+        params:
+          FILENAME: http-client-body.json
+      - name: http-client-body-param
+        params:
+          FILENAME: data/http-client-body2.json
       - name: empty-command-param
 
 params:
   BODY:
     include: include/commands/read.yaml
     envs:
-      FILENAME: http-client-body.json
+      FILENAME: "{FILENAME}"
   EMPTY:
     include: include/commands/empty.yaml

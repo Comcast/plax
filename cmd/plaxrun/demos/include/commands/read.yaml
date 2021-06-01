@@ -19,6 +19,6 @@ args:
       echo $KEY=${!KEY}
     else
       : "${FILENAME:?Variable is not set or empty}"
-
+      echo "Reading $FILENAME" >&2
       echo $KEY=`cat $FILENAME`
     fi

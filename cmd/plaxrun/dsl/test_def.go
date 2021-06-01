@@ -56,12 +56,18 @@ func (tdrl TestDefRefList) getTaskFuncs(ctx *plaxDsl.Ctx, tr TestRun, name strin
 
 		n := fmt.Sprintf("%s:%s", name, tdr.Name)
 
-		err := tdr.Params.bind(ctx, bs)
+		// Each test needs to have its own copy of the bindings
+		cbs, err := bs.Copy()
+		if err != nil {
+			return nil, err
+		}
+
+		err = tdr.Params.bind(ctx, cbs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to substitute test ref parameters: %w", err)
 		}
 
-		run, err := tdr.Guard.Satisfied(ctx, tr, bs)
+		run, err := tdr.Guard.Satisfied(ctx, tr, cbs)
 		if err != nil {
 			return nil, fmt.Errorf("failed to guard %s test: %w", name, err)
 		}
@@ -71,7 +77,7 @@ func (tdrl TestDefRefList) getTaskFuncs(ctx *plaxDsl.Ctx, tr TestRun, name strin
 			return tl, nil
 		}
 
-		tf, err := tdr.getTaskFunc(ctx, tr, n, bs)
+		tf, err := tdr.getTaskFunc(ctx, tr, n, cbs)
 		if err != nil {
 			return nil, err
 		}
