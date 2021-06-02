@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
 	plaxDsl "github.com/Comcast/plax/dsl"
@@ -108,10 +109,18 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 		priority = *tdr.Priority
 	}
 
-	labels := ""
-	if tdr.Labels != nil {
-		labels = *tdr.Labels
+	labelArr := make([]string, 0)
+
+	if tr.trps.Labels != nil {
+		labelArr = strings.Split(*tr.trps.Labels, ",")
 	}
+
+	if tdr.Labels != nil {
+		arr := strings.Split(*tdr.Labels, ",")
+		labelArr = append(labelArr, arr...)
+	}
+
+	labels := strings.Join(labelArr, ",")
 
 	def := PluginDef{
 		PluginDefNameKey:        name,
