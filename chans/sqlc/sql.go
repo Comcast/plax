@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log"
 	"plugin"
+	"reflect"
 
 	"github.com/Comcast/plax/dsl"
 
@@ -223,28 +224,29 @@ func (c *Chan) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 
 			defer rs.Close()
 
-			cols, err := rs.Columns()
+			cols, err := rs.ColumnTypes()
 			if err != nil {
 				c.complain(ctx, "error getting result columns: %s", err)
 				return
 			}
+			names := make([]string, len(cols))
 			vals := make([]interface{}, len(cols))
-			pvals := make([]interface{}, len(cols))
-			for i, _ := range vals {
-				pvals[i] = &vals[i]
+			for i, col := range cols {
+				names[i] = col.Name()
+				vals[i] = reflect.New(col.ScanType()).Interface()
 			}
 			defer func() {
 				c.say(ctx, "done", "%s", msg.Query)
 			}()
 		LOOP:
 			for rs.Next() {
-				if err := rs.Scan(pvals...); err != nil {
+				if err := rs.Scan(vals...); err != nil {
 					c.complain(ctx, "error scanning row: %s", err)
 					return
 				}
 				acc := make(map[string]interface{}, len(cols))
 				for i, v := range vals {
-					acc[cols[i]] = v
+					acc[names[i]] = v
 				}
 				js, err := json.Marshal(&acc)
 				if err != nil {

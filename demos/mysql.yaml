@@ -35,3 +35,10 @@ spec:
             timeout: 1s
             pattern:
               rowsAffected: 1
+        - pub:
+            payload:
+              query: 'SELECT COUNT(*) AS N FROM foo'
+        - recv:
+            pattern:
+              n: "?n"
+              
