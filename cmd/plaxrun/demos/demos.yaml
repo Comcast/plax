@@ -1,0 +1,11 @@
+name: demos
+version: 0.0.1
+
+tests:
+  demos:
+    path: demos
+
+groups:
+  demos:
+    tests:        
+      - name: demos
