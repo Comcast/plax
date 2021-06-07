@@ -35,3 +35,15 @@ dist: clean
 .PHONY: release
 release: clean
 	goreleaser release --rm-dist
+
+# A demonstratio of using a Go plug-in to load a MySQL driver at
+# runtime for use in a Plax test that uses a SQL channel to talk to
+# MySQL.
+#
+# (This test will likely fail due to a timeout when trying to talk to
+# MySQL.)
+.PHONY: mysql
+mysql:
+	cd chans/sqlc/mysql && make
+	cd cmd/plax && go install
+	plax -test demos/mysql.yaml -log debug

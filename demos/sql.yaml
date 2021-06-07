@@ -1,0 +1,69 @@
+doc: |
+  Experimental example of using the SQL channel type.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: sql
+                type: sql
+                config:
+                  drivername: "sqlite"
+                  datasourcename: ":memory:"
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            payload:
+              exec: 'CREATE TABLE foo (x INTEGER)'
+        - recv:
+            pattern:
+              rowsAffected: 0
+        - goto: phase2
+    phase2:
+      steps:
+        - pub:
+            payload:
+              exec: 'INSERT INTO foo VALUES (42)'
+        - recv:
+            pattern:
+              rowsAffected: 1
+        - pub:
+            payload:
+              query: 'SELECT COUNT(*) AS n FROM foo'
+        - recv:
+            pattern:
+              n: "?*n"
+        - pub:
+            payload:
+              exec: 'INSERT INTO foo VALUES (43)'
+        - recv:
+            pattern:
+              rowsAffected: 1
+        - pub:
+            payload:
+              exec: 'INSERT INTO foo VALUES (44)'
+        - recv:
+            pattern:
+              rowsAffected: 1
+        - pub:
+            payload:
+              query: 'SELECT x AS n FROM foo'
+        - recv:
+            doc: Iterate over rows.
+            pattern:
+              n: 43
+        - recv:
+            doc: Wait for all the rows.
+            pattern:
+              done: "?*q"
+        - pub:
+            payload:
+              query: 'Definitely not a SQL statement'
+        - recv:
+            pattern:
+              error: "?sad"
+

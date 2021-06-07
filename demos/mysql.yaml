@@ -1,0 +1,44 @@
+doc: |
+  Experimental example of using MySQL driver loaded at runtime.
+
+  Need to do 'go build -buildmode=plugin' in chans/sqlc/mysql to have
+  a chance of working.
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: sql
+                type: sql
+                config:
+                  drivername: "mysql"
+                  datasourcename: "user:password@/dbname"
+                  driverplugin: chans/sqlc/mysql/mysql.so
+        - recv:
+            chan: mother
+            timeout: 1s
+            pattern:
+              success: true
+        - pub:
+            payload:
+              exec: 'CREATE TABLE IF NOT EXISTS foo (x INTEGER)'
+        - recv:
+            timeout: 1s
+            pattern:
+              rowsAffected: 0
+        - pub:
+            payload:
+              exec: 'INSERT INTO foo VALUES (42)'
+        - recv:
+            timeout: 1s
+            pattern:
+              rowsAffected: 1
+        - pub:
+            payload:
+              query: 'SELECT COUNT(*) AS N FROM foo'
+        - recv:
+            pattern:
+              n: "?n"
+              
