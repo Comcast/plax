@@ -32,5 +32,6 @@ import (
 	_ "github.com/Comcast/plax/chans/kds"
 	_ "github.com/Comcast/plax/chans/mqtt"
 	_ "github.com/Comcast/plax/chans/shell"
+	_ "github.com/Comcast/plax/chans/sqlc"
 	_ "github.com/Comcast/plax/chans/sqs"
 )
