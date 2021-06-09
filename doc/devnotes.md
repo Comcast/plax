@@ -11,7 +11,7 @@ To make and publish a new release:
 1. Figure out the tag for the release.  Consider using
    [`svu`](https://github.com/caarlos0/svu). Example `svu patch`.
 
-1. Create and push the tag:
+1. Create and push the (annotated) tag:
 
     ```Shell
 	git tag -a v0.5.7 -m "Endgame: Fix all remaining bugs"
