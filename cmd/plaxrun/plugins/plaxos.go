@@ -95,11 +95,6 @@ func init() {
 				return nil, err
 			}
 
-			nonZeroOnAnyError, err := def.GetPluginDefNonzeroOnAnyErrorKey()
-			if err != nil {
-				return nil, err
-			}
-
 			retry, err := def.GetPluginDefRetry()
 			if err != nil {
 				return nil, err
@@ -122,7 +117,7 @@ func init() {
 				LogLevel:           logLevel,
 				List:               list,
 				EmitJSON:           emitJSON,
-				ComplainOnAnyError: nonZeroOnAnyError,
+				ComplainOnAnyError: true,
 				Retry:              retry,
 			}
 
