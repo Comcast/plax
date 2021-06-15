@@ -66,6 +66,7 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 	ctx.Dir = *trps.Dir
 	ctx.LogLevel = *trps.LogLevel
 	ctx.IncludeDirs = trps.IncludeDirs
+	ctx.Redact = trps.Redact
 
 	var filename string
 	if trps.Filename != nil {
@@ -182,4 +183,5 @@ type TestRunParams struct {
 	LogLevel    *string
 	Labels      *string
 	Priority    *int
+	Redact      bool
 }

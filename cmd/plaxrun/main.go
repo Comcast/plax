@@ -77,6 +77,7 @@ func main() {
 	flag.Var(&trps.IncludeDirs, "I", "YAML include directories")
 	flag.Var(&trps.Groups, "g", fmt.Sprintf("Groups to execute: %s", trps.Groups.String()))
 	flag.Var(&trps.Tests, "t", fmt.Sprintf("Tests to execute: %s", trps.Tests.String()))
+	flag.BoolVar(&trps.Redact, "redact", false, "enable redactions when -log debug")
 
 	flag.Parse()
 

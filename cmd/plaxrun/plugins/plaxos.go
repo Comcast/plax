@@ -105,6 +105,11 @@ func init() {
 				return nil, err
 			}
 
+			redact, err := def.GetPluginDefRedact()
+			if err != nil {
+				return nil, err
+			}
+
 			i := plaxInvoke.Invocation{
 				SuiteName:          name,
 				Tests:              tests,
@@ -119,6 +124,7 @@ func init() {
 				EmitJSON:           emitJSON,
 				ComplainOnAnyError: true,
 				Retry:              retry,
+				Redact:             redact,
 			}
 
 			i.Dir, err = def.GetPluginDefDir()

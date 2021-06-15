@@ -18,6 +18,7 @@
       - [Parameters definition section](#parameters-definition-section)
     - [Running the example tests](#running-the-example-tests)
     - [Output](#output)
+	- [Logging](#logging)
   - [References](#references)
 
 
@@ -32,30 +33,32 @@ To get help, run:
 ```
 Usage of plaxrun:
   -I value
-        YAML include directories
+    	YAML include directories
   -dir string
-        Directory containing test files (default ".")
+    	Directory containing test files (default ".")
   -g value
-        Groups to execute: Test Group Name
+    	Groups to execute: Test Group Name
   -json
-        Emit JSON test output; instead of JUnit XML
+    	Emit JSON test output; instead of JUnit XML
   -labels string
-        Labels for tests to run
+    	Labels for tests to run
   -log string
-        Log level (info, debug, none) (default "info")
+    	Log level (info, debug, none) (default "info")
   -p value
-        Parameter Bindings: PARAM=VALUE
+    	Parameter Bindings: 
   -priority int
-        Test priority (default -1)
+    	Test priority (default -1)
+  -redact
+    	enable redactions when -log debug
   -run string
-        Filename for test run specification (default "spec.yaml")
+    	Filename for test run specification (default "spec.yaml")
   -s string
-        Suite name to execute; -t options represent the tests in the suite to execute
+    	Suite name to execute; -t options represent the tests in the suite to execute
   -t value
-        Tests to execute: Test Name
-  -v    Verbosity (default true)
+    	Tests to execute: Test Name
+  -v	Verbosity (default true)
   -version
-        Print version and then exit
+    	Print version and then exit
 ```
 
 Use `-run` to specify the the path to the test run specification file
@@ -378,6 +381,27 @@ This output includes the following for each test case:
   }
 ]
 ```
+
+### Logging
+
+The `-log` command-line option accepts `none` (default), `info`, and
+`debug`.  To provide some level of logging without printing some
+possibly sensitive information, `info` does not playloads or bindings
+values.  In contrast, `-debug` will by default log binding values and
+payloads.  However, with `-log debug`, the flag `-redact` enables some
+log redactions:
+
+1. Values with binding names that start with `X_` (ignoring
+   non-alphabetic prefix characters like `?`) will be redacted from
+   `debug` log output.
+   
+1. In a test, Javascript (usually executed via a `run` step) can add
+   redactions using the functions `redactRegexp` and `redactString`.
+   See documentation above for usage information.
+   
+See [`demos/redactions.yaml`](../demos/redactions.yaml) for an example
+of both techniques.
+
 
 ## References
 

@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -44,6 +45,12 @@ type Ctx struct {
 	IncludeDirs []string
 	Dir         string
 	LogLevel    string
+
+	// Redact, if true, will redact substrings that match
+	// Redactions in logging output.
+	Redact bool
+
+	Redactions map[string]*regexp.Regexp
 }
 
 // NewCtx build a new dsl.Ctx
@@ -57,6 +64,7 @@ func NewCtx(ctx context.Context) *Ctx {
 		LogLevel:    DefaultLogLevel,
 		IncludeDirs: make([]string, 0, 1),
 		Dir:         ".",
+		Redactions:  make(map[string]*regexp.Regexp),
 	}
 }
 
@@ -69,6 +77,8 @@ func (c *Ctx) WithCancel() (*Ctx, func()) {
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
 		Dir:         c.Dir,
+		Redact:      c.Redact,
+		Redactions:  c.Redactions, // not copying
 	}, cancel
 }
 
@@ -81,6 +91,8 @@ func (c *Ctx) WithTimeout(d time.Duration) (*Ctx, func()) {
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
 		Dir:         c.Dir,
+		Redact:      c.Redact,
+		Redactions:  c.Redactions, // not copying
 	}, cancel
 }
 
@@ -98,12 +110,35 @@ func (c *Ctx) SetLogLevel(level string) error {
 	return nil
 }
 
+// AddRedaction compiles the given string as a regular expression and
+// installs that regexp as a desired redaction in logging output.
+func (c *Ctx) AddRedaction(pat string) error {
+	r, err := regexp.Compile(pat)
+	if err != nil {
+		return err
+	}
+	c.Redactions[pat] = r
+	return nil
+}
+
+// Redactf calls c.Printf with any requested redactions with c.Redact
+// is true.
+func (c *Ctx) Redactf(format string, args ...interface{}) {
+	s := fmt.Sprintf(format, args...)
+	if c.Redact {
+		for _, r := range c.Redactions {
+			s = r.ReplaceAllString(s, "<redacted>")
+		}
+	}
+	c.Printf("%s", s)
+}
+
 // Indf emits a log line starting with a '|' when ctx.LogLevel isn't 'none'.
 func (c *Ctx) Indf(format string, args ...interface{}) {
 	switch c.LogLevel {
 	case "none", "NONE":
 	default:
-		c.Printf("| "+format, args...)
+		c.Redactf("| "+format, args...)
 	}
 }
 
@@ -113,13 +148,13 @@ func (c *Ctx) Indf(format string, args ...interface{}) {
 func (c *Ctx) Inddf(format string, args ...interface{}) {
 	switch c.LogLevel {
 	case "debug", "DEBUG":
-		c.Printf("| "+format, args...)
+		c.Redactf("| "+format, args...)
 	}
 }
 
 // Warnf emits a log  with a '!' prefix.
 func (c *Ctx) Warnf(format string, args ...interface{}) {
-	c.Printf("! "+format, args...)
+	c.Redactf("! "+format, args...)
 }
 
 // Logf emits a log line starting with a '>' when ctx.LogLevel isn't 'none'.
@@ -127,7 +162,7 @@ func (c *Ctx) Logf(format string, args ...interface{}) {
 	switch c.LogLevel {
 	case "none", "NONE":
 	default:
-		c.Printf("> "+format, args...)
+		c.Redactf("> "+format, args...)
 	}
 }
 
@@ -137,7 +172,7 @@ func (c *Ctx) Logf(format string, args ...interface{}) {
 func (c *Ctx) Logdf(format string, args ...interface{}) {
 	switch c.LogLevel {
 	case "debug", "DEBUG":
-		c.Printf("> "+format, args...)
+		c.Redactf("> "+format, args...)
 	}
 }
 
