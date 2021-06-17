@@ -29,6 +29,7 @@
       - [Pattern matching](#pattern-matching)
       - [Specifications](#specifications)
     - [Output](#output)
+	- [Logging](#logging)
   - [References](#references)
   
 ## Installation
@@ -73,12 +74,14 @@ Usage of plax:
     	Parameter values: PARAM=VALUE
   -priority int
     	Optional lowest priority (where larger numbers mean lower priority!); negative means all (default -1)
+  -redact
+    	Use redaction gear
   -retry string
     	Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}
   -seed int
     	Seed for random number generator
   -test string
-    	Filename for test specification (default "test.yaml")
+    	Filename for test specification
   -test-suite string
     	Name for JUnit test suite (default "NA")
   -v	Verbosity (default true)
@@ -562,6 +565,13 @@ single operation.  Currently the following steps are supported:
 			
 	    1. `print`: a function that prints its arguments to log
            output.
+		   
+		1. `redactRegexp`: a function that compiles and adds a
+           redaction regular expression from the given string.
+		
+		1. `redactString`: a function that compiles and adds a
+           redaction pattern that matches the given string
+           literally.
 		
 		1. `match`: [Sheen](https://github.com/Comcast/sheens)'s
             [pattern
@@ -774,6 +784,27 @@ test case:
   }
 ]
 ```
+
+### Logging
+
+The `-log` command-line option accepts `none` (default), `info`, and
+`debug`.  To provide some level of logging without printing some
+possibly sensitive information, `info` does not playloads or bindings
+values.  In contrast, `-debug` will by default log binding values and
+payloads.  However, with `-log debug`, the flag `-redact` enables some
+log redactions:
+
+1. Values with binding names that start with `X_` (ignoring
+   non-alphabetic prefix characters like `?`) will be redacted from
+   `debug` log output.
+   
+1. In a test, Javascript (usually executed via a `run` step) can add
+   redactions using the functions `redactRegexp` and `redactString`.
+   See documentation above for usage information.
+   
+See [`demos/redactions.yaml`](../demos/redactions.yaml) for an example
+of both techniques.
+   
 
 ## References
 

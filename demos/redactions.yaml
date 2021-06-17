@@ -1,0 +1,23 @@
+doc: |
+  An example of using redactions.
+bindings:
+  '?X_NEVERSAY': 'I love crêpes.'
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - pub:
+            payload: '{"do not say it":"?X_NEVERSAY"}'
+        - recv:
+            pattern: '{"do not say it":"?*x"}'
+            guard:
+              return 0 <= bs['?*x'].indexOf("crêpes")
+        - run: |
+            redactRegexp('[nN]i!');
+        - pub:
+            payload: '"We shall say \"ni!\" again to you if you do not appease us."'
+        - recv:
+            pattern: '"?*x"'
+            guard:
+              return 0 <= bs['?*x'].indexOf("ni!")

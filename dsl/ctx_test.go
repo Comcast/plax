@@ -19,6 +19,9 @@
 package dsl
 
 import (
+	"fmt"
+	"log"
+	"strings"
 	"testing"
 	"time"
 )
@@ -40,5 +43,77 @@ func TestCtxTimeout(t *testing.T) {
 	case <-ctx.Done():
 	default:
 		t.Fatal("didn't time out")
+	}
+}
+
+type TestLogger struct {
+	lines []string
+}
+
+func NewTestLogger() *TestLogger {
+	return &TestLogger{
+		lines: make([]string, 0, 32),
+	}
+}
+
+func (l *TestLogger) Printf(format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	l.lines = append(l.lines, line)
+}
+
+func TestCtxRedactBasic(t *testing.T) {
+	ctx := NewCtx(nil)
+	if err := ctx.AddRedaction("tacos?"); err != nil {
+		t.Fatal(err)
+	}
+	ctx.Redact = true
+	l := NewTestLogger()
+	ctx.Logger = l
+	ctx.Logf(`Please don't say "tacos".`)
+
+	if len(l.lines) == 0 {
+		t.Fatal(0)
+	}
+
+	for _, line := range l.lines {
+		if strings.Contains(line, "tacos") {
+			t.Fatal(line)
+		}
+	}
+}
+
+func TestCtxRedactBindings(t *testing.T) {
+	ctx := NewCtx(nil)
+	ctx.Redact = true
+	l := NewTestLogger()
+	ctx.Logger = l
+
+	tst := NewTest(ctx, "test", nil)
+	tst.Bindings["?X_NEVERSAY"] = "I love crêpes."
+	if err := tst.bindingRedactions(ctx); err != nil {
+		t.Fatal(err)
+	}
+	line := `Never say "{?X_NEVERSAY}"`
+	var err error
+	line, err = tst.Bindings.StringSub(ctx, line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx.Logf("%s", line)
+
+	if len(l.lines) == 0 {
+		t.Fatal(0)
+	}
+
+	line = l.lines[0]
+
+	log.Println(line)
+
+	if strings.Contains(line, "crêpes") {
+		t.Fatal(line)
+	}
+	if !strings.Contains(line, "redacted") {
+		t.Fatal(line)
 	}
 }

@@ -71,6 +71,9 @@ type Invocation struct {
 	// Retry will override a test's retry policy (if any).
 	Retry string
 
+	// React will set dsl.Ctx.Redact to enable log redactions.
+	Redact bool
+
 	retries *dsl.Retries
 }
 
@@ -83,6 +86,7 @@ type Invocation struct {
 // This method calls Run(t) for each test t in the Invocation.
 func (inv *Invocation) Exec(ctx context.Context) error {
 	dslCtx := dsl.NewCtx(ctx)
+	dslCtx.Redact = inv.Redact
 
 	if len(inv.LogLevel) > 0 {
 		if err := dslCtx.SetLogLevel(inv.LogLevel); err != nil {

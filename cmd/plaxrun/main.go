@@ -69,6 +69,7 @@ func main() {
 			Labels:      flag.String("labels", "", "Labels for tests to run"),
 			SuiteName:   flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
 			Priority:    flag.Int("priority", -1, "Test priority"),
+			Redact:      flag.Bool("redact", false, "enable redactions when -log debug"),
 		}
 		vers = flag.Bool("version", false, "Print version and then exit")
 	)

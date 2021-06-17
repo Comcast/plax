@@ -77,6 +77,7 @@ func main() {
 		testSuiteName     = flag.String("test-suite", "NA", "Name for JUnit test suite")
 		logLevel          = flag.String("log", "info", "log level (info, debug, none)")
 		retry             = flag.String("retry", "", `Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}`)
+		redact            = flag.Bool("redact", false, "Use redaction gear")
 	)
 
 	flag.Var(&bindings, "p", "Parameter values: PARAM=VALUE")
@@ -122,6 +123,7 @@ func main() {
 		EmitJSON:           *emitJSON,
 		ComplainOnAnyError: *nonzeroOnAnyError,
 		Retry:              *retry,
+		Redact:             *redact,
 	}
 
 	err := iv.Exec(context.Background())

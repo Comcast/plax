@@ -20,6 +20,7 @@ package dsl
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/Comcast/sheens/match"
@@ -59,6 +60,19 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 
 	js.Set("now", func() interface{} {
 		return time.Now().UTC().Format(time.RFC3339Nano)
+	})
+
+	js.Set("redactRegexp", func(pat string) {
+		if err := ctx.AddRedaction(pat); err != nil {
+			panic(err)
+		}
+	})
+
+	js.Set("redactString", func(pat string) {
+		pat = regexp.QuoteMeta(pat)
+		if err := ctx.AddRedaction(pat); err != nil {
+			panic(err)
+		}
 	})
 
 	js.Set("match", func(pat, msg interface{}, bs map[string]interface{}) []map[string]interface{} {

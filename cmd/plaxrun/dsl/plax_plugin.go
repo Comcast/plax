@@ -50,6 +50,8 @@ const (
 	PluginDefListKey = "List"
 	// PluginDefEmitJSONKey of the PluginDef map
 	PluginDefEmitJSONKey = "EmitJSON"
+	// PluginDefEmitRedactKey = "EmitJSON"
+	PluginDefRedactKey = "Redact"
 	// PluginDefNonzeroOnAnyErrorKey of the PluginDef map
 	PluginDefNonzeroOnAnyErrorKey = "NonzeroOnAnyErrorKey"
 	// PluginDefRetryKey of the PluginDef map
@@ -258,6 +260,21 @@ func (pd PluginDef) GetPluginDefEmitJSON() (bool, error) {
 	ret, ok := value.(*bool)
 	if !ok {
 		return false, fmt.Errorf("%s is not a bool", PluginDefEmitJSONKey)
+	}
+
+	return *ret, nil
+}
+
+// GetPluginDefRedact returns the Redact flag.
+func (pd PluginDef) GetPluginDefRedact() (bool, error) {
+	value, ok := pd[PluginDefRedactKey]
+	if !ok || value == nil {
+		return false, fmt.Errorf("%s was not provided in the plugin definition", PluginDefRedactKey)
+	}
+
+	ret, ok := value.(*bool)
+	if !ok {
+		return false, fmt.Errorf("%s is not a bool", PluginDefRedactKey)
 	}
 
 	return *ret, nil
