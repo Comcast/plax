@@ -69,6 +69,7 @@ func main() {
 			Labels:      flag.String("labels", "", "Labels for tests to run"),
 			SuiteName:   flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
 			Priority:    flag.Int("priority", -1, "Test priority"),
+			Redact:      flag.Bool("redact", false, "enable redactions when -log debug"),
 		}
 		vers = flag.Bool("version", false, "Print version and then exit")
 	)
@@ -77,7 +78,6 @@ func main() {
 	flag.Var(&trps.IncludeDirs, "I", "YAML include directories")
 	flag.Var(&trps.Groups, "g", fmt.Sprintf("Groups to execute: %s", trps.Groups.String()))
 	flag.Var(&trps.Tests, "t", fmt.Sprintf("Tests to execute: %s", trps.Tests.String()))
-	flag.BoolVar(&trps.Redact, "redact", false, "enable redactions when -log debug")
 
 	flag.Parse()
 

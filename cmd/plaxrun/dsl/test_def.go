@@ -138,6 +138,7 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 		PluginDefLogLevelKey:    tr.trps.LogLevel,
 		PluginDefEmitJSONKey:    tr.trps.EmitJSON,
 		PluginDefIncludeDirsKey: tr.trps.IncludeDirs,
+		PluginDefRedactKey:      tr.trps.Redact,
 	}
 
 	path := td.Path
