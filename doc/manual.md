@@ -509,7 +509,10 @@ single operation.  Currently the following steps are supported:
 	1. `timeout`: Optional timeout in [Go
        syntax](https://golang.org/pkg/time/#ParseDuration).
 
-  1. `attempts`: Optional number of (maximum) attempts when dequeuing a message for `recv`.  If a topic is provided the number of `attempts` is for the given topic only
+    1. `attempts`: Optional number of (maximum) attempts when
+        dequeuing a message for `recv`.  If a topic is provided the
+        number of `attempts` is for the given topic only
+	
 	1. `target`: Target is an optional switch to specify what part of
        	the incoming message is considered for matching.
 		
@@ -518,7 +521,8 @@ single operation.  Currently the following steps are supported:
        	`{"Topic":TOPIC,"Payload":PAYLOAD}` which allows matching
        	based on the topic of in-bound messages.
 		
-	1. `guard`: <a href="https://en.wikipedia.org/wiki/Guard_(computer_science)">Guard</a>
+	1. `guard`: <a
+	    href="https://en.wikipedia.org/wiki/Guard_(computer_science)">Guard</a>
 	    is optional Javascript that should return a boolean to
 	    indicate whether this `recv` has been satisfied.
 		
