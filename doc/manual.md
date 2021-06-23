@@ -576,7 +576,9 @@ single operation.  Currently the following steps are supported:
            output.
 		   
 		1.  `redactRegexp`: a function that compiles and adds a
-            redaction regular expression from the given string.
+            redaction [regular
+            expression](https://github.com/google/re2/wiki/Syntax)
+            from the given string.
 		   
 	        If the Regexp has no groups, all substrings that match the
             Regexp are redacted by replacing the substrings with
