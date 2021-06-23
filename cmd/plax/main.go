@@ -26,6 +26,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"regexp"
 	"time"
 
 	_ "github.com/Comcast/plax/chans/std"
@@ -78,6 +79,9 @@ func main() {
 		logLevel          = flag.String("log", "info", "log level (info, debug, none)")
 		retry             = flag.String("retry", "", `Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}`)
 		redact            = flag.Bool("redact", false, "Use redaction gear")
+
+		testRedactPattern = flag.String("check-redact-regexp", "", "regular expression to use for checking redactions (with no test executed)")
+		testRedactString  = flag.String("check-redact", "", "input string to use for -check-redact-regexp")
 	)
 
 	flag.Var(&bindings, "p", "Parameter values: PARAM=VALUE")
@@ -87,6 +91,11 @@ func main() {
 
 	if *vers {
 		fmt.Printf("plax %s %s %s\n", version, commit, date)
+		return
+	}
+
+	if *testRedactPattern != "" {
+		fmt.Printf("%s\n", dsl.Redact(regexp.MustCompile(*testRedactPattern), *testRedactString))
 		return
 	}
 

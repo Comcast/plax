@@ -1,5 +1,5 @@
 doc: |
-  An example of using redactions.
+  Some redaction examples.
 bindings:
   '?X_NEVERSAY': 'I love crêpes.'
 spec:
@@ -8,16 +8,35 @@ spec:
       steps:
         - '$include<include/mock.yaml>'
         - pub:
+            doc: |
+              A parameter starting with X_ will have its value
+              redacted.
             payload: '{"do not say it":"?X_NEVERSAY"}'
         - recv:
             pattern: '{"do not say it":"?*x"}'
-            guard:
-              return 0 <= bs['?*x'].indexOf("crêpes")
+            doc: |
+              We can't test what we get in logging output, but we can
+              verify that our redaction did not mess up test
+              execution.
+            guard: |
+              return 0 < bs['?*x'].indexOf("crêpes")
         - run: |
             redactRegexp('[nN]i!');
         - pub:
+            doc: |
+              Use the redaction regexp above.
             payload: '"We shall say \"ni!\" again to you if you do not appease us."'
         - recv:
             pattern: '"?*x"'
-            guard:
-              return 0 <= bs['?*x'].indexOf("ni!")
+            guard: |
+              return 0 < bs['?*x'].indexOf("ni!")
+        - run: |
+            redactRegexp('love (really thin pancakes)');
+        - pub:
+            doc: |
+              Use the previous regexp that has a group.
+            payload: '"I love really thin pancakes."'
+        - recv:
+            pattern: '"?*x"'
+            guard: |
+              return 0 < bs['?*x'].indexOf("pancakes")
