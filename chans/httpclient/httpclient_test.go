@@ -43,8 +43,8 @@ func TestHTTPRequestPolling(t *testing.T) {
 
 	var (
 		ctx      = dsl.NewCtx(context.Background())
-		interval = 50 * time.Millisecond // PollInterval
-		want     = 3                     // The number of messages we want to receive.
+		interval = 100 * time.Millisecond // PollInterval
+		want     = 3                      // The number of messages we want to receive.
 
 		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, `{"I have fixed your doorbell from the ringing":"There is no charge"}`)
