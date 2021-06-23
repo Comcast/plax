@@ -53,6 +53,7 @@ plax -h
 ```
 
 ```
+plax -h
 Usage of plax:
   -I value
     	YAML include directories
@@ -82,6 +83,10 @@ Usage of plax:
     	Seed for random number generator
   -test string
     	Filename for test specification
+  -check-redact string
+    	input string to use for -check-redact-regexp
+  -check-redact-regexp string
+    	regular expression to use for checking redactions
   -test-suite string
     	Name for JUnit test suite (default "NA")
   -v	Verbosity (default true)
@@ -570,9 +575,31 @@ single operation.  Currently the following steps are supported:
 	    1. `print`: a function that prints its arguments to log
            output.
 		   
-		1. `redactRegexp`: a function that compiles and adds a
-           redaction regular expression from the given string.
-		
+		1.  `redactRegexp`: a function that compiles and adds a
+            redaction regular expression from the given string.
+		   
+	        If the Regexp has no groups, all substrings that match the
+            Regexp are redacted by replacing the substrings with
+            `<redacted>`.
+			
+            For each named group with a name starting with `redact`,
+            that group is redacted (for all matches).
+
+	        If there are groups but none has a name starting with
+            `redact`, then the first matching (non-captured) group is
+            redacted.
+			
+			You can use a `plax` command-line mode to check how a
+            redaction regexp will work:
+			
+			```
+            plax -check-redact-regexp 'love (really thin pancakes)' -check-redact "I love really thin pancakes."
+			I love <redacted>.
+			```
+			
+			See [`demos/redactions.yaml`](../demos/redactions.yaml)
+            for some more examples.
+			
 		1. `redactString`: a function that compiles and adds a
            redaction pattern that matches the given string
            literally.
@@ -804,7 +831,7 @@ log redactions:
    
 1. In a test, Javascript (usually executed via a `run` step) can add
    redactions using the functions `redactRegexp` and `redactString`.
-   See documentation above for usage information.
+   See documentation for `redactRegexp` above for more information.
    
 See [`demos/redactions.yaml`](../demos/redactions.yaml) for an example
 of both techniques.
