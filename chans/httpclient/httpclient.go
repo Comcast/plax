@@ -20,6 +20,7 @@ package chans
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -123,6 +124,9 @@ type HTTPRequest struct {
 	// HTTPRequestCtl is optional data for managing polling
 	// requests.
 	HTTPRequestCtl `json:"ctl,omitempty" yaml:"ctl"`
+
+	// Insecure if true will skip server credentials verification.
+	Insecure bool `json:"insecure,omitempty"`
 
 	// body will be the serialized Body.
 	body []byte
@@ -297,6 +301,17 @@ type HTTPResponse struct {
 
 func (c *HTTPClient) do(ctx *dsl.Ctx, req *HTTPRequest) error {
 	ctx.Logf("%T making request", c)
+
+	if req.Insecure {
+		c.client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	} else {
+		c.client.Transport = nil
+	}
+
 	resp, err := c.client.Do(req.req)
 	if err != nil {
 		return err
