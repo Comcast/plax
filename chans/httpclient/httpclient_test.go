@@ -211,3 +211,56 @@ func TestContentLength(t *testing.T) {
 
 	<-c.Recv(ctx)
 }
+
+func TestInsecure(t *testing.T) {
+	var (
+		ctx = dsl.NewCtx(context.Background())
+
+		ts = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintln(w, `{"Napoleon":"Can you bring me my chapstick?"}`)
+		}))
+	)
+
+	defer ts.Close()
+
+	c, err := NewHTTPClientChan(ctx, &HTTPClientOpts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = c.Open(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if err := c.Close(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}()
+
+	payload, err := json.Marshal(&HTTPRequest{
+		Method:   "GET",
+		URL:      ts.URL,
+		Insecure: true,
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Pub(ctx, dsl.Msg{
+		Payload: string(payload),
+	})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ch := c.Recv(ctx)
+
+	select {
+	case <-ctx.Done():
+		t.Fatal("ctx done")
+	case <-ch:
+	}
+}

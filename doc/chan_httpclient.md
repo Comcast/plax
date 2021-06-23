@@ -53,6 +53,8 @@ Currently this channel doesn't have any configuration.
         
         No other properties in this struct should be provided.
 
+1. `insecure` (bool) if true will skip server credentials verification.
+
 ### Output
 
 
