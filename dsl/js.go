@@ -68,14 +68,14 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 
 	js.Set("redactRegexp", func(pat string) {
 		if err := ctx.AddRedaction(pat); err != nil {
-			gojaPanic(js, Failure(err.Error()))
+			gojaPanic(js, NewBroken(err))
 		}
 	})
 
 	js.Set("redactString", func(pat string) {
 		pat = regexp.QuoteMeta(pat)
 		if err := ctx.AddRedaction(pat); err != nil {
-			gojaPanic(js, Failure(err.Error()))
+			gojaPanic(js, NewBroken(err))
 		}
 	})
 
@@ -85,7 +85,7 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		}
 		bss, err := match.Match(pat, msg, bs)
 		if err != nil {
-			gojaPanic(js, Failure(err.Error()))
+			gojaPanic(js, NewBroken(err))
 		}
 		// Strip type (match.Bindings) to enable standard
 		// Javascript access to the maps.
