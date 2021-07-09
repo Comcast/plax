@@ -39,6 +39,10 @@ func JSExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 	return x, nil
 }
 
+func gojaPanic(vm *goja.Runtime, x interface{}) {
+	panic(vm.ToValue(x))
+}
+
 func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, error) {
 
 	js := goja.New()
@@ -64,14 +68,14 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 
 	js.Set("redactRegexp", func(pat string) {
 		if err := ctx.AddRedaction(pat); err != nil {
-			panic(err)
+			gojaPanic(js, Failure(err.Error()))
 		}
 	})
 
 	js.Set("redactString", func(pat string) {
 		pat = regexp.QuoteMeta(pat)
 		if err := ctx.AddRedaction(pat); err != nil {
-			panic(err)
+			gojaPanic(js, Failure(err.Error()))
 		}
 	})
 
@@ -81,9 +85,7 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		}
 		bss, err := match.Match(pat, msg, bs)
 		if err != nil {
-			// This panic is caught.  (That's how we
-			// return errors.)
-			panic(js.ToValue(err.Error()))
+			gojaPanic(js, Failure(err.Error()))
 		}
 		// Strip type (match.Bindings) to enable standard
 		// Javascript access to the maps.
