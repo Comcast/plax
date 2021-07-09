@@ -679,7 +679,7 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, r.Pattern)
 		case m := <-in:
 
-			ctx.Indf("    Recv dequeuing topic '%s'", m.Topic)
+			ctx.Indf("    Recv dequeuing topic '%s' (vs '%s')", m.Topic, r.Topic)
 			ctx.Inddf("                   %s", m.Payload)
 
 			var (
@@ -687,195 +687,196 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 				bss []match.Bindings
 			)
 
-			ctx.Indf("    Recv match:")
+			// Verify that either no Recv topic was
+			// provided or that the receiver topic is
+			// equal to the message topic
+			if r.Topic == "" || r.Topic == m.Topic {
+				ctx.Indf("    Recv match:")
 
-			if r.Regexp != "" {
-				ctx.Inddf("      regexp: %s", r.Regexp)
-				if r.Target != "payload" {
-					return Brokenf("can only regexp-match against payload (not also topic)")
-				}
-				bss, err = RegexpMatch(r.Regexp, m.Payload)
-			} else {
-				ctx.Inddf("      pattern:       %s", JSON(r.Pattern))
-
-				// target will be the target (message) for matching.
-				var target interface{}
-				if err = json.Unmarshal([]byte(m.Payload), &target); err != nil {
-					return err
-				}
-
-				switch r.Target {
-				case "payload":
-					// Match against only the (deserialized) payload.
-				case "msg":
-					// Match against the full message
-					// (with topic and deserialized
-					// payload).
-					target = map[string]interface{}{
-						"Topic":   m.Topic,
-						"Payload": target,
+				if r.Regexp != "" {
+					ctx.Inddf("      regexp: %s", r.Regexp)
+					if r.Target != "payload" {
+						return Brokenf("can only regexp-match against payload (not also topic)")
 					}
-				default:
-					return Brokenf("bad Recv Target: '%s'", r.Target)
-				}
+					bss, err = RegexpMatch(r.Regexp, m.Payload)
+				} else {
+					ctx.Inddf("      pattern:       %s", JSON(r.Pattern))
 
-				ctx.Inddf("      match target:  %s", JSON(target))
-
-				if r.Schema != "" {
-					if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
+					// target will be the target (message) for matching.
+					var target interface{}
+					if err = json.Unmarshal([]byte(m.Payload), &target); err != nil {
 						return err
 					}
+
+					switch r.Target {
+					case "payload":
+						// Match against only the (deserialized) payload.
+					case "msg":
+						// Match against the full message
+						// (with topic and deserialized
+						// payload).
+						target = map[string]interface{}{
+							"Topic":   m.Topic,
+							"Payload": target,
+						}
+					default:
+						return Brokenf("bad Recv Target: '%s'", r.Target)
+					}
+
+					ctx.Inddf("      match target:  %s", JSON(target))
+
+					if r.Schema != "" {
+						if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
+							return err
+						}
+					}
+
+					target = Canon(target)
+					t.Bindings.Clean(ctx, r.ClearBindings)
+					pattern, err := t.Bindings.Bind(ctx, r.Pattern)
+					if err != nil {
+						return err
+					}
+					ctx.Inddf("      bound pattern: %s", JSON(pattern))
+					bss, err = match.Match(pattern, target, match.NewBindings())
 				}
 
-				target = Canon(target)
-				t.Bindings.Clean(ctx, r.ClearBindings)
-				pattern, err := t.Bindings.Bind(ctx, r.Pattern)
 				if err != nil {
 					return err
 				}
-				ctx.Inddf("      bound pattern: %s", JSON(pattern))
-				bss, err = match.Match(pattern, target, match.NewBindings())
-			}
+				ctx.Indf("      result: %v", 0 < len(bss))
+				ctx.Inddf("      bss: %s", JSON(bss))
 
-			if err != nil {
-				return err
-			}
-			ctx.Indf("      result: %v", 0 < len(bss))
-			ctx.Inddf("      bss: %s", JSON(bss))
+				if 0 < len(bss) {
 
-			if 0 < len(bss) {
+					if 1 < len(bss) {
+						// Let's protest if we get
+						// multiple sets of bindings.
+						//
+						// Better safe than sorry?  If
+						// we start running into this
+						// situation, let's figure out
+						// the best way to proceed.
+						// Otherwise we might not notice
+						// unintended behavior.
+						return fmt.Errorf("multiple bindings sets: %s", JSON(bss))
+					}
 
-				if 1 < len(bss) {
-					// Let's protest if we get
-					// multiple sets of bindings.
+					// Extend rather than replace
+					// t.Bindings.  Note that we have to
+					// extend t.Bindings rather than replace
+					// it due to the bindings substitution
+					// logic.  See the comments above
+					// 'Match' above.
 					//
-					// Better safe than sorry?  If
-					// we start running into this
-					// situation, let's figure out
-					// the best way to proceed.
-					// Otherwise we might not notice
-					// unintended behavior.
-					return fmt.Errorf("multiple bindings sets: %s", JSON(bss))
-				}
+					// ToDo: Contemplate possibility for
+					// inconsistencies.
+					//
+					// Thanks, Carlos, for this fix!
+					if t.Bindings == nil {
+						// Some unit tests might not
+						// have initialized t.Bindings.
+						t.Bindings = make(map[string]interface{})
+					}
+					for p, v := range bss[0] {
+						if x, have := t.Bindings[p]; have {
+							// Let's see if we are
+							// changing an existing
+							// binding.  If so, note
+							// that.
+							js0 := JSON(v)
+							js1 := JSON(x)
+							if js0 != js1 {
+								ctx.Indf("    Updating binding for %s", p)
+							}
+						}
+						t.Bindings[p] = v
+					}
 
-				// Extend rather than replace
-				// t.Bindings.  Note that we have to
-				// extend t.Bindings rather than replace
-				// it due to the bindings substitution
-				// logic.  See the comments above
-				// 'Match' above.
-				//
-				// ToDo: Contemplate possibility for
-				// inconsistencies.
-				//
-				// Thanks, Carlos, for this fix!
-				if t.Bindings == nil {
-					// Some unit tests might not
-					// have initialized t.Bindings.
-					t.Bindings = make(map[string]interface{})
-				}
-				for p, v := range bss[0] {
-					if x, have := t.Bindings[p]; have {
-						// Let's see if we are
-						// changing an existing
-						// binding.  If so, note
-						// that.
-						js0 := JSON(v)
-						js1 := JSON(x)
-						if js0 != js1 {
-							ctx.Indf("    Updating binding for %s", p)
+					if r.Guard != "" {
+						ctx.Indf("    Recv guard")
+						src, err := t.prepareSource(ctx, r.Guard)
+						if err != nil {
+							return err
+						}
+
+						// Convert bss to a stripped representation ...
+						js, _ := json.Marshal(&bss)
+						var bindingss interface{}
+						json.Unmarshal(js, &bindingss)
+						// And again ...
+						var bs interface{}
+						js, _ = subst.JSONMarshal(&bss[0])
+						json.Unmarshal(js, &bs)
+
+						env := t.jsEnv(ctx)
+						env["bindingss"] = bindingss
+						env["msg"] = m
+
+						x, err := JSExec(ctx, src, env)
+						if f, is := IsFailure(x); is {
+							return f
+						}
+						if f, is := IsFailure(err); is {
+							return f
+						}
+						if err != nil {
+							return err
+						}
+
+						switch vv := x.(type) {
+						case bool:
+							if !vv {
+								ctx.Indf("    Recv guard not pleased")
+								continue
+							}
+							ctx.Indf("    Recv guard satisfied")
+						default:
+							return Brokenf("Guard Javascript returned a %T (%v) and not a bool", x, x)
 						}
 					}
-					t.Bindings[p] = v
-				}
 
-				if r.Guard != "" {
-					ctx.Indf("    Recv guard")
-					src, err := t.prepareSource(ctx, r.Guard)
-					if err != nil {
-						return err
-					}
+					ctx.Indf("    Recv satisfied")
+					ctx.Inddf("      t.Bindings: %s", JSON(t.Bindings))
 
-					// Convert bss to a stripped representation ...
-					js, _ := json.Marshal(&bss)
-					var bindingss interface{}
-					json.Unmarshal(js, &bindingss)
-					// And again ...
-					var bs interface{}
-					js, _ = subst.JSONMarshal(&bss[0])
-					json.Unmarshal(js, &bs)
-
-					env := t.jsEnv(ctx)
-					env["bindingss"] = bindingss
-					env["msg"] = m
-
-					x, err := JSExec(ctx, src, env)
-					if f, is := IsFailure(x); is {
-						return f
-					}
-					if f, is := IsFailure(err); is {
-						return f
-					}
-					if err != nil {
-						return err
-					}
-
-					switch vv := x.(type) {
-					case bool:
-						if !vv {
-							ctx.Indf("    Recv guard not pleased")
-							continue
+					if r.Run != "" {
+						src, err := t.prepareSource(ctx, r.Run)
+						if err != nil {
+							return err
 						}
-						ctx.Indf("    Recv guard satisfied")
-					default:
-						return Brokenf("Guard Javascript returned a %T (%v) and not a bool", x, x)
+
+						// Convert bss to a stripped representation ...
+						env := t.jsEnv(ctx)
+						can := Canon(&bss)
+						env["bindingss"] = can
+						env["bss"] = can
+						env["msg"] = m
+
+						if _, err = JSExec(ctx, src, env); err != nil {
+							return err
+						}
 					}
+
+					return nil
 				}
 
-				ctx.Indf("    Recv satisfied")
-				ctx.Inddf("      t.Bindings: %s", JSON(t.Bindings))
-
-				if r.Run != "" {
-					src, err := t.prepareSource(ctx, r.Run)
-					if err != nil {
-						return err
-					}
-
-					// Convert bss to a stripped representation ...
-					env := t.jsEnv(ctx)
-					can := Canon(&bss)
-					env["bindingss"] = can
-					env["bss"] = can
-					env["msg"] = m
-
-					if _, err = JSExec(ctx, src, env); err != nil {
-						return err
-					}
-				}
-
-				return nil
+				// Only increment the number of attempts given a topic match.
+				attempts++
 			}
 
-			// Verify that either no receiver topic was provided or that the
-			// receiver topic matches the message topic
-			if r.Topic == "" || r.Topic == m.Topic {
-				// Only increment the number of attempts given a topic match
-				attempts++
-
-				// Verify the receiver attempts was specified (not 0) and that
-				// the actual number of attempts has been reached
-				if r.Attempts != 0 && attempts >= r.Attempts {
-					ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
-					ctx.Inddf("      topic: %s", r.Topic)
-					match := fmt.Sprintf("pattern: %s", r.Pattern)
-					if r.Regexp != "" {
-						match = fmt.Sprintf("regexp: %s", r.Regexp)
-					}
-					if r.Topic != "" {
-						return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s on topic %s", attempts, r.Attempts, match, r.Topic)
-					}
-					return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s", attempts, r.Attempts, match)
+			// Verify the receiver attempts was specified (not 0) and that
+			// the actual number of attempts has been reached
+			if r.Attempts != 0 && attempts >= r.Attempts {
+				ctx.Inddf("      attempts: %d of %d", attempts, r.Attempts)
+				ctx.Inddf("      topic: %s", r.Topic)
+				match := fmt.Sprintf("pattern: %s", r.Pattern)
+				if r.Regexp != "" {
+					match = fmt.Sprintf("regexp: %s", r.Regexp)
 				}
+				if r.Topic != "" {
+					return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s on topic %s", attempts, r.Attempts, match, r.Topic)
+				}
+				return fmt.Errorf("%d attempt(s) reached; expected maximum of %d attempt(s) to match %s", attempts, r.Attempts, match)
 			}
 		}
 	}
