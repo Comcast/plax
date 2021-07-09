@@ -92,4 +92,13 @@ bss[0]["?x"] == "queso";
 		}
 	})
 
+	t.Run("fail", func(t *testing.T) {
+		src := `fail("I don't like it.");`
+
+		_, err := JSExec(ctx, src, nil)
+		if err == nil {
+			t.Fatal("should have complained (politely)")
+		}
+	})
+
 }

@@ -1,0 +1,11 @@
+doc: |
+  Demonstration of calling 'fail()'.
+labels:
+  - selftest
+negative: true  
+spec:
+  phases:
+    phase1:
+      steps:
+        - run: |
+            fail();

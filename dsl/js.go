@@ -47,6 +47,10 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		js.Set(k, v)
 	}
 
+	js.Set("fail", func(msg string) {
+		panic(fmt.Errorf("Javascript fail() called: %s", msg))
+	})
+
 	js.Set("print", func(args ...interface{}) {
 		var acc string
 		for i, x := range args {
