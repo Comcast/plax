@@ -243,3 +243,7 @@ type GoLogger struct {
 func (l *GoLogger) Printf(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
+
+func (c *Ctx) quiet() {
+	c.LogLevel = "NONE"
+}
