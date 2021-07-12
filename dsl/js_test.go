@@ -99,6 +99,9 @@ bss[0]["?x"] == "queso";
 		if err == nil {
 			t.Fatal("should have complained (politely)")
 		}
+		if x, is := err.(*Failure); !is {
+			t.Fatalf("wanted a %T and not a %T", x, err)
+		}
 	})
 
 }

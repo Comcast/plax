@@ -1,11 +1,12 @@
 doc: |
-  Demonstration of calling 'fail()'.
+  Demonstration of terminating a test as a failure using the fail()
+  function called from Javascript.
 labels:
   - selftest
-negative: true  
+negative: true
 spec:
   phases:
     phase1:
       steps:
         - run: |
-            fail();
+            if (true) { fail("I give up."); }

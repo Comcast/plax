@@ -605,6 +605,12 @@ single operation.  Currently the following steps are supported:
 		1. `redactString`: a function that compiles and adds a
            redaction pattern that matches the given string
            literally.
+		   
+	    1. `fail(MSG)`: a function that immediately terminates a test
+           as a failure (as opposed to being broken).  The given MSG
+           is the text of the failure.  See
+           [`demos/runfail.yaml`](../demos/runfail.yaml) for example
+           use.
 		
 		1. `match`: [Sheen](https://github.com/Comcast/sheens)'s
             [pattern
