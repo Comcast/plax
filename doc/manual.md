@@ -605,7 +605,10 @@ single operation.  Currently the following steps are supported:
 		1. `redactString`: a function that compiles and adds a
            redaction pattern that matches the given string
            literally.
-		
+		   
+		1. `Failure`: return an object representing a failure with the
+           argument as the failure message.
+		   
 		1. `match`: [Sheen](https://github.com/Comcast/sheens)'s
             [pattern
             matching](https://github.com/Comcast/sheens#pattern-matching)
