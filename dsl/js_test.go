@@ -92,4 +92,18 @@ bss[0]["?x"] == "queso";
 		}
 	})
 
+	t.Run("nopanic", func(t *testing.T) {
+		// ToDo: Iterate over all exposed native Go functions?
+
+		src := `redactRegexp("[}");`
+
+		_, err := JSExec(ctx, src, nil)
+		if err == nil {
+			t.Fatal("should have complained (politely)")
+		}
+		if _, is := IsBroken(err); !is {
+			t.Fatalf("should have reported Broken instead of %T", err)
+		}
+	})
+
 }
