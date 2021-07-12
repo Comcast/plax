@@ -94,13 +94,25 @@ bss[0]["?x"] == "queso";
 
 	t.Run("fail", func(t *testing.T) {
 		src := `fail("I don't like it.");`
-
 		_, err := JSExec(ctx, src, nil)
 		if err == nil {
 			t.Fatal("should have complained (politely)")
 		}
 		if x, is := err.(*Failure); !is {
 			t.Fatalf("wanted a %T and not a %T", x, err)
+		}
+	})
+
+	t.Run("nopanic", func(t *testing.T) {
+		// ToDo: Iterate over all exposed native Go functions?
+
+		src := `redactRegexp("[}");`
+		_, err := JSExec(ctx, src, nil)
+		if err == nil {
+			t.Fatal("should have complained (politely)")
+		}
+		if _, is := IsBroken(err); !is {
+			t.Fatalf("should have reported Broken instead of %T", err)
 		}
 	})
 
