@@ -3,6 +3,7 @@ doc: |
   stop.
 labels:
   - selftest
+  - donotskip
 negative: true  
 spec:
   phases:

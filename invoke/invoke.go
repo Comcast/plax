@@ -75,6 +75,10 @@ type Invocation struct {
 	retries *dsl.Retries
 }
 
+const (
+	negativeTestWarning = "negative test warning: %s"
+)
+
 // Exec executes the Invocation.
 //
 // When ComplainOnAnyError is true, then the last test problem (if
@@ -221,11 +225,12 @@ func (inv *Invocation) Exec(ctx context.Context) (*junit.TestSuite, error) {
 			} else {
 				if t.Negative {
 					log.Printf("Test %s (negative) passed", filename)
+					tc.Finish(junit.Passed, fmt.Sprintf(negativeTestWarning, err.Error()))
 				} else {
 					problem = err
 					problemFilename = filename
 					log.Printf("Test %s failed: %s", filename, err)
-					tc.Finish(junit.Error, err.Error())
+					tc.Finish(junit.Failed, err.Error())
 				}
 			}
 		} else {
@@ -233,7 +238,7 @@ func (inv *Invocation) Exec(ctx context.Context) (*junit.TestSuite, error) {
 				problem = fmt.Errorf("negative test failure")
 				problemFilename = filename
 				log.Printf("Test %s (negative) failed (no error)", filename)
-				tc.Finish(junit.Failed, "expected error for Negative test")
+				tc.Finish(junit.Failed, fmt.Sprintf(negativeTestWarning, "expected error due to negative test"))
 			} else {
 				log.Printf("Test %s passed", filename)
 				tc.Finish(junit.Passed)
