@@ -1,39 +1,12 @@
 # Recent changes
 
-## New `httpserver` channel
+## `recv` topic actually considered
 
-See [`demos/http.yaml`](demos/http.yaml) and
-[`demos/httpserver.yaml`](demos/httpserver.yaml) for examples.
-
-## `httpclient` channel request and response improvements
-
-## `@@` and `!!` syntax changes
-
-Now do
-
-1. `{@@filename}` instead of `@@filename` and
-1. `{!!javascript!!}` instead of `!!javascript`.
-
-
-## `HTTPClient` channel request and response
-
-The request message now has lower-case properties instead of
-capitalized properties.
-
-The response message has structure supporting status code, body, and
-headers.  Sadly this change is not backwards-compatible.
-
-
-## Schema validation
-
-`pub` and `recv` now support a `schema` property, which gives a URI to
-a JSON Schema that's used to validate the message.
-
-
-## `serialization` properties for `pub` and `recv`
-
-You can specify how `pub` and `recv` serialize messages by giving a
-`serialization` property, which should either be `JSON` (the default)
-or `string`.
-
-
+Due to a bug, a `recv` topic, if given, was not considered correctly.
+In some cases, a match could result from a message with a topic not
+equal to the given topic.  The current code fixes that bug.  If you
+have a test that now fails and didn't previously, check if you are
+specifying a topic for each `recv`.  In those cases, either adjust the
+topic or remove the topic specification and check the message topic in
+a guard (via `msg`, which has a value like
+`{"topic":TOPIC,"payload":PAYLOAD}`).
