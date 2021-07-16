@@ -26,83 +26,98 @@ import (
 	"time"
 )
 
-type Skipped struct {
-	Message string `xml:"message,attr"`
-}
+// TestCaseStatus represents the status of the test case
+type TestCaseStatus string
 
-type Error struct {
-	Message     string `xml:"message,attr"`
-	Type        string `xml:"type,attr"`
-	Description string `xml:"description,omitempty"`
-}
+const (
+	Passed  TestCaseStatus = "passed"
+	Failed  TestCaseStatus = "failed"
+	Error   TestCaseStatus = "error"
+	Skipped TestCaseStatus = "skipped"
+)
 
-type Failure struct {
-	Message     string `xml:"message,attr"`
-	Type        string `xml:"type,attr"`
-	Description string `xml:"description,omitempty"`
-}
-
+// TestCase information
 type TestCase struct {
-	Name    string   `xml:"name,attr"`
-	Status  string   `xml:"status,attr"`
-	Time    int64    `xml:"time,attr" json:"-"`
-	Skipped *Skipped `xml:"skipped,omitempty"`
-	Error   *Error   `xml:"error,omitempty"`
-	Failure *Failure `xml:"failure,omitempty"`
-
-	Timestamp time.Time `xml:"-"`
-	Suite     string    `xml:"-"`
-	N         int       `xml:"-"`
-	Type      string    `xml:"-"`
-
-	// State is often test.State, which can be used to emit
-	// computed values like elapsed time.
-	//
-	// This value isn't XML-serialized.
-	State interface{} `xml:"-"`
-
-	started time.Time
+	Name    string         `xml:"name,attr" json:"name"`
+	Status  TestCaseStatus `xml:"status,attr" json:"status"`
+	Time    *time.Duration `xml:"time,attr,omitempty" json:"time,omitempty"`
+	Started *time.Time     `xml:"started,attr,omitempty" json:"started,omitempty"`
+	Message string         `xml:"message,omitempty" json:"message,omitempty"`
 }
 
+// NewTestCase creates a new TestCase
 func NewTestCase(name string) *TestCase {
 	now := time.Now().UTC()
 	return &TestCase{
-		Name:      name,
-		Timestamp: now,
-		started:   now,
+		Name:    name,
+		Started: &now,
 	}
 }
 
-func (tc *TestCase) Finish(status string) {
-	elapsed := time.Now().Sub(tc.started)
-	tc.Time = int64(elapsed) / 1000 / 1000 / 1000
+// Finish the TestCase
+func (tc *TestCase) Finish(status TestCaseStatus, message ...string) {
 	tc.Status = status
-}
 
-type TestSuite struct {
-	Name      string     `xml:"testsuite,attr"`
-	Tests     int        `xml:"tests,attr"`
-	Failures  int        `xml:"failures,attr"`
-	Errors    int        `xml:"errors,attr"`
-	TestCases []TestCase `xml:"testcase"`
+	if status != Skipped {
+		now := time.Now().UTC()
+		time := now.Sub(*tc.Started)
+		tc.Time = &time
+	} else {
+		tc.Started = nil
+		tc.Time = nil
+	}
 
-	Time time.Time `xml:"-"`
-}
-
-func NewTestSuite() *TestSuite {
-	return &TestSuite{
-		TestCases: make([]TestCase, 0, 32),
-		Time:      time.Now().UTC(),
+	if len(message) == 1 {
+		tc.Message = message[0]
 	}
 }
 
+// TestSuite information
+type TestSuite struct {
+	Name      string        `xml:"name,attr" json:"name"`
+	Total     int           `xml:"tests,attr" json:"tests"`
+	Passed    int           `xml:"passed,attr" json:"passed"`
+	Skipped   int           `xml:"skipped,attr" json:"skipped"`
+	Failures  int           `xml:"failures,attr" json:"failures"`
+	Errors    int           `xml:"errors,attr" json:"errors"`
+	TestCases []TestCase    `xml:"testcase" json:"testcase"`
+	Started   time.Time     `xml:"started,attr" json:"timestamp"`
+	Time      time.Duration `xml:"time,attr" json:"time"`
+	Message   string        `xml:"message,omitempty" json:"message,omitempty"`
+}
+
+// NewTestSuite creates a new TestSuite
+func NewTestSuite(name string) *TestSuite {
+	now := time.Now().UTC()
+	return &TestSuite{
+		Name:      name,
+		TestCases: make([]TestCase, 0, 32),
+		Started:   now,
+	}
+}
+
+// Add a TestCase to the TestSuite
 func (ts *TestSuite) Add(tc TestCase) {
 	ts.TestCases = append(ts.TestCases, tc)
-	ts.Tests++
-	if tc.Failure != nil {
+	ts.Total++
+	switch tc.Status {
+	case Failed:
 		ts.Failures++
-	}
-	if tc.Error != nil {
+	case Error:
 		ts.Errors++
+	case Skipped:
+		ts.Skipped++
+	case Passed:
+		ts.Passed++
+	}
+}
+
+// Finish the TestSuite
+func (ts *TestSuite) Finish(message ...string) {
+	now := time.Now().UTC()
+	time := now.Sub(ts.Started)
+	ts.Time = time
+	if len(message) == 1 {
+		ts.Message = message[0]
 	}
 }

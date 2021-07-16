@@ -26,6 +26,7 @@ import (
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
 	plaxDsl "github.com/Comcast/plax/dsl"
+	"github.com/Comcast/plax/junit"
 )
 
 // TestDef is a test file or suite (directory)
@@ -165,7 +166,7 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 
 	return &async.TaskFunc{
 		Name: name,
-		Func: func() error {
+		Func: func() (*junit.TestSuite, error) {
 			return plugin.Invoke(ctx)
 		},
 	}, nil

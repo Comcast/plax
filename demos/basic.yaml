@@ -6,6 +6,7 @@ doc: |
   what it receives.  Then we test that mock channel.
 labels:
   - selftest
+  - basic
 spec:
   phases:
     phase1:

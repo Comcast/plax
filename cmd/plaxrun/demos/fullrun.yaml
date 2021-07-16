@@ -129,6 +129,7 @@ groups:
       params: "{COMBINE_WAIT_LIST}"
     tests:
       - name: wait
+
 params:
   WAIT_ITERATE_PARAMS:
     include: include/commands/csv.yaml

@@ -20,14 +20,19 @@ package dsl
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
+	"github.com/Comcast/plax/junit"
 
 	plaxDsl "github.com/Comcast/plax/dsl"
 )
@@ -46,18 +51,28 @@ func NewCtx(ctx context.Context) *Ctx {
 
 // TestRun is the top-level type for a test run.
 type TestRun struct {
-	Name    string              `yaml:"name"`
-	Version string              `yaml:"version"`
-	Tests   TestDefMap          `yaml:"tests"`
-	Groups  TestGroupMap        `yaml:"groups"`
-	Params  TestParamBindingMap `yaml:"params"`
-	trps    *TestRunParams
-	tfs     []*async.TaskFunc
+	Name      string              `yaml:"name" json:"name"`
+	Version   string              `yaml:"version" json:"version"`
+	Tests     TestDefMap          `yaml:"tests" json:"-"`
+	Groups    TestGroupMap        `yaml:"groups" json:"-"`
+	Params    TestParamBindingMap `yaml:"params" json:"-"`
+	trps      *TestRunParams      `json:"-"`
+	tfs       []*async.TaskFunc   `json:"-"`
+	TestSuite []*junit.TestSuite  `xml:"testsuite" json:"testsuite"`
+	Total     int                 `xml:"tests,attr" json:"tests"`
+	Skipped   int                 `xml:"skipped,attr" json:"skipped"`
+	Failures  int                 `xml:"failures,attr" json:"failures"`
+	Errors    int                 `xml:"errors,attr" json:"errors"`
+	Started   time.Time           `xml:"started,attr" json:"timestamp"`
+	Time      time.Duration       `xml:"time,attr" json:"time"`
 }
 
 // NewTestRun makes a new TestRun with the given TestRunParams
 func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
-	var tr TestRun
+	tr := TestRun{
+		TestSuite: make([]*junit.TestSuite, 0),
+		Started:   time.Now().UTC(),
+	}
 
 	if trps.Dir == nil {
 		return nil, fmt.Errorf("TestRunParams.Dir is nil")
@@ -137,11 +152,52 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 	return &tr, nil
 }
 
+// HasError determines if any of the TaskResults is an error
+func (trr TestRun) HasError() bool {
+	return trr.Errors > 0
+}
+
+func (tr *TestRun) Finish(message ...string) {
+	now := time.Now().UTC()
+	time := now.Sub(tr.Started)
+	tr.Time = time
+}
+
 // Exec the TestRun
 func (tr *TestRun) Exec(ctx *Ctx) error {
 	taskResults, err := async.Sequential(ctx, tr.tfs...)
 	if err != nil {
 		return fmt.Errorf("failed to execute tasks: %w", err)
+	}
+
+	for _, taskResult := range taskResults {
+		if ts, ok := taskResult.Result.(*junit.TestSuite); ok {
+			if ts != nil {
+				tr.TestSuite = append(tr.TestSuite, ts)
+				tr.Total += ts.Total
+				tr.Skipped += ts.Skipped
+				tr.Failures += ts.Failures
+				tr.Errors += ts.Errors
+			}
+		}
+	}
+
+	tr.Finish()
+
+	if *tr.trps.EmitJSON {
+		// Write the JSON.
+		js, err := json.MarshalIndent(tr, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("%s\n", js)
+	} else {
+		bs, err := xml.MarshalIndent(tr, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s\n", bs)
 	}
 
 	if taskResults.HasError() {

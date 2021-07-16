@@ -1,0 +1,13 @@
+doc: |
+  Demonstrates use of 'fails'.
+labels:
+  - selftest
+  - failure
+spec:
+  phases:
+    phase1:
+      steps:
+        - '$include<include/mock.yaml>'
+        - recv:
+            pattern: '{"soundOf":"silence"}'
+            timeout: '1s'
