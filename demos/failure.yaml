@@ -1,7 +1,6 @@
 doc: |
   Demonstrates use of 'fails'.
 labels:
-  - selftest
   - failure
 spec:
   phases:
