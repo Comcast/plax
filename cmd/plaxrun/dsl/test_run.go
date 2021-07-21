@@ -20,11 +20,8 @@ package dsl
 
 import (
 	"context"
-	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -40,12 +37,14 @@ import (
 // Ctx is the context type
 type Ctx struct {
 	*plaxDsl.Ctx
+	ReportPluginDir string
 }
 
 // NewCtx builds a new Ctx
 func NewCtx(ctx context.Context) *Ctx {
 	return &Ctx{
-		plaxDsl.NewCtx(ctx),
+		Ctx: plaxDsl.NewCtx(ctx),
+		ReportPluginDir: ".",
 	}
 }
 
@@ -56,6 +55,7 @@ type TestRun struct {
 	Tests     TestDefMap          `yaml:"tests" json:"-"`
 	Groups    TestGroupMap        `yaml:"groups" json:"-"`
 	Params    TestParamBindingMap `yaml:"params" json:"-"`
+	Reports   TestReportPluginMap `yaml:"reports" json:"-"`
 	trps      *TestRunParams      `json:"-"`
 	tfs       []*async.TaskFunc   `json:"-"`
 	TestSuite []*junit.TestSuite  `xml:"testsuite" json:"testsuite"`
@@ -82,6 +82,13 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 	ctx.LogLevel = *trps.LogLevel
 	ctx.IncludeDirs = trps.IncludeDirs
 	ctx.Redact = *trps.Redact
+
+	reportPluginDir, err := filepath.Abs(*trps.ReportPluginDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find path to report plugins: %w", err)
+	}
+
+	ctx.ReportPluginDir = reportPluginDir
 
 	var filename string
 	if trps.Filename != nil {
@@ -184,20 +191,9 @@ func (tr *TestRun) Exec(ctx *Ctx) error {
 
 	tr.Finish()
 
-	if *tr.trps.EmitJSON {
-		// Write the JSON.
-		js, err := json.MarshalIndent(tr, "", "  ")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%s\n", js)
-	} else {
-		bs, err := xml.MarshalIndent(tr, "", "  ")
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("%s\n", bs)
+	err = tr.Reports.Generate(ctx, tr)
+	if err != nil {
+		ctx.Logf(err.Error())
 	}
 
 	if taskResults.HasError() {
@@ -227,17 +223,18 @@ func (idl *IncludeDirList) Set(value string) error {
 
 // TestRunParams used to exec a TestRun
 type TestRunParams struct {
-	Bindings    plaxDsl.Bindings
-	Groups      TestGroupList
-	Tests       TestList
-	SuiteName   *string
-	IncludeDirs IncludeDirList
-	Filename    *string
-	Dir         *string
-	EmitJSON    *bool
-	Verbose     *bool
-	LogLevel    *string
-	Labels      *string
-	Priority    *int
-	Redact      *bool
+	Bindings        plaxDsl.Bindings
+	Groups          TestGroupList
+	Tests           TestList
+	SuiteName       *string
+	IncludeDirs     IncludeDirList
+	Filename        *string
+	Dir             *string
+	ReportPluginDir *string
+	EmitJSON        *bool
+	Verbose         *bool
+	LogLevel        *string
+	Labels          *string
+	Priority        *int
+	Redact          *bool
 }
