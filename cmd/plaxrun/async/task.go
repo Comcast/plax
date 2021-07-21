@@ -72,7 +72,7 @@ const (
 	TaskReturnEmptyResult = iota
 	// TaskReturnErrorOnly indicates an function that returns an error only
 	TaskReturnErrorOnly
-	// TaskReturnResultOnly indicatea a function that return a interface{} result only
+	// TaskReturnResultOnly indicates a function that return a interface{} result only
 	TaskReturnResultOnly
 	// TaskReturnResultAndError indicates a function that return both an interface{} and error result
 	TaskReturnResultAndError

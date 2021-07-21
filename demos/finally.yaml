@@ -5,6 +5,7 @@ doc: |
   and that State["n"] == 3.
 labels:
   - selftest
+  - donotskip
 negative: true
 spec:
   finalphases:

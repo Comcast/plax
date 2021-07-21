@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/Comcast/plax/dsl"
+	"github.com/Comcast/plax/junit"
 )
 
 const (
@@ -250,21 +251,6 @@ func (pd PluginDef) GetPluginDefList() (bool, error) {
 	return ret, nil
 }
 
-// GetPluginDefEmitJSON returns the EmitJSON flag
-func (pd PluginDef) GetPluginDefEmitJSON() (bool, error) {
-	value, ok := pd[PluginDefEmitJSONKey]
-	if !ok || value == nil {
-		return false, fmt.Errorf("%s was not provided in the plugin definition", PluginDefEmitJSONKey)
-	}
-
-	ret, ok := value.(*bool)
-	if !ok {
-		return false, fmt.Errorf("%s is not a bool", PluginDefEmitJSONKey)
-	}
-
-	return *ret, nil
-}
-
 // GetPluginDefRedact returns the Redact flag.
 func (pd PluginDef) GetPluginDefRedact() (bool, error) {
 	value, ok := pd[PluginDefRedactKey]
@@ -346,5 +332,5 @@ func MakePlugin(module PluginModule, def PluginDef) (Plugin, error) {
 // Plugin interface of invoking plax
 type Plugin interface {
 	// Invoke calls the plugin
-	Invoke(ctx context.Context) error
+	Invoke(ctx context.Context) (*junit.TestSuite, error)
 }

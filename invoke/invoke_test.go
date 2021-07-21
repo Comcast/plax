@@ -19,6 +19,7 @@
 package invoke
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Comcast/plax/dsl"
@@ -48,9 +49,13 @@ func TestInvocationBasic(t *testing.T) {
 		Verbose:   true,
 	}
 
-	ctx := dsl.NewCtx(nil)
-	err := i.Exec(ctx)
+	ctx := dsl.NewCtx(context.Background())
+	ts, err := i.Exec(ctx)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ts == nil {
 		t.Fatal(err)
 	}
 }

@@ -25,6 +25,7 @@ import (
 	// Import required to dynamically register channels
 	_ "github.com/Comcast/plax/chans"
 	plaxInvoke "github.com/Comcast/plax/invoke"
+	"github.com/Comcast/plax/junit"
 
 	"github.com/Comcast/plax/cmd/plaxrun/dsl"
 )
@@ -90,11 +91,6 @@ func init() {
 				return nil, err
 			}
 
-			emitJSON, err := def.GetPluginDefEmitJSON()
-			if err != nil {
-				return nil, err
-			}
-
 			retry, err := def.GetPluginDefRetry()
 			if err != nil {
 				return nil, err
@@ -121,7 +117,6 @@ func init() {
 				Labels:             labels,
 				LogLevel:           logLevel,
 				List:               list,
-				EmitJSON:           emitJSON,
 				ComplainOnAnyError: true,
 				Retry:              retry,
 				Redact:             redact,
@@ -145,6 +140,6 @@ func init() {
 }
 
 // Invoke invokes the plugin
-func (p *PlaxOSPlugin) Invoke(ctx context.Context) error {
+func (p *PlaxOSPlugin) Invoke(ctx context.Context) (*junit.TestSuite, error) {
 	return p.invocation.Exec(ctx)
 }
