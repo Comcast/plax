@@ -22,17 +22,12 @@ builds:
       - darwin
       - windows
   - main: cmd/plaxrun/plugins/report/stdout/main.go
-    id: report_plaxrun
-    binary: report_plaxrun
+    id: report_stdout
+    binary: report_stdout
     goos:
       - linux
       - darwin
       - windows
-    flags:
-      - -trimpath
-      - -buildmode=plugin
-      - -o
-      - report_stdout.so
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl

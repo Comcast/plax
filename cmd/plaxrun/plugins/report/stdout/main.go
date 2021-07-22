@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"os"
 
-	plaxRunDsl "github.com/Comcast/plax/cmd/plaxrun/dsl"
-	plaxDsl "github.com/Comcast/plax/dsl"
+	"github.com/Comcast/plax/cmd/plaxrun/plugins/report"
+
+	hclog "github.com/hashicorp/go-hclog"
+	plugin "github.com/hashicorp/go-plugin"
 )
 
 type ReportStdoutType string
@@ -20,17 +23,31 @@ type ReportStdoutConfig struct {
 	Type ReportStdoutType
 }
 
+type ReportPluginImpl struct{}
+
+var logger = hclog.New(&hclog.LoggerOptions{
+	Level:      hclog.Trace,
+	Output:     os.Stderr,
+	JSONFormat: true,
+})
+
 // Generate the stdout test report
-func Generate(ctx *plaxRunDsl.Ctx, tr *plaxRunDsl.TestRun, cfg interface{}) error {
+func (ReportPluginImpl) Generate(tr *report.TestReport, cfg interface{}) error {
+	logger.Debug("message from report stdout plugin")
+
 	var config ReportStdoutConfig
 
-	if err := plaxDsl.As(cfg, &config); err != nil {
+	cfgb, ok := cfg.([]byte)
+	if !ok {
+		return fmt.Errorf("failed to cast config to []byte")
+	}
+	err := json.Unmarshal(cfgb, &config)
+	if err != nil {
 		return err
 	}
 
 	var (
-		bs  = make([]byte, 0)
-		err error
+		bs = make([]byte, 0)
 	)
 
 	switch config.Type {
@@ -53,4 +70,20 @@ func Generate(ctx *plaxRunDsl.Ctx, tr *plaxRunDsl.TestRun, cfg interface{}) erro
 	}
 
 	return nil
+}
+
+func main() {
+	logger.Debug("HELLO")
+
+	// pluginMap is the map of plugins we can dispense.
+	var pluginMap = map[string]plugin.Plugin{
+		report.PluginName: &report.ReportPlugin{Impl: ReportPluginImpl{}},
+	}
+
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: report.HandshakeConfig,
+		Plugins:         pluginMap,
+	})
+
+	logger.Debug("GOODBYE")
 }

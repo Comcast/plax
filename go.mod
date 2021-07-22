@@ -6,11 +6,12 @@ require (
 	github.com/Comcast/sheens v0.9.1-0.20210115175817-a1a65cee59ac
 	github.com/alecthomas/jsonschema v0.0.0-20210526225647-edb03dcab7bc
 	github.com/aws/aws-sdk-go v1.40.4
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dop251/goja v0.0.0-20210720190508-a7a3a1366b2e
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/harlow/kinesis-consumer v0.3.4
+	github.com/hashicorp/go-hclog v0.14.1
+	github.com/hashicorp/go-plugin v1.4.2
 	github.com/iancoleman/orderedmap v0.2.0 // indirect
 	github.com/itchyny/gojq v0.12.4
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect

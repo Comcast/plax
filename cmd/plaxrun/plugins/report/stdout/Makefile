@@ -1,2 +1,2 @@
 all:
-	go build -buildmode=plugin -o report_stdout.so
+	go build -o $GOPATH/bin/plaxrun_report_stdout

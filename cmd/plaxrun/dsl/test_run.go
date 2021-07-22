@@ -24,11 +24,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
+	"github.com/Comcast/plax/cmd/plaxrun/plugins/report"
+
 	"github.com/Comcast/plax/junit"
 
 	plaxDsl "github.com/Comcast/plax/dsl"
@@ -43,36 +44,26 @@ type Ctx struct {
 // NewCtx builds a new Ctx
 func NewCtx(ctx context.Context) *Ctx {
 	return &Ctx{
-		Ctx: plaxDsl.NewCtx(ctx),
+		Ctx:             plaxDsl.NewCtx(ctx),
 		ReportPluginDir: ".",
 	}
 }
 
 // TestRun is the top-level type for a test run.
 type TestRun struct {
-	Name      string              `yaml:"name" json:"name"`
-	Version   string              `yaml:"version" json:"version"`
-	Tests     TestDefMap          `yaml:"tests" json:"-"`
-	Groups    TestGroupMap        `yaml:"groups" json:"-"`
-	Params    TestParamBindingMap `yaml:"params" json:"-"`
-	Reports   TestReportPluginMap `yaml:"reports" json:"-"`
-	trps      *TestRunParams      `json:"-"`
-	tfs       []*async.TaskFunc   `json:"-"`
-	TestSuite []*junit.TestSuite  `xml:"testsuite" json:"testsuite"`
-	Total     int                 `xml:"tests,attr" json:"tests"`
-	Skipped   int                 `xml:"skipped,attr" json:"skipped"`
-	Failures  int                 `xml:"failures,attr" json:"failures"`
-	Errors    int                 `xml:"errors,attr" json:"errors"`
-	Started   time.Time           `xml:"started,attr" json:"timestamp"`
-	Time      time.Duration       `xml:"time,attr" json:"time"`
+	Name    string              `yaml:"name" json:"name"`
+	Version string              `yaml:"version" json:"version"`
+	Tests   TestDefMap          `yaml:"tests" json:"-"`
+	Groups  TestGroupMap        `yaml:"groups" json:"-"`
+	Params  TestParamBindingMap `yaml:"params" json:"-"`
+	Reports TestReportPluginMap `yaml:"reports" json:"-"`
+	trps    *TestRunParams      `json:"-"`
+	tfs     []*async.TaskFunc   `json:"-"`
 }
 
 // NewTestRun makes a new TestRun with the given TestRunParams
 func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
-	tr := TestRun{
-		TestSuite: make([]*junit.TestSuite, 0),
-		Started:   time.Now().UTC(),
-	}
+	tr := TestRun{}
 
 	if trps.Dir == nil {
 		return nil, fmt.Errorf("TestRunParams.Dir is nil")
@@ -159,17 +150,6 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 	return &tr, nil
 }
 
-// HasError determines if any of the TaskResults is an error
-func (trr TestRun) HasError() bool {
-	return trr.Errors > 0
-}
-
-func (tr *TestRun) Finish(message ...string) {
-	now := time.Now().UTC()
-	time := now.Sub(tr.Started)
-	tr.Time = time
-}
-
 // Exec the TestRun
 func (tr *TestRun) Exec(ctx *Ctx) error {
 	taskResults, err := async.Sequential(ctx, tr.tfs...)
@@ -177,21 +157,23 @@ func (tr *TestRun) Exec(ctx *Ctx) error {
 		return fmt.Errorf("failed to execute tasks: %w", err)
 	}
 
+	testReport := report.NewTestReport()
+
 	for _, taskResult := range taskResults {
 		if ts, ok := taskResult.Result.(*junit.TestSuite); ok {
 			if ts != nil {
-				tr.TestSuite = append(tr.TestSuite, ts)
-				tr.Total += ts.Total
-				tr.Skipped += ts.Skipped
-				tr.Failures += ts.Failures
-				tr.Errors += ts.Errors
+				testReport.TestSuite = append(testReport.TestSuite, ts)
+				testReport.Total += ts.Total
+				testReport.Skipped += ts.Skipped
+				testReport.Failures += ts.Failures
+				testReport.Errors += ts.Errors
 			}
 		}
 	}
 
-	tr.Finish()
+	testReport.Finish()
 
-	err = tr.Reports.Generate(ctx, tr)
+	err = tr.Reports.Generate(ctx, testReport, *tr.trps.EmitJSON)
 	if err != nil {
 		ctx.Logf(err.Error())
 	}
