@@ -1,7 +1,0 @@
-module github.com/Comcast/plax/cmd/plaxrun/plugins/report/stdout
-
-go 1.16
-
-require github.com/Comcast/plax v0.8.3
-
-replace github.com/Comcast/plax => ../../../../..

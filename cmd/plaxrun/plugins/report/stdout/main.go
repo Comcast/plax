@@ -25,17 +25,18 @@ type ReportStdoutConfig struct {
 
 type ReportPluginImpl struct{}
 
-var logger = hclog.New(&hclog.LoggerOptions{
-	Level:      hclog.Trace,
-	Output:     os.Stderr,
-	JSONFormat: true,
-})
+var (
+	logger = hclog.New(&hclog.LoggerOptions{
+		Level:      hclog.Trace,
+		Output:     os.Stderr,
+		JSONFormat: true,
+	})
+	config ReportStdoutConfig
+)
 
-// Generate the stdout test report
-func (ReportPluginImpl) Generate(tr *report.TestReport, cfg interface{}) error {
-	logger.Debug("message from report stdout plugin")
-
-	var config ReportStdoutConfig
+// Star the plugin
+func (ReportPluginImpl) Config(cfg interface{}) error {
+	logger.Debug("plaxrun_report_stdout: config called")
 
 	cfgb, ok := cfg.([]byte)
 	if !ok {
@@ -46,8 +47,16 @@ func (ReportPluginImpl) Generate(tr *report.TestReport, cfg interface{}) error {
 		return err
 	}
 
+	return nil
+}
+
+// Generate the test report
+func (ReportPluginImpl) Generate(tr *report.TestReport) error {
+	logger.Debug("plaxrun_report_stdout: generate called")
+
 	var (
-		bs = make([]byte, 0)
+		bs  = make([]byte, 0)
+		err error
 	)
 
 	switch config.Type {
@@ -73,7 +82,7 @@ func (ReportPluginImpl) Generate(tr *report.TestReport, cfg interface{}) error {
 }
 
 func main() {
-	logger.Debug("HELLO")
+	logger.Debug("plaxrun_report_stdout: start")
 
 	// pluginMap is the map of plugins we can dispense.
 	var pluginMap = map[string]plugin.Plugin{
@@ -85,5 +94,5 @@ func main() {
 		Plugins:         pluginMap,
 	})
 
-	logger.Debug("GOODBYE")
+	logger.Debug("plaxrun_report_stdout: stop")
 }

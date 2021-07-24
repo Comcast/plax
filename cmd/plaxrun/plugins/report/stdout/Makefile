@@ -1,2 +1,3 @@
 all:
-	go build -o $GOPATH/bin/plaxrun_report_stdout
+	go mod tidy
+	go install

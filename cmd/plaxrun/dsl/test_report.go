@@ -49,7 +49,7 @@ func (trp *TestReportPlugin) Generate(ctx *Ctx, tr *report.TestReport) error {
 		return fmt.Errorf("test report is nil")
 	}
 
-	return tr.Generate(trp.name, ctx.ReportPluginDir, trp.Config)
+	return tr.Generate(trp.name, trp.Config)
 }
 
 // Generate the test reports from the TestReportPluginMap for the TestRun

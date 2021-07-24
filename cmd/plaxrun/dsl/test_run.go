@@ -152,12 +152,14 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 
 // Exec the TestRun
 func (tr *TestRun) Exec(ctx *Ctx) error {
+	testReport := report.NewTestReport()
+	testReport.Name = tr.Name
+	testReport.Version = tr.Version
+
 	taskResults, err := async.Sequential(ctx, tr.tfs...)
 	if err != nil {
 		return fmt.Errorf("failed to execute tasks: %w", err)
 	}
-
-	testReport := report.NewTestReport()
 
 	for _, taskResult := range taskResults {
 		if ts, ok := taskResult.Result.(*junit.TestSuite); ok {
