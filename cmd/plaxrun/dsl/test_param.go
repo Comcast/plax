@@ -120,6 +120,9 @@ type TestParamBinding struct {
 
 	// tpem is the map of environment variables to pass into the Run script
 	Envs TestParamEnvMap `json:"envs" yaml:"envs"`
+
+	// Redact the parameter binding flag
+	Redact bool `json:"redact" yaml:"redact"`
 }
 
 // environment set the environment fo the script execution
@@ -159,6 +162,7 @@ func (tpb *TestParamBinding) substitute(ctx *plaxDsl.Ctx, bs *plaxDsl.Bindings) 
 		Args:      tpb.Args,
 		Envs:      tpem,
 		ec:        tpb.ec,
+		Redact:    tpb.Redact,
 	}, nil
 }
 
@@ -204,10 +208,15 @@ func (tpb *TestParamBinding) run(ctx *plaxDsl.Ctx, key string, bs *plaxDsl.Bindi
 		}
 		k := match[1]
 		v := match[2]
-		ctx.Logdf("Binding %s=%s", k, v)
+		if tpb.Redact {
+			ctx.AddRedaction(v)
+		}
 
 		// We might need to JSON-deserialize the value.
 		bs.Set(fmt.Sprintf("%s=%s", k, v))
+		ctx.BindingsRedactions(*bs)
+
+		ctx.Logdf("Binding %s=%s", k, v)
 	}
 
 	return nil

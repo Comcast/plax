@@ -21,11 +21,8 @@ package dsl
 import (
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"strings"
 	"time"
-
-	"github.com/Comcast/plax/subst"
 )
 
 var (
@@ -306,38 +303,10 @@ func (t *Test) Run(ctx *Ctx) *Errors {
 	return nil
 }
 
-// WantsRedaction reports whether the parameter's value should be
-// redacted.
-//
-// Currently if a parameter starts with "X_" after ignoring special
-// characters, then the parameter's value should be redacted.
-func WantsRedaction(p string) bool {
-	return strings.HasPrefix(strings.Trim(p, "?!*"), "X_")
-}
-
 // bindingRedactions adds redaction patterns for values of binding
 // variables that start with X_.
 func (t *Test) bindingRedactions(ctx *Ctx) error {
-	for p, v := range t.Bindings {
-		if WantsRedaction(p) {
-			var s string
-			switch vv := v.(type) {
-			case string:
-				s = vv
-			case interface{}:
-				bs, err := subst.JSONMarshal(vv)
-				if err != nil {
-					return err
-				}
-				s = string(bs)
-			}
-			pat := regexp.QuoteMeta(s)
-			if err := ctx.AddRedaction(pat); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+	return ctx.BindingsRedactions(t.Bindings)
 }
 
 // RunFrom begins test execution starting at the given phase.
