@@ -100,7 +100,7 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 		return nil, fmt.Errorf("failed to read test runner configuration file: %w", err)
 	}
 
-	ctx.Logdf("Test Bindings: %v\n", trps.Bindings)
+	ctx.Redactf("Test Bindings: %v\n", trps.Bindings)
 
 	err = os.Chdir(*trps.Dir)
 	if err != nil {

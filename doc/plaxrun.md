@@ -18,7 +18,7 @@
       - [Parameters definition section](#parameters-definition-section)
     - [Running the example tests](#running-the-example-tests)
     - [Output](#output)
-	- [Logging](#logging)
+    - [Logging](#logging)
   - [References](#references)
 
 
@@ -266,7 +266,16 @@ groups:
     - `libraries:` import the listed Javascript libraries
     - `src:` execute the Javascript code to evalutate the guard; must return boolean [true|false]
 #### Parameters definition section
-The `params:` parameter definition section defines the parameter names to be bound to a value or set of values returned by a shell command
+The `params:` parameter definition section defines the parameter names to be bound to a value or set of values returned by a shell command.
+
+Each parameter is composed of the following parts:
+
+  - `envs:` is the section that defines the environment variables as mapped key/value pairs
+  - `redact: [true|false]` is an optional flag to redact output of the parameter binding in the logs
+  - `cmd:` is the command to execute.  `bash` makes for a great command execution script environment
+  - `args:` are the arguments to pass to the command
+
+An example set of parameters follows:
 
 ```yaml
 params:
@@ -279,18 +288,28 @@ params:
     include: include/commands/value.yaml
     envs:
       DEFAULT: 100
+  'MARGIN':
+    include: include/commands/value.yaml
+    envs:
+      DEFAULT: universe
+    redact: true
 ```
 - `'WAIT':` is the first parameter name
-  - `include: include/commands/prompt.yaml` is the macro inclusion of the `prompt.yaml`) command meant for re-use by other paramter bindings
+  - `include: include/commands/prompt.yaml` is the macro inclusion of the `prompt.yaml`) command meant for re-use by other parameter bindings
   - `envs:` is the section that defines the environment variables for the `prompt.yaml` command
       - `PROMPT:` is an optional environment variable for the prompt command; provides a default prompt
       - `DEFAULT:` is an optional environment variable for the prompt command; no value by default
 - `'MARGIN':` is the second parameter name
-  - `include: include/commands/prompt.yaml` is the macro inclusion of the `value.yaml` command meant for re-use by other paramter bindings
+  - `include: include/commands/value.yaml` is the macro inclusion of the `value.yaml` command meant for re-use by other parameter bindings
   - `envs:` is the section that defines the environment variables for the `value.yaml` command
     - `DEFAULT: 100` is a required environment variable for the `value.yaml` command if the environment variable is not already set
-
-The commands supported by plaxrun are greatly extensible.  Each command (simple include file) is composed of the following parts:
+- `'WORLD':` is the third parameter name
+  - `include: include/commands/value.yaml` is the macro inclusion of the `value.yaml` command meant for re-use by other parameter bindings
+  - `envs:` is the section that defines the environment variables for the `value.yaml` command
+    - `DEFAULT: 100` is a required environment variable for the `value.yaml` command if the environment variable is not already set
+  - `redact: true` sets the flag to redact the output of the value of the parameter
+  
+The commands supported by plaxrun are greatly extensible.  Each command, a simple include file for reusability across parameters, is typically composed as follows:
 
 ```yaml
 cmd: bash
@@ -305,8 +324,6 @@ args:
       echo $KEY=$VALUE
     fi
 ```
-- `cmd:` is the command to execute.  `bash` makes for a great command execution script environment
-- `args:` are the arguments to pass to the command
 
 Within a command there is a preset environment variable call `KEY`.  `$KEY` is a reference to the name of the default parameter to which a value should be bound.  `${!KEY}` references the current value bound to `$KEY`.  The script should output to `stdout`, in this case via `echo` the key/value pair for the binding, e.g. `echo $KEY=$VALUE`.  The script can also echo out an other key/value pairs to bind more than one parameter value.  e.g. `echo MYPARAM="My Value"`
 
