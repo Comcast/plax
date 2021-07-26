@@ -1,5 +1,6 @@
 all:	chan-docs
 	go install -trimpath -ldflags="-X main.version=$$(git describe --tags) -X main.commit=$$(git rev-parse HEAD) -X main.date=$$(date +%FT%H:%M:%S.%N)" ./...
+	cd cmd/plaxrun/plugins/report; make
 
 install: all
 
