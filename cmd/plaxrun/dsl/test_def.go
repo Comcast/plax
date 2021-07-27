@@ -26,6 +26,7 @@ import (
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
 	plaxDsl "github.com/Comcast/plax/dsl"
+	"github.com/Comcast/plax/junit"
 )
 
 // TestDef is a test file or suite (directory)
@@ -112,11 +113,6 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 	// Empty labels
 	labelArr := make([]string, 0)
 
-	if tr.trps.Labels != nil {
-		// Labels from command line
-		labelArr = strings.Split(*tr.trps.Labels, ",")
-	}
-
 	if tdr.Labels != nil {
 		// Labels from test definition
 		arr := strings.Split(*tdr.Labels, ",")
@@ -165,7 +161,7 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 
 	return &async.TaskFunc{
 		Name: name,
-		Func: func() error {
+		Func: func() (*junit.TestSuite, error) {
 			return plugin.Invoke(ctx)
 		},
 	}, nil
@@ -202,8 +198,8 @@ func (tl *TestList) getTaskFuncs(ctx *plaxDsl.Ctx, tr TestRun) ([]*async.TaskFun
 
 		tdr := TestDefRef{
 			TestConstraints: TestConstraints{
-				Labels:   tr.trps.Labels,
 				Priority: tr.trps.Priority,
+				Labels:   tr.trps.Labels,
 			},
 			Name: n,
 		}

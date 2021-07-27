@@ -62,6 +62,7 @@ func main() {
 			IncludeDirs: dsl.IncludeDirList{wd},
 			Filename:    flag.String("run", "spec.yaml", "Filename for test run specification"),
 			Dir:         flag.String("dir", ".", "Directory containing test files"),
+			ReportPluginDir: flag.String("reportPluginDir", "plugins/report", "Directory containing the report plugins"),
 			EmitJSON:    flag.Bool("json", false, "Emit JSON test output; instead of JUnit XML"),
 			Groups:      dsl.TestGroupList{},
 			Verbose:     flag.Bool("v", true, "Verbosity"),

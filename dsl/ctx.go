@@ -25,6 +25,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/Comcast/plax/subst"
 )
 
 var (
@@ -58,13 +60,22 @@ func NewCtx(ctx context.Context) *Ctx {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
+	// Make default redactions
+	redactions := make(map[string]*regexp.Regexp)
+
+	// If the context was a dsl.Ctx then use the redactions from the original context
+	if dslCtx, ok := ctx.(*Ctx); ok {
+		redactions = dslCtx.Redactions
+	}
+
 	return &Ctx{
 		Context:     ctx,
 		Logger:      DefaultLogger,
 		LogLevel:    DefaultLogLevel,
 		IncludeDirs: make([]string, 0, 1),
 		Dir:         ".",
-		Redactions:  make(map[string]*regexp.Regexp),
+		Redactions:  redactions,
 	}
 }
 
@@ -121,6 +132,40 @@ func (c *Ctx) AddRedaction(pat string) error {
 	return nil
 }
 
+// WantsRedaction reports whether the parameter's value should be
+// redacted.
+//
+// Currently if a parameter starts with "X_" after ignoring special
+// characters, then the parameter's value should be redacted.
+func WantsRedaction(p string) bool {
+	return strings.HasPrefix(strings.Trim(p, "?!*"), "X_")
+}
+
+// bindingRedactions adds redaction patterns for values of binding
+// variables that start with X_.
+func (ctx *Ctx) BindingsRedactions(bs Bindings) error {
+	for p, v := range bs {
+		if WantsRedaction(p) {
+			var s string
+			switch vv := v.(type) {
+			case string:
+				s = vv
+			case interface{}:
+				bs, err := subst.JSONMarshal(vv)
+				if err != nil {
+					return err
+				}
+				s = string(bs)
+			}
+			pat := regexp.QuoteMeta(s)
+			if err := ctx.AddRedaction(pat); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Redact might replace part of s with <redacted> depending on the
 // given Regexp.
 //
@@ -128,7 +173,7 @@ func (c *Ctx) AddRedaction(pat string) error {
 // are redacted.
 //
 // For each named group with a name starting with "redact", that group
-// is redacte (for all matches).
+// is redacted (for all matches).
 //
 // If there are groups but none has a name starting with "redact",
 // then the first matching (non-captured) group is redacted.

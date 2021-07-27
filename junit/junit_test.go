@@ -26,20 +26,22 @@ import (
 )
 
 func TestJUnit(t *testing.T) {
+	now := time.Now().UTC()
+	time := time.Duration(1)
+
 	tc := TestCase{
-		Name: "queso",
-		Skipped: &Skipped{
-			Message: "too much trouble",
-		},
-		Time: time.Now().UTC().UnixNano(),
+		Name:    "queso",
+		Message: "too much trouble",
+		Status:  Skipped,
+		Started: &now,
+		Time:    &time,
 	}
 
-	ts := NewTestSuite()
+	ts := NewTestSuite("Test")
 
 	ts.Add(tc)
-	tc.Failure = &Failure{
-		Message: "Didn't even try.",
-	}
+	tc.Message = "Didn't even try."
+	tc.Status = Failed
 	ts.Add(tc)
 
 	bs, err := xml.MarshalIndent(&ts, "", "  ")

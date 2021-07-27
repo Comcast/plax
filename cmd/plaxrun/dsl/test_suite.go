@@ -42,7 +42,8 @@ func (ts *TestSuiteRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun) (*async.TaskFu
 	name := fmt.Sprintf("%s-%s", tr.Name, tr.Version)
 	tdr := TestDefRef{
 		TestConstraints: TestConstraints{
-			Labels: tr.trps.Labels,
+			Priority: tr.trps.Priority,
+			Labels:   tr.trps.Labels,
 		},
 		Name:  ts.name,
 		tests: ts.tests,

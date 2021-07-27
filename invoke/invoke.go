@@ -25,7 +25,6 @@ package invoke
 import (
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -59,7 +58,6 @@ type Invocation struct {
 	LogLevel    string
 	Verbose     bool
 	List        bool
-	EmitJSON    bool
 
 	// ComplainOnAnyError will cause Exec() to return an error if
 	// any test case fails or is broken.
@@ -77,6 +75,10 @@ type Invocation struct {
 	retries *dsl.Retries
 }
 
+const (
+	negativeTestWarning = "negative test warning: %s"
+)
+
 // Exec executes the Invocation.
 //
 // When ComplainOnAnyError is true, then the last test problem (if
@@ -84,7 +86,7 @@ type Invocation struct {
 // (if any) is returned.
 //
 // This method calls Run(t) for each test t in the Invocation.
-func (inv *Invocation) Exec(ctx context.Context) error {
+func (inv *Invocation) Exec(ctx context.Context) (*junit.TestSuite, error) {
 	dslCtx := dsl.NewCtx(ctx)
 	dslCtx.Redact = inv.Redact
 
@@ -121,13 +123,10 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 	}
 
 	var (
-		ts        = junit.NewTestSuite()
+		suiteName = strings.ReplaceAll(inv.SuiteName, "{TS}", time.Now().UTC().Format(time.RFC3339Nano))
+		ts        = junit.NewTestSuite(suiteName)
 		filenames = make([]string, 0, 8)
 	)
-
-	ts.Name = strings.ReplaceAll(inv.SuiteName,
-		"{TS}",
-		time.Now().UTC().Format(time.RFC3339Nano))
 
 	// Populate filenames.
 	if inv.Dir != "" {
@@ -136,6 +135,10 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 			log.Fatal(err)
 		}
 		inv.Dir = dir
+
+		if suiteName == "" {
+			ts.Name = inv.Dir
+		}
 
 		// Set the context directory
 		dslCtx.Dir = dir
@@ -161,6 +164,10 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		}
 		inv.Dir = dir
 
+		if suiteName == "" {
+			ts.Name = inv.Dir
+		}
+
 		// Set the context directory
 		dslCtx.Dir = dir
 
@@ -184,16 +191,10 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 	)
 
 	// Run tests.
-	i := 0
 	for _, filename := range filenames {
 		t, err := inv.Load(dslCtx, filename)
 		if err != nil {
 			log.Fatalf("Invocation of %s broken: %s", filename, err)
-		}
-
-		if !t.Wanted(dslCtx, inv.Priority, strings.Split(inv.Labels, ","), inv.Tests) {
-			// Not marking this TestCase as "skipped".
-			continue
 		}
 
 		if inv.List {
@@ -203,10 +204,13 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 		}
 
 		tc := junit.NewTestCase(filename)
-		tc.N = i
-		i++
-		tc.Suite = ts.Name
-		tc.Type = "case"
+
+		if !t.Wanted(dslCtx, inv.Priority, strings.Split(inv.Labels, ","), inv.Tests) {
+			// marking this TestCase as "skipped".
+			tc.Finish(junit.Skipped, fmt.Sprintf("priority: test=%d, invoke=%d, labels: test=%v, invoke=%v", t.Priority, inv.Priority, t.Labels, inv.Labels))
+			ts.Add(*tc)
+			continue
+		}
 
 		log.Printf("Running test %s", filename)
 
@@ -217,19 +221,16 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				problem = err
 				problemFilename = filename
 				log.Printf("Test %s broken: %s", filename, b.Err)
-				tc.Error = &junit.Error{
-					Message: b.Err.Error(),
-				}
+				tc.Finish(junit.Error, b.Error())
 			} else {
 				if t.Negative {
 					log.Printf("Test %s (negative) passed", filename)
+					tc.Finish(junit.Passed, fmt.Sprintf(negativeTestWarning, err.Error()))
 				} else {
 					problem = err
 					problemFilename = filename
 					log.Printf("Test %s failed: %s", filename, err)
-					tc.Failure = &junit.Failure{
-						Message: err.Error(),
-					}
+					tc.Finish(junit.Failed, err.Error())
 				}
 			}
 		} else {
@@ -237,70 +238,25 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 				problem = fmt.Errorf("negative test failure")
 				problemFilename = filename
 				log.Printf("Test %s (negative) failed (no error)", filename)
-				tc.Failure = &junit.Failure{
-					Message: "expected error for Negative test",
-				}
+				tc.Finish(junit.Failed, fmt.Sprintf(negativeTestWarning, "expected error due to negative test"))
 			} else {
 				log.Printf("Test %s passed", filename)
+				tc.Finish(junit.Passed)
 			}
 		}
 
-		if t != nil {
-			tc.State = t.State
-		}
-
-		tc.Finish("executed")
 		ts.Add(*tc)
 	}
 
 	if inv.List {
 		// We already listed the tests, so nothing left to do.
-		return nil
+		return nil, nil
 	}
 
-	if inv.EmitJSON {
-		// We'll emit some JSON that represents an array of
-		// objects suitable of indexing
-		acc := make([]interface{}, 0, len(ts.TestCases)+1)
-
-		// Our first "doc" represents the suite of tests we
-		// just range.
-		jts := JSONTestSuite{
-			Time:   ts.Time,
-			Tests:  len(ts.TestCases),
-			Errors: ts.Errors,
-			Failed: ts.Failures,
-			Type:   "suite",
-		}
-		jts.Passed = jts.Tests - jts.Errors - jts.Failed
-
-		acc = append(acc, jts)
-
-		// The remaining "docs" are the test cases themselves.
-		for i, tc := range ts.TestCases {
-			tc.N = i
-			tc.Suite = ts.Name
-			tc.Type = "case"
-			acc = append(acc, tc)
-		}
-
-		// Write the JSON.
-		js, err := json.Marshal(&acc)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf("%s\n", js)
-	} else {
-		bs, err := xml.MarshalIndent(ts, "", "  ")
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("%s\n", bs)
-	}
+	ts.Finish()
 
 	if problem != nil && inv.ComplainOnAnyError {
-		return fmt.Errorf("at least one test failed (%s: %s)", problemFilename, problem)
+		return ts, fmt.Errorf("at least one test failed (%s: %s)", problemFilename, problem)
 	}
 
 	// Unless we are asked to complain via inv.ComplainOnAnyError,
@@ -309,7 +265,7 @@ func (inv *Invocation) Exec(ctx context.Context) error {
 	// We have some log.Fatal(err) calls above that could probably
 	// be replaced by 'return err', which should correctly report
 	// an error that is not a test error.
-	return nil
+	return ts, nil
 }
 
 // Load a test
@@ -443,14 +399,4 @@ func (inv *Invocation) RunOnce(ctx *dsl.Ctx, t *dsl.Test) error {
 	}
 
 	return nil
-}
-
-// JSONTestSuite test results
-type JSONTestSuite struct {
-	Type   string
-	Time   time.Time
-	Tests  int
-	Passed int
-	Failed int
-	Errors int
 }
