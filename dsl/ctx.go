@@ -173,7 +173,7 @@ func (ctx *Ctx) BindingsRedactions(bs Bindings) error {
 // are redacted.
 //
 // For each named group with a name starting with "redact", that group
-// is redacte (for all matches).
+// is redacted (for all matches).
 //
 // If there are groups but none has a name starting with "redact",
 // then the first matching (non-captured) group is redacted.
