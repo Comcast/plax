@@ -12,29 +12,36 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 )
 
+// ReportStdoutType definition
 type ReportStdoutType string
 
 const (
+	// JSON output
 	JSON ReportStdoutType = "JSON"
-	XML  ReportStdoutType = "XML"
+	// XML output
+	XML ReportStdoutType = "XML"
 )
 
+// ReportStdoutConfig configures the stdout plugin for either JSON or XML output
 type ReportStdoutConfig struct {
 	Type ReportStdoutType
 }
 
+// ReportPluginImpl dummy structure
 type ReportPluginImpl struct{}
 
 var (
+	// logger for the plugin
 	logger = hclog.New(&hclog.LoggerOptions{
 		Level:      hclog.Trace,
 		Output:     os.Stderr,
 		JSONFormat: true,
 	})
+	// config the plugin
 	config ReportStdoutConfig
 )
 
-// Star the plugin
+// Config the plugin
 func (ReportPluginImpl) Config(cfg interface{}) error {
 	logger.Debug("plaxrun_report_stdout: config called")
 
@@ -81,6 +88,7 @@ func (ReportPluginImpl) Generate(tr *report.TestReport) error {
 	return nil
 }
 
+// main plugin method
 func main() {
 	logger.Debug("plaxrun_report_stdout: start")
 
@@ -89,6 +97,7 @@ func main() {
 		report.PluginName: &report.ReportPlugin{Impl: ReportPluginImpl{}},
 	}
 
+	// Serve the plugin
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: report.HandshakeConfig,
 		Plugins:         pluginMap,
