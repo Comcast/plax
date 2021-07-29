@@ -606,8 +606,15 @@ single operation.  Currently the following steps are supported:
            redaction pattern that matches the given string
            literally.
 		   
-		1. `Failure`: return an object representing a failure with the
-           argument as the failure message.
+
+	    1. `fail(MSG)`: a function that immediately terminates a test
+           as a failure (as opposed to being broken).  The given MSG
+           is the text of the failure.  See
+           [`demos/runfail.yaml`](../demos/runfail.yaml) for example
+           use.
+
+		1. `Failure`: a function that returns an object representing a
+           failure with the argument as the failure message.
 		   
 		1. `match`: [Sheen](https://github.com/Comcast/sheens)'s
             [pattern

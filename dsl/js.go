@@ -31,10 +31,17 @@ import (
 func JSExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, error) {
 	x, err := jsExec(ctx, src, env)
 	if err != nil {
-		if _, is := IsFailure(err); is {
-			return x, err
+		// See if we have a Failure.  Otherwise, we're Broken.
+		if e, is := err.(*goja.Exception); is {
+			v := e.Value()
+			if v != nil {
+				switch vv := v.Export().(type) {
+				case *Failure:
+					return x, vv
+				}
+			}
 		}
-		return nil, Brokenf("Javascript problem: %s", err)
+		return x, Brokenf("Javascript problem: %s", err)
 	}
 	return x, nil
 }
@@ -50,6 +57,10 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 	for k, v := range env {
 		js.Set(k, v)
 	}
+
+	js.Set("fail", func(msg string) {
+		gojaPanic(js, Failuref("Javascript fail() called: %s", msg))
+	})
 
 	js.Set("print", func(args ...interface{}) {
 		var acc string
@@ -96,8 +107,8 @@ func jsExec(ctx *Ctx, src string, env map[string]interface{}) (interface{}, erro
 		return acc
 	})
 
-	js.Set("Failure", func(msg string) Failure {
-		return Failure(msg)
+	js.Set("Failure", func(msg string) *Failure {
+		return Failuref("%s", msg)
 	})
 
 	js.Set("tsMs", func(s string) int64 {
