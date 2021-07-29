@@ -39,6 +39,7 @@ const (
 // TestCase information
 type TestCase struct {
 	Name    string         `xml:"name,attr" json:"name"`
+	File    string         `xml:"file,attr" json:"file"`
 	Status  TestCaseStatus `xml:"status,attr" json:"status"`
 	Time    *time.Duration `xml:"time,attr,omitempty" json:"time,omitempty"`
 	Started *time.Time     `xml:"started,attr,omitempty" json:"started,omitempty"`
@@ -74,31 +75,31 @@ func (tc *TestCase) Finish(status TestCaseStatus, message ...string) {
 
 // TestSuite information
 type TestSuite struct {
-	Name      string        `xml:"name,attr" json:"name"`
-	Total     int           `xml:"tests,attr" json:"tests"`
-	Passed    int           `xml:"passed,attr" json:"passed"`
-	Skipped   int           `xml:"skipped,attr" json:"skipped"`
-	Failures  int           `xml:"failures,attr" json:"failures"`
-	Errors    int           `xml:"errors,attr" json:"errors"`
-	TestCases []TestCase    `xml:"testcase" json:"testcase"`
-	Started   time.Time     `xml:"started,attr" json:"timestamp"`
-	Time      time.Duration `xml:"time,attr" json:"time"`
-	Message   string        `xml:"message,omitempty" json:"message,omitempty"`
+	Name     string        `xml:"name,attr" json:"name"`
+	Total    int           `xml:"tests,attr" json:"tests"`
+	Passed   int           `xml:"passed,attr" json:"passed"`
+	Skipped  int           `xml:"skipped,attr" json:"skipped"`
+	Failures int           `xml:"failures,attr" json:"failures"`
+	Errors   int           `xml:"errors,attr" json:"errors"`
+	TestCase []TestCase    `xml:"testcase" json:"testcase"`
+	Started  time.Time     `xml:"started,attr" json:"timestamp"`
+	Time     time.Duration `xml:"time,attr" json:"time"`
+	Message  string        `xml:"message,omitempty" json:"message,omitempty"`
 }
 
 // NewTestSuite creates a new TestSuite
 func NewTestSuite(name string) *TestSuite {
 	now := time.Now().UTC()
 	return &TestSuite{
-		Name:      name,
-		TestCases: make([]TestCase, 0, 32),
-		Started:   now,
+		Name:     name,
+		TestCase: make([]TestCase, 0, 32),
+		Started:  now,
 	}
 }
 
 // Add a TestCase to the TestSuite
 func (ts *TestSuite) Add(tc TestCase) {
-	ts.TestCases = append(ts.TestCases, tc)
+	ts.TestCase = append(ts.TestCase, tc)
 	ts.Total++
 	switch tc.Status {
 	case Failed:

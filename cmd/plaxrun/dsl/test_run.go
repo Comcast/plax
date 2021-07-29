@@ -166,6 +166,7 @@ func (tr *TestRun) Exec(ctx *Ctx) error {
 			if ts != nil {
 				testReport.TestSuite = append(testReport.TestSuite, ts)
 				testReport.Total += ts.Total
+				testReport.Passed += ts.Passed
 				testReport.Skipped += ts.Skipped
 				testReport.Failures += ts.Failures
 				testReport.Errors += ts.Errors

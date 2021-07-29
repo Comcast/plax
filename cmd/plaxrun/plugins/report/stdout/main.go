@@ -20,7 +20,7 @@ const (
 )
 
 type ReportStdoutConfig struct {
-	Type ReportStdoutType
+	Type ReportStdoutType `yaml:"type" json:"type"`
 }
 
 type ReportPluginImpl struct{}

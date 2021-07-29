@@ -1,0 +1,17 @@
+name: error
+version: 0.0.1
+
+tests:
+  reports:
+    path: invalid.yaml
+    version: github.com/Comcast/plax
+
+reports:
+  stdout:
+    config:
+      type: JSON
+  rp:
+    config:
+      hostname: http://localhost:8080
+      token: 0c532966-12e2-40f1-8f52-217ce27d6729
+      project: default_personal
