@@ -166,6 +166,7 @@ func (tr *TestRun) Exec(ctx *Ctx) error {
 			if ts != nil {
 				testReport.TestSuite = append(testReport.TestSuite, ts)
 				testReport.Total += ts.Total
+				testReport.Passed += ts.Passed
 				testReport.Skipped += ts.Skipped
 				testReport.Failures += ts.Failures
 				testReport.Errors += ts.Errors
@@ -175,7 +176,7 @@ func (tr *TestRun) Exec(ctx *Ctx) error {
 
 	testReport.Finish()
 
-	err = tr.Reports.Generate(ctx, testReport, *tr.trps.EmitJSON)
+	err = tr.Reports.Generate(ctx.Ctx, tr.Params, tr.trps.Bindings, testReport, *tr.trps.EmitJSON)
 	if err != nil {
 		ctx.Logf(err.Error())
 	}

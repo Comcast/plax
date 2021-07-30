@@ -29,7 +29,7 @@
       - [Pattern matching](#pattern-matching)
       - [Specifications](#specifications)
     - [Output](#output)
-	- [Logging](#logging)
+    - [Logging](#logging)
   - [References](#references)
   
 ## Installation
@@ -119,7 +119,7 @@ plax -dir demos -priority 3 -labels selftest
 ```
 
 will run all `selftest` tests in the `demos` directory that that a
-priorty _less than or equal to_ 3.
+priority _less than or equal to_ 3.
 
 You can pass bindings in the command line using `-p`.  You can specify
 multiple `-p` values:
@@ -223,7 +223,7 @@ The optional `label` field is used to list general attributes of or
 tags for the test. For example, what components are tested or what
 type of test it is.  A label can be any string, but we shouldn't go
 crazy here.  The `plax` tool's `-label` option can run only tests that
-that all of the tiven labels (separated by commas).  For example `plax
+that all of the given labels (separated by commas).  For example `plax
 -dir tests -labels integration,happy-path` would run all the tests in
 the directory `tests` that have labels `integration` and `happy-path`.
 
@@ -296,19 +296,19 @@ retries:
 #### Bindings 
 
 Bindings allow a test to have values that change at runtime.  For
-example, you could have a binding for a certifcate filename that would
+example, you could have a binding for a certificate filename that would
 allow you to run the same test with different filenames.
 
-In an expression, bindings subsitution takes two forms: structured and
+In an expression, bindings substitution takes two forms: structured and
 textual.
 
-When processing a _string_, each occurance of `{B}`, where `B` is a
+When processing a _string_, each occurrence of `{B}`, where `B` is a
 bound variable, is literally replaced by that variable's binding.  For
 example, the string `"I like {?x}."` with with bindings
 `{"?x":"queso"}` results in `"I like queso."`
 
 When processing _structured data_ (which can be obtained implicitly
-from a string that's legal JSON), bindings subsitution is itself
+from a string that's legal JSON), bindings substitution is itself
 structured.  Only bindings starting with `?` are considered, and only
 exact bindings are replaced.  For example, the object `{"need":"?x"}`
 with bindings `{"?x":"chips"}` becomes `{"need":"chips"}`.
@@ -381,14 +381,14 @@ powers ("string commands").  Most strings have these powers.
 
 #### Channels
 
-A Plax test can work with multiple "channels" simulatenously.  A
+A Plax test can work with multiple "channels" simultaneously.  A
 channel is something can that do I/O, and an MQTT client is the
 classic example.  We can also have channels for a KDS consumer, a KDS
 publisher, an HTTP client, an SQS consumer, and so on.
 
 See [Channel types](#channel-types) for a summary of available types.
 
-There is one primoridal channel named `mother`.  You can ask `mother`
+There is one primordial channel named `mother`.  You can ask `mother`
 to make other channels for you by publishing (`pub`) a message to
 `mother`, who will always reply.  Example of making a request and
 receiving the reply:
@@ -553,7 +553,7 @@ single operation.  Currently the following steps are supported:
         1. `elapsed`: the elapsed time in milliseconds since the
 	        last step.
 
-        1. `msg`: the receved message
+        1. `msg`: the received message
             (`{"topic":TOPIC,"payload":PAYLOAD}`).
 
         1. `test`: The whole test object.
@@ -776,7 +776,7 @@ spec:
 ```
 
 These phases are executed in the given order regardless of any errors
-each might enocounter.  Note that a "final" phase can `goto` another
+each might encounter.  Note that a "final" phase can `goto` another
 phase.  In that case, that target phase should (probably) not be
 included in the `finalphases` list.
 
@@ -797,7 +797,7 @@ default output results in JUnit XML:
 For `plax`, use `-test-suite NAME` to specify the suite's `name`.  For
 `plaxrun` a suite name will be generated.
 
-For `plax` and `plaxrun` use `-json` to output a JSON respresentation
+For `plax` and `plaxrun` use `-json` to output a JSON representation
 of test result objects.  This output includes the following for each
 test case:
 
@@ -832,7 +832,7 @@ test case:
 
 The `-log` command-line option accepts `none` (default), `info`, and
 `debug`.  To provide some level of logging without printing some
-possibly sensitive information, `info` does not playloads or bindings
+possibly sensitive information, `info` does not log payloads or bindings
 values.  In contrast, `-debug` will by default log binding values and
 payloads.  However, with `-log debug`, the flag `-redact` enables some
 log redactions:
