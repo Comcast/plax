@@ -12,6 +12,7 @@ type TestReport struct {
 	Version   string             `xml:"version,attr,omitempty" json:"version,omitempty"`
 	TestSuite []*junit.TestSuite `xml:"testsuite" json:"testsuite"`
 	Total     int                `xml:"tests,attr" json:"tests"`
+	Passed    int                `xml:"passed,attr" json:"passed"`
 	Skipped   int                `xml:"skipped,attr" json:"skipped"`
 	Failures  int                `xml:"failures,attr" json:"failures"`
 	Errors    int                `xml:"errors,attr" json:"errors"`

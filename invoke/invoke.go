@@ -203,7 +203,7 @@ func (inv *Invocation) Exec(ctx context.Context) (*junit.TestSuite, error) {
 			continue
 		}
 
-		tc := junit.NewTestCase(filename)
+		tc := junit.NewTestCase(t.Name, filename)
 
 		if !t.Wanted(dslCtx, inv.Priority, strings.Split(inv.Labels, ","), inv.Tests) {
 			// marking this TestCase as "skipped".

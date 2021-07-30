@@ -24,7 +24,7 @@ const (
 
 // ReportStdoutConfig configures the stdout plugin for either JSON or XML output
 type ReportStdoutConfig struct {
-	Type ReportStdoutType
+	Type ReportStdoutType `yaml:"type" json:"type"`
 }
 
 // ReportPluginImpl dummy structure

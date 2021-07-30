@@ -70,7 +70,7 @@ func (m *ReportRPCClient) Config(cfg interface{}) error {
 	if err != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
-		panic(err)
+		return err
 	}
 
 	return resp
@@ -88,7 +88,7 @@ func (m *ReportRPCClient) Generate(tr *TestReport) error {
 	if err != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
-		panic(err)
+		return err
 	}
 
 	m.client.Kill()
