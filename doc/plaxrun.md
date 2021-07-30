@@ -16,6 +16,7 @@
         - [Iteration](#iteration)
         - [Guards](#guards)
       - [Parameters definition section](#parameters-definition-section)
+      - [Reports definition section](#reports-definition-section)
     - [Running the example tests](#running-the-example-tests)
     - [Output](#output)
     - [Logging](#logging)
@@ -133,7 +134,7 @@ tests:
 - `wait:` is the test name used to reference the test from a test group
   - `path:` is the relative path to the test directory (Suite) or file (Test) based on `.` or the `-dir` option
   - `version: github.com/Comcast/plax` represents the name of the module that implements the plax plugin compatible with the plax execution engine test syntax.  This is optional if the default version `github.com/Comcast/plax` is being targeted
-  - `params:` is the list of parameter name dependencies referencing the parameters defined in the `params` section.  All listed parameters will be evaluated for parameter binded values
+  - `params:` is the list of parameter name dependencies referencing the parameters defined in the `params` section.  All listed parameters will be evaluated for parameter binding values
     - `- 'WAIT'` is a parameter required by the `test-wait.yaml` test
     - `- 'MARGIN'` is a parameter required by the `test-wait.yaml` test
 
@@ -264,7 +265,7 @@ groups:
   - `guard:` is the instruction for a guard
     - `dependsOn:` evaluate the list of defined parameter references
     - `libraries:` import the listed Javascript libraries
-    - `src:` execute the Javascript code to evalutate the guard; must return boolean [true|false]
+    - `src:` execute the Javascript code to evaluate the guard; must return boolean [true|false]
 #### Parameters definition section
 The `params:` parameter definition section defines the parameter names to be bound to a value or set of values returned by a shell command.
 
@@ -338,6 +339,34 @@ The current built in commands are:
 
 More commands can easily be added by plaxrun specification authors, e.g. fetch secure parameter values from Vault or invoke AWS CLI commands and bind the results to a parameter.
 
+#### Reports definition section
+The `reports:` definition section defines the report plugins to be executed to submit the result of the test execution.  Currently Plaxrun supports the
+following report plugin types:
+
+1. stdout - a report plugin that writes the test results to standard output in either XML or JSON format
+   
+Each report is composed of the following parts:
+
+  - `config:` is the section that defines the report plugin specific configuration settings.  The config section supports parameter binding substitution.
+  
+An example report definition is as follows:
+```yaml
+params:
+  STDOUT_REPORT_TYPE:
+      include: include/commands/value.yaml
+      envs:
+        VALUE: JSON
+
+reports:
+  stdout:
+    config:
+      type: {STDOUT_REPORT_TYPE}
+```
+
+- `stdout:` is the default report plugin that reports to standard output
+  - `config:` is the plugin specific configuration settings
+    - `type: ` is the stdout report plugin output format.  `XML` is the default.  The example shows overriding to use `JSON` using the `{STDOUT_REPORT_TYPE}` parameter binding.
+
 ### Running the example tests
 To run the test specifications described above:
 
@@ -403,7 +432,7 @@ This output includes the following for each test case:
 
 The `-log` command-line option accepts `none` (default), `info`, and
 `debug`.  To provide some level of logging without printing some
-possibly sensitive information, `info` does not playloads or bindings
+possibly sensitive information, `info` does not log payloads or bindings
 values.  In contrast, `-debug` will by default log binding values and
 payloads.  However, with `-log debug`, the flag `-redact` enables some
 log redactions:

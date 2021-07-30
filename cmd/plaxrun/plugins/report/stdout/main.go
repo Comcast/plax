@@ -28,7 +28,10 @@ type ReportStdoutConfig struct {
 }
 
 // ReportPluginImpl dummy structure
-type ReportPluginImpl struct{}
+type ReportPluginImpl struct {
+	// configuration for the report plugin
+	config ReportStdoutConfig
+}
 
 var (
 	// logger for the plugin
@@ -37,19 +40,13 @@ var (
 		Output:     os.Stderr,
 		JSONFormat: true,
 	})
-	// config the plugin
-	config ReportStdoutConfig
 )
 
 // Config the plugin
-func (ReportPluginImpl) Config(cfg interface{}) error {
+func (rpi *ReportPluginImpl) Config(cfgb []byte) error {
 	logger.Debug("plaxrun_report_stdout: config called")
 
-	cfgb, ok := cfg.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to cast config to []byte")
-	}
-	err := json.Unmarshal(cfgb, &config)
+	err := json.Unmarshal(cfgb, &rpi.config)
 	if err != nil {
 		return err
 	}
@@ -58,7 +55,7 @@ func (ReportPluginImpl) Config(cfg interface{}) error {
 }
 
 // Generate the test report
-func (ReportPluginImpl) Generate(tr *report.TestReport) error {
+func (rpi *ReportPluginImpl) Generate(tr *report.TestReport) error {
 	logger.Debug("plaxrun_report_stdout: generate called")
 
 	var (
@@ -66,7 +63,7 @@ func (ReportPluginImpl) Generate(tr *report.TestReport) error {
 		err error
 	)
 
-	switch config.Type {
+	switch rpi.config.Type {
 	case JSON:
 		// Write the JSON.
 		bs, err = json.MarshalIndent(tr, "", "  ")
@@ -79,6 +76,8 @@ func (ReportPluginImpl) Generate(tr *report.TestReport) error {
 		if err != nil {
 			return err
 		}
+	default:
+		return fmt.Errorf("type `%s` does not exist", rpi.config.Type)
 	}
 
 	if len(bs) > 0 {
@@ -94,7 +93,11 @@ func main() {
 
 	// pluginMap is the map of plugins we can dispense.
 	var pluginMap = map[string]plugin.Plugin{
-		report.PluginName: &report.ReportPlugin{Impl: ReportPluginImpl{}},
+		report.PluginName: &report.ReportPlugin{Impl: &ReportPluginImpl{
+			config: ReportStdoutConfig{
+				Type: XML,
+			},
+		}},
 	}
 
 	// Serve the plugin
