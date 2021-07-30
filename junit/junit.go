@@ -47,10 +47,11 @@ type TestCase struct {
 }
 
 // NewTestCase creates a new TestCase
-func NewTestCase(name string) *TestCase {
+func NewTestCase(name string, file string) *TestCase {
 	now := time.Now().UTC()
 	return &TestCase{
 		Name:    name,
+		File:    file,
 		Started: &now,
 	}
 }

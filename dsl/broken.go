@@ -68,17 +68,21 @@ func (b *Broken) String() string {
 
 // Failure is an error that does not represent something that's
 // broken.
-type Failure string
-
-func (f Failure) Error() string {
-	return string("failure: " + f)
+type Failure struct {
+	Err error
 }
 
-func IsFailure(x interface{}) (Failure, bool) {
-	b, is := x.(Failure)
-	return b, is
+func (f *Failure) Error() string {
+	return string("failure: " + f.Err.Error())
 }
 
-func Failuref(format string, args ...interface{}) Failure {
-	return Failure(fmt.Sprintf(format, args...))
+func IsFailure(x interface{}) (*Failure, bool) {
+	f, is := x.(*Failure)
+	return f, is
+}
+
+func Failuref(format string, args ...interface{}) *Failure {
+	return &Failure{
+		Err: fmt.Errorf(format, args...),
+	}
 }

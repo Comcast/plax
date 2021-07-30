@@ -18,9 +18,12 @@
 package dsl
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/Comcast/plax/cmd/plaxrun/plugins/report"
+	"github.com/Comcast/plax/dsl"
+	plaxDsl "github.com/Comcast/plax/dsl"
 )
 
 const (
@@ -32,6 +35,9 @@ type TestReportPlugin struct {
 	// name of the report plugin
 	name string `yaml:"name"`
 
+	// DependsOn the parameters in the map for configuration
+	DependsOn TestParamDependencyList `yaml:"dependsOn"`
+
 	// Config is the configuration (if any) for the report plugin.
 	Config interface{} `yaml:"config,omitempty" json:"config,omitempty"`
 }
@@ -40,7 +46,7 @@ type TestReportPlugin struct {
 type TestReportPluginMap map[string]TestReportPlugin
 
 // Generate the test report using the TestReportPlugin for the TestRun
-func (trp *TestReportPlugin) Generate(ctx *Ctx, tr *report.TestReport) error {
+func (trp *TestReportPlugin) Generate(ctx *dsl.Ctx, tpbm TestParamBindingMap, bs plaxDsl.Bindings, tr *report.TestReport) error {
 	if trp.name == "" {
 		return fmt.Errorf("test report plugin name is nil")
 	}
@@ -49,11 +55,32 @@ func (trp *TestReportPlugin) Generate(ctx *Ctx, tr *report.TestReport) error {
 		return fmt.Errorf("test report is nil")
 	}
 
-	return tr.Generate(trp.name, trp.Config)
+	err := trp.DependsOn.process(ctx, tpbm, &bs)
+	if err != nil {
+		return err
+	}
+
+	var cfgb []byte = nil
+
+	if trp.Config != nil {
+		cfgb, err = json.Marshal(trp.Config)
+		if err != nil {
+			return err
+		}
+
+		cfg, err := bs.Sub(ctx, string(cfgb))
+		if err != nil {
+			return err
+		}
+
+		cfgb = []byte(cfg)
+	}
+
+	return tr.Generate(trp.name, cfgb)
 }
 
 // Generate the test reports from the TestReportPluginMap for the TestRun
-func (trpm TestReportPluginMap) Generate(ctx *Ctx, tr *report.TestReport, emitJSON bool) error {
+func (trpm TestReportPluginMap) Generate(ctx *dsl.Ctx, tpbm TestParamBindingMap, bs plaxDsl.Bindings, tr *report.TestReport, emitJSON bool) error {
 	if _, ok := trpm[stdoutPlugin]; !ok {
 		if trpm == nil {
 			trpm = make(TestReportPluginMap)
@@ -76,7 +103,7 @@ func (trpm TestReportPluginMap) Generate(ctx *Ctx, tr *report.TestReport, emitJS
 
 	for key, trp := range trpm {
 		trp.name = key
-		err := trp.Generate(ctx, tr)
+		err := trp.Generate(ctx, tpbm, bs, tr)
 		if err != nil {
 			ctx.Logf(err.Error())
 		}

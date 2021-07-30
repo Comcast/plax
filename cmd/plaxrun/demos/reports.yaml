@@ -6,12 +6,15 @@ tests:
     path: invalid.yaml
     version: github.com/Comcast/plax
 
+params:
+  STDOUT_REPORT_TYPE:
+      include: include/commands/value.yaml
+      envs:
+        VALUE: JSON
+
 reports:
   stdout:
+    dependsOn:
+      - STDOUT_REPORT_TYPE
     config:
-      type: JSON
-  rp:
-    config:
-      hostname: http://localhost:8080
-      token: 0c532966-12e2-40f1-8f52-217ce27d6729
-      project: default_personal
+      type: "{STDOUT_REPORT_TYPE}"
