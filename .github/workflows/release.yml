@@ -1,6 +1,9 @@
 name: Release
 
-on: workflow_dispatch
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   release:
@@ -16,11 +19,6 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - name:  'Automated Version Bump'
-        uses:  'phips28/gh-action-bump-version@master'
-        with:
-          tag-prefix:  'v'
-          push: false
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2

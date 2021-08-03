@@ -1,0 +1,19 @@
+name: Release
+name: Tag
+
+on: workflow_dispatch
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name:  'Automated Version Bump'
+        uses:  'phips28/gh-action-bump-version@master'
+        with:
+          tag-prefix:  'v'
+          push: true
