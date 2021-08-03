@@ -1,4 +1,3 @@
-name: Release
 name: Tag
 
 on: workflow_dispatch
