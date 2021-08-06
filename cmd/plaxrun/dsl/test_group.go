@@ -163,15 +163,16 @@ func (tgl *TestGroupList) Set(value string) error {
 }
 
 // hasGroup checks if group is the the list of groups
-func (tgl *TestGroupList) hasGroup(name string) bool {
-	for _, n := range *tgl {
-		if n == name {
-			return true
-		}
-	}
+// Commented out due to lack of current use
+// func (tgl *TestGroupList) hasGroup(name string) bool {
+// 	for _, n := range *tgl {
+// 		if n == name {
+// 			return true
+// 		}
+// 	}
 
-	return false
-}
+// 	return false
+// }
 
 // getTaskFuncs for the TestGroupList
 func (tgl *TestGroupList) getTaskFuncs(ctx *plaxDsl.Ctx, tr TestRun) ([]*async.TaskFunc, error) {

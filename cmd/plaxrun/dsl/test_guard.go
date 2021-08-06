@@ -47,7 +47,7 @@ func getLibrary(ctx *plaxDsl.Ctx, filename string) (string, error) {
 		return string(js), nil
 	}
 
-	return "", fmt.Errorf("failed to find libraryy '%s'", filename)
+	return "", fmt.Errorf("failed to find library '%s'", filename)
 }
 
 func (tg *TestGuard) getLibraries(ctx *plaxDsl.Ctx) (string, error) {
@@ -98,6 +98,9 @@ func (tg *TestGuard) Satisfied(ctx *plaxDsl.Ctx, tr TestRun, bs *plaxDsl.Binding
 	}
 
 	src, err := tg.prepareSource(ctx, ebs)
+	if err != nil {
+		return false, err
+	}
 
 	env := make(map[string]interface{})
 	env["bs"] = ebs
@@ -111,6 +114,6 @@ func (tg *TestGuard) Satisfied(ctx *plaxDsl.Ctx, tr TestRun, bs *plaxDsl.Binding
 	case bool:
 		return vv, nil
 	default:
-		return false, fmt.Errorf("Guard Javascript returned a %T (%v) and not a bool: ", x, x)
+		return false, fmt.Errorf("guard Javascript returned a %T (%v) and not a bool: ", x, x)
 	}
 }

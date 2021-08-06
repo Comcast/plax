@@ -15,6 +15,9 @@ tests:
       - WORLD
       - DATE
 
+  redactions:
+    path: redactions.yaml
+
   demos:
     path: .
     version: github.com/Comcast/plax
@@ -49,6 +52,11 @@ groups:
   inclusion:
     tests:
       - name: inclusion
+
+  redactions:
+    tests:
+      - name: js-strings
+      - name: redactions
 
   js-strings:
     tests:
@@ -129,6 +137,7 @@ groups:
       params: "{COMBINE_WAIT_LIST}"
     tests:
       - name: wait
+
 params:
   WAIT_ITERATE_PARAMS:
     include: include/commands/csv.yaml
@@ -153,6 +162,7 @@ params:
     include: include/commands/value.yaml
     envs:
       VALUE: universe
+    redact: true
 
   DATE:
     include: include/commands/command.yaml

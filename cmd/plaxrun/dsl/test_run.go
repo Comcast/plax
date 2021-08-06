@@ -28,6 +28,9 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/Comcast/plax/cmd/plaxrun/async"
+	"github.com/Comcast/plax/cmd/plaxrun/plugins/report"
+
+	"github.com/Comcast/plax/junit"
 
 	plaxDsl "github.com/Comcast/plax/dsl"
 )
@@ -35,29 +38,32 @@ import (
 // Ctx is the context type
 type Ctx struct {
 	*plaxDsl.Ctx
+	ReportPluginDir string
 }
 
 // NewCtx builds a new Ctx
 func NewCtx(ctx context.Context) *Ctx {
 	return &Ctx{
-		plaxDsl.NewCtx(ctx),
+		Ctx:             plaxDsl.NewCtx(ctx),
+		ReportPluginDir: ".",
 	}
 }
 
 // TestRun is the top-level type for a test run.
 type TestRun struct {
-	Name    string              `yaml:"name"`
-	Version string              `yaml:"version"`
-	Tests   TestDefMap          `yaml:"tests"`
-	Groups  TestGroupMap        `yaml:"groups"`
-	Params  TestParamBindingMap `yaml:"params"`
-	trps    *TestRunParams
-	tfs     []*async.TaskFunc
+	Name    string              `yaml:"name" json:"name"`
+	Version string              `yaml:"version" json:"version"`
+	Tests   TestDefMap          `yaml:"tests" json:"-"`
+	Groups  TestGroupMap        `yaml:"groups" json:"-"`
+	Params  TestParamBindingMap `yaml:"params" json:"-"`
+	Reports TestReportPluginMap `yaml:"reports" json:"-"`
+	trps    *TestRunParams      `json:"-"`
+	tfs     []*async.TaskFunc   `json:"-"`
 }
 
 // NewTestRun makes a new TestRun with the given TestRunParams
 func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
-	var tr TestRun
+	tr := TestRun{}
 
 	if trps.Dir == nil {
 		return nil, fmt.Errorf("TestRunParams.Dir is nil")
@@ -67,6 +73,13 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 	ctx.LogLevel = *trps.LogLevel
 	ctx.IncludeDirs = trps.IncludeDirs
 	ctx.Redact = *trps.Redact
+
+	reportPluginDir, err := filepath.Abs(*trps.ReportPluginDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find path to report plugins: %w", err)
+	}
+
+	ctx.ReportPluginDir = reportPluginDir
 
 	var filename string
 	if trps.Filename != nil {
@@ -85,7 +98,7 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 		return nil, fmt.Errorf("failed to read test runner configuration file: %w", err)
 	}
 
-	ctx.Logdf("Test Bindings: %v\n", trps.Bindings)
+	ctx.Redactf("Test Bindings: %v\n", trps.Bindings)
 
 	err = os.Chdir(*trps.Dir)
 	if err != nil {
@@ -139,9 +152,33 @@ func NewTestRun(ctx *Ctx, trps *TestRunParams) (*TestRun, error) {
 
 // Exec the TestRun
 func (tr *TestRun) Exec(ctx *Ctx) error {
+	testReport := report.NewTestReport()
+	testReport.Name = tr.Name
+	testReport.Version = tr.Version
+
 	taskResults, err := async.Sequential(ctx, tr.tfs...)
 	if err != nil {
 		return fmt.Errorf("failed to execute tasks: %w", err)
+	}
+
+	for _, taskResult := range taskResults {
+		if ts, ok := taskResult.Result.(*junit.TestSuite); ok {
+			if ts != nil {
+				testReport.TestSuite = append(testReport.TestSuite, ts)
+				testReport.Total += ts.Total
+				testReport.Passed += ts.Passed
+				testReport.Skipped += ts.Skipped
+				testReport.Failures += ts.Failures
+				testReport.Errors += ts.Errors
+			}
+		}
+	}
+
+	testReport.Finish()
+
+	err = tr.Reports.Generate(ctx.Ctx, tr.Params, tr.trps.Bindings, testReport, *tr.trps.EmitJSON)
+	if err != nil {
+		ctx.Logf(err.Error())
 	}
 
 	if taskResults.HasError() {
@@ -171,17 +208,18 @@ func (idl *IncludeDirList) Set(value string) error {
 
 // TestRunParams used to exec a TestRun
 type TestRunParams struct {
-	Bindings    plaxDsl.Bindings
-	Groups      TestGroupList
-	Tests       TestList
-	SuiteName   *string
-	IncludeDirs IncludeDirList
-	Filename    *string
-	Dir         *string
-	EmitJSON    *bool
-	Verbose     *bool
-	LogLevel    *string
-	Labels      *string
-	Priority    *int
-	Redact      *bool
+	Bindings        plaxDsl.Bindings
+	Groups          TestGroupList
+	Tests           TestList
+	SuiteName       *string
+	IncludeDirs     IncludeDirList
+	Filename        *string
+	Dir             *string
+	ReportPluginDir *string
+	EmitJSON        *bool
+	Verbose         *bool
+	LogLevel        *string
+	Labels          *string
+	Priority        *int
+	Redact          *bool
 }

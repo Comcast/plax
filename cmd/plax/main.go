@@ -21,6 +21,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"log"
@@ -75,7 +77,7 @@ func main() {
 		seed              = flag.Int64("seed", 0, "Seed for random number generator")
 		nonzeroOnAnyError = flag.Bool("error-exit-code", false, "Return non-zero on any test failure")
 		emitJSON          = flag.Bool("json", false, "Emit docs suitable for indexing")
-		testSuiteName     = flag.String("test-suite", "NA", "Name for JUnit test suite")
+		testSuiteName     = flag.String("test-suite", "", "Name for JUnit test suite")
 		logLevel          = flag.String("log", "info", "log level (info, debug, none)")
 		retry             = flag.String("retry", "", `Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}`)
 		redact            = flag.Bool("redact", false, "Use redaction gear")
@@ -129,15 +131,30 @@ func main() {
 		Labels:             *labels,
 		LogLevel:           *logLevel,
 		List:               *list,
-		EmitJSON:           *emitJSON,
 		ComplainOnAnyError: *nonzeroOnAnyError,
 		Retry:              *retry,
 		Redact:             *redact,
 	}
 
-	err := iv.Exec(context.Background())
+	ts, err := iv.Exec(context.Background())
 	if err != nil {
 		log.Fatalf("Invocation broken: %s", err)
+	}
+
+	if *emitJSON {
+		// Write the JSON.
+		js, err := json.MarshalIndent(ts, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Printf("%s\n", js)
+	} else {
+		bs, err := xml.MarshalIndent(ts, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("%s\n", bs)
 	}
 }
 

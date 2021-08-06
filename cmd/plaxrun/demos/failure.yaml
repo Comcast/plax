@@ -1,0 +1,7 @@
+name: failure
+version: 0.0.1
+
+tests:
+  failure:
+    path: failure.yaml
+    version: github.com/Comcast/plax
