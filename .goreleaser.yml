@@ -46,6 +46,7 @@ archives:
       - goos: windows
         format: zip
     files:
+      - cmd/plaxrun/demos/**
       - demos/*
       - demos/*/*
       - doc/*.md
