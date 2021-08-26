@@ -22,8 +22,8 @@ builds:
       - darwin
       - windows
   - main: cmd/plaxrun/plugins/report/stdout/main.go
-    id: report_stdout
-    binary: report_stdout
+    id: plaxrun_report_stdout
+    binary: plaxrun_report_stdout
     goos:
       - linux
       - darwin
