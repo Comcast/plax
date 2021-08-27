@@ -33,7 +33,7 @@ import (
 
 // TestReport is the toplevel object for the plaxrun test report
 type TestReport struct {
-	XMLName   xml.Name           `xml:"testreport" json:"-"`
+	XMLName   *xml.Name          `xml:"testreport" json:"-,omitempty"`
 	Name      string             `xml:"name,attr,omitempty" json:"name,omitempty"`
 	Version   string             `xml:"version,attr,omitempty" json:"version,omitempty"`
 	TestSuite []*junit.TestSuite `xml:"testsuite" json:"testsuite"`
