@@ -1,0 +1,21 @@
+name: numeric_string
+doc: |
+  Just a very simple numeric string test to verify it is not being interpreted as scientific notation or being rounded
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: mock
+                type: mock
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - pub:
+            payload: '{"want":"{?NUMERIC_STRING}"}'
+        - recv:
+            pattern: '{"want":"?x"}'
+

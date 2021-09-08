@@ -3,3 +3,4 @@ TAGS
 dist/
 vendor/
 *~
+**/__debug_bin
