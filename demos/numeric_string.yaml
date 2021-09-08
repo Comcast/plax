@@ -1,8 +1,6 @@
 name: numeric_string
 doc: |
   Just a very simple numeric string test to verify it is not being interpreted as scientific notation or being rounded
-labels:
-  - selftest
 spec:
   phases:
     phase1:
@@ -17,7 +15,7 @@ spec:
             pattern:
               success: true
         - pub:
-            payload: '{"want":"{?NUMERIC_STRING|json}"}'
+            payload: '{"want":"{?NUMERIC_STRING}"}'
         - recv:
             pattern: '{"want":"?x"}'
 
