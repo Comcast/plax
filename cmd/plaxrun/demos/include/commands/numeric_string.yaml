@@ -1,0 +1,12 @@
+# Description
+#
+# Reproduce numeric string rounding issue
+# requires VALUE to be set
+#
+cmd: bash
+args:
+  - -c
+  - |
+    set -e
+ 
+    echo $KEY='"8427043760594269742"'

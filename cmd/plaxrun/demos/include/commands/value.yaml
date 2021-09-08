@@ -4,12 +4,12 @@
 #
 # Usage
 #
-# include: include/commands/prompt.yaml
+# include: include/commands/value.yaml
 # envs:
 #   VALUE: ["My Value"]
 #
 # Notes:
-#   DEFAULT is required if ${KEY} environment variable is not set
+#   VALUE is required if ${KEY} environment variable is not set
 
 cmd: bash
 args:
