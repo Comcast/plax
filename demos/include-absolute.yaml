@@ -1,0 +1,3 @@
+doc: |
+  Example of using YAML includes.
+includes: ["/mnt/c/Users/Robert/work/comcast/plax/demos/include/preamble.yaml", "/mnt/c/Users/Robert/work/comcast/plax/demos/include/spec.yaml"]
