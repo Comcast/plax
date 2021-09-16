@@ -29,6 +29,10 @@ An author of a test specifies a sequence of input and expected outputs
 over a set of channels that are connected to external services.
 Execution of the test verifies that the expected output occurred.
 
+## Automated Build Status
+[![Test](https://github.com/Comcast/plax/actions/workflows/test.yml/badge.svg)](https://github.com/Comcast/plax/actions/workflows/test.yml)
+[![Tag](https://github.com/Comcast/plax/actions/workflows/tag.yml/badge.svg)](https://github.com/Comcast/plax/actions/workflows/tag.yml)
+[![Release](https://github.com/Comcast/plax/actions/workflows/release.yml/badge.svg)](https://github.com/Comcast/plax/actions/workflows/release.yml)
 
 ## Command-line tools in this repo
 
@@ -61,7 +65,7 @@ labeled as `selftest`. [`basic.yaml`](demos/basic.yaml) is a good,
 small example of a test specification.
 
 
-## The langauge
+## The language
 
 See the [main documentation](doc/manual.md) and the [examples](demos).
 
