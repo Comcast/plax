@@ -1,3 +1,0 @@
-doc: |
-  Example of using YAML includes.
-includes: ["/tmp/include/preamble.yaml", "/tmp/include/spec.yaml"]
