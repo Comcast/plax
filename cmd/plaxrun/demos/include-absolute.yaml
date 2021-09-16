@@ -1,0 +1,7 @@
+name: error
+version: 0.0.1
+
+tests:
+  error:
+    path: include/plax/include_absolute.yaml
+    version: github.com/Comcast/plax
