@@ -14,6 +14,9 @@ builds:
       - linux
       - darwin
       - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
   - main: cmd/plaxrun/main.go
     id: plaxrun
     binary: plaxrun
@@ -21,13 +24,19 @@ builds:
       - linux
       - darwin
       - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
   - main: cmd/plaxrun/plugins/report/stdout/main.go
-    id: report_stdout
-    binary: report_stdout
+    id: plaxrun_report_stdout
+    binary: plaxrun_report_stdout
     goos:
       - linux
       - darwin
       - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl
@@ -35,6 +44,9 @@ builds:
       - linux
       - darwin
       - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
 archives:
   - replacements:
       darwin: Darwin
@@ -46,6 +58,7 @@ archives:
       - goos: windows
         format: zip
     files:
+      - cmd/plaxrun/demos/**
       - demos/*
       - demos/*/*
       - doc/*.md

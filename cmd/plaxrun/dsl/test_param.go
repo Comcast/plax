@@ -35,7 +35,7 @@ var (
 )
 
 // TestParamEnvMap type
-type TestParamEnvMap map[string]string
+type TestParamEnvMap map[string]interface{}
 
 // TestParamDependency name
 type TestParamDependency string
@@ -132,7 +132,7 @@ func (tpb *TestParamBinding) environment(ctx *plaxDsl.Ctx, key string, bs *plaxD
 	tpb.ec.Env = append(tpb.ec.Env, fmt.Sprintf("KEY=%s", key))
 
 	for k, v := range tpb.Envs {
-		val, err := bs.StringSub(ctx, v)
+		val, err := bs.SerialSub(ctx, "json", v)
 		if err != nil {
 			return fmt.Errorf("failed to bind envs for key=%s: %w", k, err)
 		}
@@ -149,7 +149,7 @@ func (tpb *TestParamBinding) substitute(ctx *plaxDsl.Ctx, bs *plaxDsl.Bindings) 
 	tpem := make(TestParamEnvMap)
 
 	for k, v := range tpb.Envs {
-		s, err := bs.StringSub(ctx, v)
+		s, err := bs.SerialSub(ctx, "json", v)
 		if err != nil {
 			return nil, err
 		}
