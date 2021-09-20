@@ -52,7 +52,7 @@ type TestRun struct {
 
 type Status string
 
-// Statuses is enum values for easy access
+// Statuses are enum values for easy access
 const (
 	Passed  Status = "Passed"
 	Failed  Status = "Failed"
@@ -65,7 +65,7 @@ type AuthCreds struct {
 	ClientSecret string `json:"client_secret"`
 }
 
-// ReportStdoutConfig configures the stdout plugin for either JSON or XML output
+// OctaneReportConfig configures the octane plugin with config from plaxrun file
 type OctaneReportConfig struct {
 	HostUrl       string            `yaml:"host_url" json:"host_url"`
 	ClientID      string            `yaml:"client_id" json:"client_id"`
