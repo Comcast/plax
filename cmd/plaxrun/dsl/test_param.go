@@ -118,7 +118,7 @@ type TestParamBinding struct {
 	// cmd is the private exec command
 	ec *exec.Cmd
 
-	// tpem is the map of environment variables to pass into the Run script
+	// Envs is the map of environment variables to pass into the Run script
 	Envs TestParamEnvMap `json:"envs" yaml:"envs"`
 
 	// Redact the parameter binding flag
