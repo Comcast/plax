@@ -6,7 +6,9 @@ go 1.16
 
 require (
 	github.com/Comcast/plax v0.8.5
+	github.com/avarabyeu/goRP/v5 v5.0.1
 	github.com/go-resty/resty/v2 v2.3.0
+	github.com/google/uuid v1.1.2
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/go-plugin v1.4.2
 	github.com/stretchr/testify v1.4.0 // indirect
