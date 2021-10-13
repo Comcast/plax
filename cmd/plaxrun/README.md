@@ -6,7 +6,7 @@ See the [manual](../../doc/plaxrun.md) for more information.
 
 # `Report Portal Plugin`
 
-A tool used for reporting test results. See the [Report Portal](https://reportportal.io/) for mor details.
+A tool that used for reporting test results.See the [Report Portal](https://reportportal.io/) for more details.
 
 To enable this plugin in plaxrun report add below  details in plaxrun.yaml file and follow the steps.
 
