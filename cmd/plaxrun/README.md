@@ -10,14 +10,16 @@ A tool used for reporting test results. See the [Report Portal](https://reportpo
 
 To enable this plugin in plaxrun report add below  details in plaxrun.yaml file and follow the steps.
 
->reports:
->  rp:
->    dependsOn:
->      - X_RP_TOKEN
->    config:
->      hostname: '{RP_URL}'
->      token: "{X_RP_TOKEN}"
->      project: 'Your Project Name'
+```
+reports:
+  rp:
+    dependsOn:
+      - X_RP_TOKEN
+    config:
+      hostname: '{RP_URL}'
+      token: "{X_RP_TOKEN}"
+      project: 'Your Project Name'
+```
 
 - Export username and password as X_REPORT_PORTAL_USERNAME and X_REPORT_PORTAL_USERNAME in your code repo.
 
