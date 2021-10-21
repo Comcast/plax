@@ -21,6 +21,6 @@ reports:
       project: 'Your Project Name'
 ```
 
-- Export username and password as X_REPORT_PORTAL_USERNAME and X_REPORT_PORTAL_USERNAME in your code repo.
+- See the [README](https://github.comcast.com/xh-cloud/dht-tools/blob/main/README.md) to get the X_RP_TOKEN. 
 
 - Export report potal instance URL as RP_URL.
