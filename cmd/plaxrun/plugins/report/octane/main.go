@@ -15,33 +15,40 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 )
 
+// TestResult Octane data structure
 type TestResult struct {
 	XMLName      xml.Name     `xml:"test_result"`
 	ProductAreas ProductAreas `xml:"product_areas,omitempty"`
 	TestRuns     TestRuns     `xml:"test_runs"`
 }
 
+// ProductAreas Octane data structure
 type ProductAreas struct {
 	ProductArea ID `xml:"product_area_ref"`
 }
 
+// ID for Octane ProductArea
 type ID struct {
 	ID int `xml:"id,attr"`
 }
 
+// TestFields for Octane
 type TestFields struct {
 	TestFields []TestField `xml:"test_field"`
 }
 
+// TestField for Octane
 type TestField struct {
 	Type  string `xml:"type,attr"`
 	Value string `xml:"value,attr"`
 }
 
+// TestRuns for Octane
 type TestRuns struct {
 	TestRun []TestRun `xml:"test_run"`
 }
 
+// TestRun for Octane
 type TestRun struct {
 	Name       string        `xml:"name,attr"`
 	Duration   time.Duration `xml:"duration,attr"`
@@ -51,6 +58,7 @@ type TestRun struct {
 	Error      string        `xml:"error,omitempty"`
 }
 
+// Status type
 type Status string
 
 // Statuses is enum values for easy access
@@ -61,12 +69,13 @@ const (
 	Skipped Status = "Skipped"
 )
 
+// AuthCreads for Octane
 type AuthCreds struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 }
 
-// ReportStdoutConfig configures the stdout plugin for either JSON or XML output
+// OctaneReportConfig configures the stdout plugin for either JSON or XML output
 type OctaneReportConfig struct {
 	HostUrl       string            `yaml:"host_url" json:"host_url"`
 	ClientID      string            `yaml:"client_id" json:"client_id"`
