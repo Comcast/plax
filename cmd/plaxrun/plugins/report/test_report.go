@@ -163,7 +163,7 @@ func (m *ReportRPCClient) Generate(tr *TestReport) error {
 		return err
 	}
 
-	m.client.Kill()
+	defer m.client.Kill()
 
 	return resp
 }
