@@ -64,6 +64,8 @@ That last command runs all the [example test specs](demos) that are
 labeled as `selftest`. [`basic.yaml`](demos/basic.yaml) is a good,
 small example of a test specification.
 
+## Plugins
+1. [Octane plugin](doc/octane_plugin.md)
 
 ## The language
 
