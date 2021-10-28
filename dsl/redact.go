@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // WantsRedaction reports whether the parameter's value should be
@@ -13,17 +14,6 @@ import (
 // characters, then the parameter's value should be redacted.
 func WantsRedaction(p string) bool {
 	return strings.HasPrefix(strings.Trim(p, "?!*"), "X_")
-}
-
-// AddRedaction compiles the given string as a regular expression and
-// installs that regexp as a desired redaction in logging output.
-func (c *Ctx) AddRedaction(pat string) error {
-	r, err := regexp.Compile(pat)
-	if err != nil {
-		return err
-	}
-	c.Redactions[pat] = r
-	return nil
 }
 
 // Redact might replace part of s with <redacted> depending on the
@@ -78,14 +68,62 @@ func Redact(r *regexp.Regexp, s string) string {
 	return acc
 }
 
-// Redactf calls c.Printf with any requested redactions with c.Redact
-// is true.
-func (c *Ctx) Redactf(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	if c.Redact {
-		for _, r := range c.Redactions {
-			s = Redact(r, s)
-		}
+// Redactions is set of patterns that can be redacted by the Redactf
+// method.
+type Redactions struct {
+	// Redact enables or disables redactions.
+	//
+	// The sketchy field name is for backwards compatibility.
+	Redact bool
+
+	// Pattens maps strings representing regular expressions to
+	// Repexps.
+	Patterns map[string]*regexp.Regexp
+
+	// RWMutex makes this gear safe for concurrent use.
+	sync.RWMutex
+}
+
+// NewRedactions makes a disabled Redactions.
+func NewRedactions() *Redactions {
+	return &Redactions{
+		Patterns: make(map[string]*regexp.Regexp),
 	}
-	c.Printf("%s", s)
+}
+
+// Add compiles the given string as a regular expression and installs
+// that regexp as a desired redaction.
+func (r *Redactions) Add(pat string) error {
+	p, err := regexp.Compile(pat)
+	if err == nil {
+		r.Lock()
+		r.Patterns[pat] = p
+		r.Unlock()
+	}
+	return err
+}
+
+// Redactf calls fmt.Sprintf and then redacts the result.
+func (r *Redactions) Redactf(format string, args ...interface{}) string {
+	s := fmt.Sprintf(format, args...)
+	if !r.Redact {
+		return s
+	}
+	r.RLock()
+	for _, p := range r.Patterns {
+		s = Redact(p, s)
+	}
+	r.RUnlock()
+	return s
+}
+
+// AddRedaction compiles the given string as a regular expression and
+// installs that regexp as a desired redaction in logging output.
+func (c *Ctx) AddRedaction(pat string) error {
+	return c.Redactions.Add(pat)
+}
+
+// Redactf calls c.Printf with any requested redactions.
+func (c *Ctx) Redactf(format string, args ...interface{}) {
+	c.Printf("%s", c.Redactions.Redactf(format, args...))
 }

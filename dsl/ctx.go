@@ -48,11 +48,7 @@ type Ctx struct {
 	Dir         string
 	LogLevel    string
 
-	// Redact, if true, will redact substrings that match
-	// Redactions in logging output.
-	Redact bool
-
-	Redactions map[string]*regexp.Regexp
+	*Redactions
 }
 
 // NewCtx build a new dsl.Ctx
@@ -62,7 +58,7 @@ func NewCtx(ctx context.Context) *Ctx {
 	}
 
 	// Make default redactions
-	redactions := make(map[string]*regexp.Regexp)
+	redactions := NewRedactions()
 
 	// If the context was a dsl.Ctx then use the redactions from the original context
 	if dslCtx, ok := ctx.(*Ctx); ok {
@@ -88,7 +84,6 @@ func (c *Ctx) WithCancel() (*Ctx, func()) {
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
 		Dir:         c.Dir,
-		Redact:      c.Redact,
 		Redactions:  c.Redactions, // not copying
 	}, cancel
 }
@@ -102,7 +97,6 @@ func (c *Ctx) WithTimeout(d time.Duration) (*Ctx, func()) {
 		LogLevel:    c.LogLevel,
 		IncludeDirs: c.IncludeDirs,
 		Dir:         c.Dir,
-		Redact:      c.Redact,
 		Redactions:  c.Redactions, // not copying
 	}, cancel
 }
