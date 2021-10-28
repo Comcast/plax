@@ -1,6 +1,7 @@
 package dsl
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -75,4 +76,16 @@ func Redact(r *regexp.Regexp, s string) string {
 	}
 
 	return acc
+}
+
+// Redactf calls c.Printf with any requested redactions with c.Redact
+// is true.
+func (c *Ctx) Redactf(format string, args ...interface{}) {
+	s := fmt.Sprintf(format, args...)
+	if c.Redact {
+		for _, r := range c.Redactions {
+			s = Redact(r, s)
+		}
+	}
+	c.Printf("%s", s)
 }

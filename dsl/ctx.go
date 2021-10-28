@@ -146,18 +146,6 @@ func (ctx *Ctx) BindingsRedactions(bs Bindings) error {
 	return nil
 }
 
-// Redactf calls c.Printf with any requested redactions with c.Redact
-// is true.
-func (c *Ctx) Redactf(format string, args ...interface{}) {
-	s := fmt.Sprintf(format, args...)
-	if c.Redact {
-		for _, r := range c.Redactions {
-			s = Redact(r, s)
-		}
-	}
-	c.Printf("%s", s)
-}
-
 // Indf emits a log line starting with a '|' when ctx.LogLevel isn't 'none'.
 func (c *Ctx) Indf(format string, args ...interface{}) {
 	switch c.LogLevel {
