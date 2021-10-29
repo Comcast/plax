@@ -21,7 +21,6 @@ package dsl
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -62,7 +61,7 @@ func (l *TestLogger) Printf(format string, args ...interface{}) {
 	l.lines = append(l.lines, line)
 }
 
-func TestCtxRedactBasic(t *testing.T) {
+func TestRedactBasic(t *testing.T) {
 	ctx := NewCtx(nil)
 	if err := ctx.AddRedaction("tacos?"); err != nil {
 		t.Fatal(err)
@@ -83,7 +82,7 @@ func TestCtxRedactBasic(t *testing.T) {
 	}
 }
 
-func TestCtxRedactBindings(t *testing.T) {
+func TestRedactBindings(t *testing.T) {
 	ctx := NewCtx(nil)
 	ctx.Redact = true
 	l := NewTestLogger()
@@ -116,46 +115,5 @@ func TestCtxRedactBindings(t *testing.T) {
 	}
 	if !strings.Contains(line, "redacted") {
 		t.Fatal(line)
-	}
-}
-
-func TestRedact(t *testing.T) {
-	type Pair struct {
-		Pattern, String, Expected string
-	}
-	for _, p := range []Pair{
-		{
-			Pattern:  "make some (tacos)",
-			String:   "Please make some tacos.",
-			Expected: "Please make some <redacted>.",
-		},
-		{
-			// Replace the last component of the token.
-			// The first group isn't captured.  Just here
-			// for the test.
-			Pattern:  `"token":"[^.]+\.(?:[^.]+)\.([^"]+)`,
-			String:   `"token":"bydiiuee.sdhyerhbxgygs.shdhgvfed"`,
-			Expected: `"token":"bydiiuee.sdhyerhbxgygs.<redacted>"`,
-		},
-		{
-			// Multiple groups but only one marked as redacting.
-			Pattern:  `"token":"([^.]+)\.([^.]+)\.(?P<redact>[^"]+)`,
-			String:   `"token":"bydiiuee.sdhyerhbxgygs.shdhgvfed"`,
-			Expected: `"token":"bydiiuee.sdhyerhbxgygs.<redacted>"`,
-		},
-		{
-			// Multiple groups; just redact first captured one.
-			Pattern:  `"token":"(?:[^.]+)\.([^.]+)\.([^"]+)`,
-			String:   `"token":"bydiiuee.sdhyerhbxgygs.shdhgvfed"`,
-			Expected: `"token":"bydiiuee.<redacted>.shdhgvfed"`,
-		},
-	} {
-		t.Run("", func(t *testing.T) {
-			r := regexp.MustCompile(p.Pattern)
-			s := Redact(r, p.String)
-			if s != p.Expected {
-				log.Fatalf("%s != %s (expected); pattern: %s", s, p.Expected, p.Pattern)
-			}
-		})
 	}
 }
