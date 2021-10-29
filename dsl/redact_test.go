@@ -112,3 +112,21 @@ func TestRedact(t *testing.T) {
 		})
 	}
 }
+
+func TestRedactionsDegenerate(t *testing.T) {
+	var (
+		r = NewRedactions()
+	)
+	r.Redact = true
+
+	if err := r.Add(""); err != nil {
+		t.Fatal(err)
+	}
+
+	in := "normalcy prevails"
+	out := r.Redactf(in)
+	if in != out {
+		t.Fatal(out)
+	}
+
+}
