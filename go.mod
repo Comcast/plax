@@ -15,7 +15,7 @@ require (
 	github.com/itchyny/gojq v0.12.4
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/net v0.0.0-20210716203947-853a461950ff // indirect
+	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
@@ -24,5 +24,7 @@ require (
 	modernc.org/memory v1.0.5 // indirect
 	modernc.org/sqlite v1.11.2
 )
+
+exclude github.com/manifoldco/promptui v0.8.0
 
 replace github.com/Comcast/plax => ./
