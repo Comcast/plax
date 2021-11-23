@@ -21,7 +21,7 @@ spec:
         - pub:
             payload: '{"want":"chips"}'
         - doc: |
-            Befor each 'recv', Plax will drop bindings for variables
+            Before each 'recv', Plax will drop bindings for variables
             that start with '?*'.
         - recv:
             pattern: '{"want":"?*x"}'

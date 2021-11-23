@@ -37,6 +37,26 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+  - main: cmd/plaxrun/plugins/report/octane/main.go
+    id: plaxrun_report_octane
+    binary: plaxrun_report_octane
+    goos:
+      - linux
+      - darwin
+      - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
+  - main: cmd/plaxrun/plugins/report/rp/main.go
+    id: plaxrun_report_portal
+    binary: plaxrun_report_portal
+    goos:
+      - linux
+      - darwin
+      - windows
+    ignore:
+      - goos: windows
+        goarch: arm64
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl
