@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Comcast/sheens v0.9.1-0.20210115175817-a1a65cee59ac
 	github.com/alecthomas/jsonschema v0.0.0-20210526225647-edb03dcab7bc
+	github.com/avarabyeu/goRP/v5 v5.0.1 // indirect
 	github.com/aws/aws-sdk-go v1.40.4
 	github.com/dop251/goja v0.0.0-20210720190508-a7a3a1366b2e
 	github.com/eclipse/paho.mqtt.golang v1.3.5
