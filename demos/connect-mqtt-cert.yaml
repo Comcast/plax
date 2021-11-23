@@ -17,14 +17,15 @@ spec:
       steps:
         - pub:
             chan: mother
-            make:
-              name: mqtt
-              type: mqtt
-              config:
-                certfile: '{?!CERT}'
-                keyfile: '{?!KEY}'
-                brokerurl: '{?!ENDPOINT}'
-                clientid: '{?!CLIENT_ID}'
+            payload:
+              make:
+                name: mqtt
+                type: mqtt
+                config:
+                  certfile: '{?!CERT}'
+                  keyfile: '{?!KEY}'
+                  brokerurl: '{?!ENDPOINT}'
+                  clientid: '{?!CLIENT_ID}'
         - recv:
             chan: mother
             pattern:

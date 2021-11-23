@@ -94,6 +94,14 @@ func NewRedactions() *Redactions {
 // Add compiles the given string as a regular expression and installs
 // that regexp as a desired redaction.
 func (r *Redactions) Add(pat string) error {
+	if len(strings.TrimSpace(pat)) == 0 {
+		// We'll ignore degenerate patterns that (presumably)
+		// unintentional.  Example: An X_ parameter has an
+		// empty string as its value.  That'd result in trying
+		// to redact ever zero-length string, which is not
+		// helpful.
+		return nil
+	}
 	p, err := regexp.Compile(pat)
 	if err == nil {
 		r.Lock()
