@@ -8,7 +8,9 @@ require (
 	github.com/aws/aws-sdk-go v1.40.4
 	github.com/dop251/goja v0.0.0-20210720190508-a7a3a1366b2e
 	github.com/eclipse/paho.mqtt.golang v1.3.5
+	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/go-sql-driver/mysql v1.6.0
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/harlow/kinesis-consumer v0.3.4
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/iancoleman/orderedmap v0.2.0 // indirect
