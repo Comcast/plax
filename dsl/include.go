@@ -35,6 +35,11 @@ func FindInclude(ctx *Ctx, filename string) ([]byte, error) {
 		dirs = []string{"."}
 	}
 
+	if strings.HasPrefix(filename, "/") {
+		bs, err := ioutil.ReadFile(filename)
+		return bs, err
+	}
+
 	for _, dir := range dirs {
 		path := dir + "/" + filename
 		bs, err := ioutil.ReadFile(path)
@@ -101,7 +106,7 @@ func IncludeMap(ctx *Ctx, k string, v interface{}, at []string) (map[string]inte
 	return m0, nil
 }
 
-// Include looks for '#include' or 'include:' to find YAML files to
+// Include looks for '#include', 'include:' or 'includes:' to find YAML files to
 // include in the input data at the given location.
 //
 // 'include: FILENAME' will read FILENAME, which should be YAML
