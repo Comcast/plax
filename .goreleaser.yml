@@ -56,8 +56,8 @@ builds:
       - goos: darwin
         goarch: arm64
   - main: cmd/plaxrun/plugins/report/rp/main.go
-    id: plaxrun_report_portal
-    binary: plaxrun_report_portal
+    id: plaxrun_report_rp
+    binary: plaxrun_report_rp
     goos:
       - linux
       - darwin
