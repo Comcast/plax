@@ -36,7 +36,7 @@ var (
 
 // Config the plugin
 func (rpi *ReportPortalImpl) Config(cfgb []byte) error {
-	logger.Debug("plaxrun_report_portal: config called")
+	logger.Debug("plaxrun_report_rp: config called")
 
 	err := json.Unmarshal(cfgb, &rpi.config)
 	if err != nil {
@@ -55,13 +55,13 @@ func (rpi *ReportPortalImpl) Config(cfgb []byte) error {
 			
 			return nil
 		})
-		logger.Debug("plaxrun_report_portal: config done")
+		logger.Debug("plaxrun_report_rp: config done")
 	return nil
 }
 
 // Generate the test report
 func (rpi *ReportPortalImpl) Generate(tr *report.TestReport) error {
-	logger.Debug("plaxrun_report_portal: generate called")
+	logger.Debug("plaxrun_report_rp: generate called")
 	client := rp.NewClient(rpi.config.Hostname, rpi.config.Project, rpi.config.Token)
 
 	launchUUID := uuid.New()
@@ -148,7 +148,7 @@ func (rpi *ReportPortalImpl) Generate(tr *report.TestReport) error {
 }
 
 func main() {
-	logger.Debug("plaxrun_report_portal: start")
+	logger.Debug("plaxrun_report_rp: start")
 
 	// pluginMap is the map of plugins we can dispense.
 	var pluginMap = map[string]plugin.Plugin{
@@ -160,5 +160,5 @@ func main() {
 		Plugins:         pluginMap,
 	})
 
-	logger.Debug("plaxrun_report_portal: stop")
+	logger.Debug("plaxrun_report_rp: stop")
 }
