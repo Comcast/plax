@@ -161,13 +161,13 @@ params:
   WORLD:
     include: include/commands/value.yaml
     envs:
-      VALUE: universe
+      VALUE: '"universe"'
     redact: true
 
   DATE:
     include: include/commands/command.yaml
     envs:
-      COMMAND: date
+      COMMAND: '"date"'
 
   WAIT_LIST_1:
     include: include/commands/value.yaml
