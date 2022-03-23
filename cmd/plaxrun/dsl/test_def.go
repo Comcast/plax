@@ -113,6 +113,14 @@ func (tdr TestDefRef) getTaskFunc(ctx *plaxDsl.Ctx, tr TestRun, name string, bs 
 	// Empty labels
 	labelArr := make([]string, 0)
 
+	// Add labels from the command line
+	if tr.trps != nil && tr.trps.Labels != nil {
+		// Labels from test definition
+		arr := strings.Split(*tr.trps.Labels, ",")
+		labelArr = append(labelArr, arr...)
+	}
+
+	// Add labels from the test definition
 	if tdr.Labels != nil {
 		// Labels from test definition
 		arr := strings.Split(*tdr.Labels, ",")
