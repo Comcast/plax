@@ -131,7 +131,7 @@ func (rpi *OctaneReportPluginImpl) Config(cfgb []byte) error {
 		SetDebug(true).
 		SetHostURL(rpi.config.HostUrl).
 		OnAfterResponse(func(client *resty.Client, rs *resty.Response) error {
-			fmt.Printf("statusCode = %d\n", rs.StatusCode())
+			logger.Info("statusCode = %d\n", rs.StatusCode())
 			if rs.StatusCode() >= 300 {
 				return fmt.Errorf("status code error: %d\n%s", rs.StatusCode(), rs.String())
 			}
@@ -160,7 +160,7 @@ func (rpi *OctaneReportPluginImpl) Generate(tr *report.TestReport) error {
 	}
 	testfields := TestFields{}
 	if len(rpi.config.TestFields) > 0 {
-		fmt.Println("test fields", rpi.config.TestFields)
+		logger.Info("test fields", rpi.config.TestFields)
 		for k, v := range rpi.config.TestFields {
 			testfields.TestFields = append(testfields.TestFields, TestField{Type: k, Value: v})
 		}
@@ -187,7 +187,7 @@ func (rpi *OctaneReportPluginImpl) Generate(tr *report.TestReport) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("plaxrun_report_octane:  print tr\n%s\n", file)
+	logger.Info("plaxrun_report_octane:  print tr\n%s\n", file)
 
 	_, err = rpi.http.R().
 		SetPathParams(map[string]string{

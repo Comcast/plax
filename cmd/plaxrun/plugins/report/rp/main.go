@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"os"
 	"time"
+
 	"github.com/google/uuid"
 
 	"github.com/Comcast/plax/cmd/plaxrun/plugins/report"
-	
+
 	rp "github.com/avarabyeu/goRP/v5/gorp"
 	resty "github.com/go-resty/resty/v2"
 	hclog "github.com/hashicorp/go-hclog"
@@ -52,10 +53,10 @@ func (rpi *ReportPortalImpl) Config(cfgb []byte) error {
 			if rs.StatusCode() >= 300 {
 				return fmt.Errorf("status code error: %d\n%s", rs.StatusCode(), rs.String())
 			}
-			
+
 			return nil
 		})
-		logger.Debug("plaxrun_report_rp: config done")
+	logger.Debug("plaxrun_report_rp: config done")
 	return nil
 }
 
@@ -68,9 +69,9 @@ func (rpi *ReportPortalImpl) Generate(tr *report.TestReport) error {
 	launch, err := client.StartLaunch(&rp.StartLaunchRQ{
 		Mode: rp.LaunchModes.Default,
 		StartRQ: rp.StartRQ{
-			Name:        tr.Name,
-			UUID:        &launchUUID,
-			StartTime:   rp.Timestamp{Time: time.Now()},
+			Name:      tr.Name,
+			UUID:      &launchUUID,
+			StartTime: rp.Timestamp{Time: time.Now()},
 		},
 	})
 
@@ -81,7 +82,7 @@ func (rpi *ReportPortalImpl) Generate(tr *report.TestReport) error {
 
 	for _, testSuite := range tr.TestSuite {
 		for _, testCase := range testSuite.TestCase {
-				
+
 			testUUID := uuid.New()
 			_, err = client.StartTest(&rp.StartTestRQ{
 				LaunchID: launch.ID,
