@@ -71,7 +71,6 @@ small example of a test specification.
 
 See the [main documentation](doc/manual.md) and the [examples](demos).
 
-
 ## References
 
 1. [Plax manual](doc/manual.md) and the [`plaxrun`
