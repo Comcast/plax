@@ -1,0 +1,19 @@
+doc: |
+  Closing a channel explicitly.
+labels:
+  - selftest
+spec:
+  phases:
+    phase1:
+      steps:
+        - pub:
+            payload:
+              make:
+                name: mock
+                type: mock
+        - recv:
+            chan: mother
+            pattern:
+              success: true
+        - close:
+            chan: mock

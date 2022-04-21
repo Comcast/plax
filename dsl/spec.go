@@ -119,6 +119,7 @@ type Step struct {
 	Recv      *Recv      `yaml:",omitempty"`
 	Kill      *Kill      `yaml:",omitempty"`
 	Reconnect *Reconnect `yaml:",omitempty"`
+	Close     *Close     `yaml:",omitempty"`
 	Run       string     `yaml:",omitempty"`
 
 	// Wait is wait time in milliseconds as a string.
@@ -212,6 +213,22 @@ func (s *Step) exe(ctx *Ctx, t *Test) (string, error) {
 		ctx.Indf("    Reconnect %s", s.Reconnect.Chan)
 
 		e, err := s.Reconnect.Substitute(ctx, t)
+		if err != nil {
+			return "", err
+		}
+
+		if err := t.ensureChan(ctx, e.Chan, &e.ch); err != nil {
+			return "", err
+		}
+
+		if err := e.Exec(ctx, t); err != nil {
+			return "", err
+		}
+	}
+	if s.Close != nil {
+		ctx.Indf("    Close %s", s.Close.Chan)
+
+		e, err := s.Close.Substitute(ctx, t)
 		if err != nil {
 			return "", err
 		}
@@ -914,6 +931,28 @@ func (p *Reconnect) Exec(ctx *Ctx, t *Test) error {
 	ctx.Indf("    Reconnect %s", JSON(p))
 
 	return p.ch.Open(ctx)
+}
+
+type Close struct {
+	Chan string
+
+	ch Chan
+}
+
+func (p *Close) Substitute(ctx *Ctx, t *Test) (*Close, error) {
+	return p, nil
+}
+
+func (p *Close) Exec(ctx *Ctx, t *Test) error {
+	ctx.Indf("    Close %s", JSON(p))
+
+	err := p.ch.Close(ctx)
+	if err == nil {
+		ctx.Indf("    Removing %s", p.Chan)
+		delete(t.Chans, p.Chan)
+	}
+
+	return err
 }
 
 type Ingest struct {

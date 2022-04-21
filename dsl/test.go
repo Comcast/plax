@@ -398,6 +398,9 @@ func (t *Test) Validate(ctx *Ctx) []error {
 			if s.Reconnect != nil {
 				ops++
 			}
+			if s.Close != nil {
+				ops++
+			}
 			if s.Wait != "" {
 				ops++
 			}
