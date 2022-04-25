@@ -682,6 +682,10 @@ single operation.  Currently the following steps are supported:
 
     1. `chan`: The name for the channel for this step.
 
+1. `close`: Close the channel.  The channel is also removed.
+
+    1. `chan`: The name for the channel for this step.
+
 1. `run`: Execute Javascript as in a `recv`'s guard except that the
    return value is ignored. Parameters and bindings
    [substitution](#substitutions) applies.
