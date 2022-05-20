@@ -19,6 +19,7 @@ import (
 type TestResult struct {
 	XMLName      xml.Name     `xml:"test_result"`
 	ProductAreas ProductAreas `xml:"product_areas,omitempty"`
+	Environment  Environment  `xml:"environment,omitempty"`
 	TestRuns     TestRuns     `xml:"test_runs"`
 }
 
@@ -39,6 +40,17 @@ type TestFields struct {
 
 // TestField for Octane
 type TestField struct {
+	Type  string `xml:"type,attr"`
+	Value string `xml:"value,attr"`
+}
+
+//Environment for Octane
+type Environment struct {
+	Environment []EnvironmentTaxonomy `xml:"taxonomy"`
+}
+
+//EnvironmentTaxonomy for Octane
+type EnvironmentTaxonomy struct {
 	Type  string `xml:"type,attr"`
 	Value string `xml:"value,attr"`
 }
@@ -84,6 +96,7 @@ type OctaneReportConfig struct {
 	WorkSpaceID   string            `yaml:"workspace_id" json:"workspace_id"`
 	AppModuleID   int               `yaml:"app_module_id" json:"app_module_id"`
 	TestFields    map[string]string `yaml:"test_fields,omitempty" json:"test_fields,omitempty"`
+	Environment   map[string]string `yaml:"environment,omitempty" json:"environment,omitempty"`
 }
 
 // OctaneReportPluginImpl dummy structure
@@ -165,6 +178,13 @@ func (rpi *OctaneReportPluginImpl) Generate(tr *report.TestReport) error {
 			testfields.TestFields = append(testfields.TestFields, TestField{Type: k, Value: v})
 		}
 	}
+	environment := Environment{}
+	if len(rpi.config.Environment) > 0 {
+		logger.Info("environment", rpi.config.Environment)
+		for k, v := range rpi.config.Environment {
+			environment.Environment = append(environment.Environment, EnvironmentTaxonomy{Type: k, Value: v})
+		}
+	}
 	for _, testSuite := range tr.TestSuite {
 		for _, testCase := range testSuite.TestCase {
 			suiteTestItem := TestRun{
@@ -181,6 +201,7 @@ func (rpi *OctaneReportPluginImpl) Generate(tr *report.TestReport) error {
 
 		}
 	}
+	testreport.Environment = environment
 	testreport.ProductAreas.ProductArea.ID = rpi.config.AppModuleID
 
 	file, err := xml.MarshalIndent(testreport, "", " ")
@@ -188,6 +209,7 @@ func (rpi *OctaneReportPluginImpl) Generate(tr *report.TestReport) error {
 		return err
 	}
 	logger.Info("plaxrun_report_octane:  print tr\n%s\n", file)
+	logger.Info("plaxrun_report_octane testreport: %+v\n", testreport)
 
 	_, err = rpi.http.R().
 		SetPathParams(map[string]string{

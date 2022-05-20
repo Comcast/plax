@@ -32,6 +32,8 @@ reports:
       app_module_id: 485024
       test_fields:     // optional
         Framework: plax
+      environment:     // optional
+        AUT Env: {ENVIRONMENT}
 ```
 
 Notes:
