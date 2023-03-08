@@ -7,6 +7,9 @@ require (
 	github.com/alecthomas/jsonschema v0.0.0-20210526225647-edb03dcab7bc
 	github.com/avarabyeu/goRP/v5 v5.0.1 // indirect
 	github.com/aws/aws-sdk-go v1.40.4
+	github.com/aws/aws-sdk-go-v2 v1.17.5
+	github.com/aws/aws-sdk-go-v2/config v1.18.15
+	github.com/aws/aws-sdk-go-v2/service/kinesis v1.17.6
 	github.com/dop251/goja v0.0.0-20210720190508-a7a3a1366b2e
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
