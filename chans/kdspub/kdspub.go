@@ -51,6 +51,7 @@ type KDSOpts struct {
 type KDSPubChan struct {
 	c   chan dsl.Msg
 	ctl chan bool
+	svc *kinesis.PutRecordInput
 
 	opts *KDSOpts
 }
