@@ -51,7 +51,7 @@ type KDSOpts struct {
 type KDSPubChan struct {
 	c   chan dsl.Msg
 	ctl chan bool
-	svc *kinesis.PutRecordInput
+	svc *kinesis.Client
 
 	opts *KDSOpts
 }
@@ -90,10 +90,14 @@ func (c *KDSPubChan) Kind() dsl.ChanKind {
 
 func (c *KDSPubChan) Open(ctx *dsl.Ctx) error {
 
-	// Not doing anything here for the monment.  Might eventually
-	// want to do establish the session and KDS client here for
-	// efficient in case the test wants to publish several
-	// messages.
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		ctx.Logf("Error opening KDS stream %s", c.opts.StreamName)
+	}
+
+	c.svc = kinesis.NewFromConfig(cfg)
+
+	go c.Pub(ctx, dsl.Msg{})
 	return nil
 }
 
@@ -110,13 +114,6 @@ func (c *KDSPubChan) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 	ctx.Logf("Publishing to KDS %s", c.opts.StreamName)
 
 	// Load the Shared AWS Configuration (~/.aws/config)
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		ctx.Logf("Error publishing to KDS %s", c.opts.StreamName)
-
-	}
-
-	k := kinesis.NewFromConfig(cfg)
 
 	input := &kinesis.PutRecordInput{
 		Data:         []byte(m.Payload),
@@ -124,9 +121,9 @@ func (c *KDSPubChan) Pub(ctx *dsl.Ctx, m dsl.Msg) error {
 		PartitionKey: aws.String("test"),
 	}
 
-	_, err2 := k.PutRecord(context.TODO(), input)
+	_, err := c.svc.PutRecord(context.TODO(), input)
 
-	if err2 != nil {
+	if err != nil {
 		ctx.Warnf("warning: KDSPubChan.PUB %s", err)
 	}
 	return nil
