@@ -4,3 +4,4 @@ dist/
 vendor/
 *~
 **/__debug_bin
+.DS_Store

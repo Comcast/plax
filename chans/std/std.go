@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Comcast Cable Communications Management, LLC
+ * Copyright 2023 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import (
 	_ "github.com/Comcast/plax/chans/httpclient"
 	_ "github.com/Comcast/plax/chans/httpserver"
 	_ "github.com/Comcast/plax/chans/kds"
+	_ "github.com/Comcast/plax/chans/kdspub"
 	_ "github.com/Comcast/plax/chans/mqtt"
 	_ "github.com/Comcast/plax/chans/shell"
 	_ "github.com/Comcast/plax/chans/sqlc"
