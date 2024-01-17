@@ -1,6 +1,6 @@
 release:
   github:
-    owner: Comcast
+    owner: hemanjayam
     name: plax
 before:
   hooks:
