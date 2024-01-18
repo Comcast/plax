@@ -17,7 +17,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    buildmode: 'c-shared'
   - main: cmd/plaxrun/main.go
     id: plaxrun
     binary: plaxrun
@@ -28,7 +27,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    buildmode: 'c-shared'
   - main: cmd/plaxrun/plugins/report/stdout/main.go
     id: plaxrun_report_stdout
     binary: plaxrun_report_stdout
@@ -39,7 +37,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    buildmode: 'c-shared'
   - main: cmd/plaxrun/plugins/report/octane/main.go
     id: plaxrun_report_octane
     binary: plaxrun_report_octane
@@ -50,7 +47,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    buildmode: 'c-shared'
   - main: cmd/plaxrun/plugins/report/rp/main.go
     id: plaxrun_report_rp
     binary: plaxrun_report_rp
@@ -61,7 +57,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-    buildmode: 'c-shared'
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl
@@ -72,7 +67,6 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
-   buildmode: 'c-shared'
 archives:
   - name_template: >-
       {{- .ProjectName }}_
