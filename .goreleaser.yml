@@ -10,6 +10,7 @@ builds:
   - main: cmd/plax/main.go
     id: plax
     binary: plax
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
@@ -20,6 +21,7 @@ builds:
   - main: cmd/plaxrun/main.go
     id: plaxrun
     binary: plaxrun
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
@@ -30,6 +32,7 @@ builds:
   - main: cmd/plaxrun/plugins/report/stdout/main.go
     id: plaxrun_report_stdout
     binary: plaxrun_report_stdout
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
@@ -40,6 +43,7 @@ builds:
   - main: cmd/plaxrun/plugins/report/octane/main.go
     id: plaxrun_report_octane
     binary: plaxrun_report_octane
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
@@ -50,6 +54,7 @@ builds:
   - main: cmd/plaxrun/plugins/report/rp/main.go
     id: plaxrun_report_rp
     binary: plaxrun_report_rp
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
@@ -60,6 +65,7 @@ builds:
   - main: cmd/yamlincl/main.go
     id: yamlincl
     binary: yamlincl
+    buildmode: 'c-shared'
     goos:
       - linux
       - darwin
