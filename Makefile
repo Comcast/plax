@@ -33,11 +33,11 @@ clean:
 
 .PHONY: dist
 dist: clean
-	goreleaser release --skip-publish --rm-dist
+	goreleaser release --skip=publish --clean
 
 .PHONY: release
 release: clean
-	goreleaser release --rm-dist
+	goreleaser release --clean
 
 # A demonstratio of using a Go plug-in to load a MySQL driver at
 # runtime for use in a Plax test that uses a SQL channel to talk to
