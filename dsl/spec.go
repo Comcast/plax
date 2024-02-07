@@ -555,6 +555,8 @@ type Recv struct {
 	// Max attempts to receive a message; optionally for a specific topic
 	Attempts int `json:",omitempty" yaml:",omitempty`
 
+	Suppress bool `json:",omitempty" yaml:",omitempty`
+
 	ch Chan
 }
 
@@ -634,6 +636,7 @@ func (r *Recv) Substitute(ctx *Ctx, t *Test) (*Recv, error) {
 		Run:      run,
 		Schema:   r.Schema,
 		Attempts: r.Attempts,
+		Suppress: r.Suppress,
 		ch:       r.ch,
 	}, nil
 }
@@ -695,9 +698,10 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 			ctx.Indf("    Recv timeout (%v)", timeout)
 			return fmt.Errorf("timeout after %s waiting for %s", timeout, r.Pattern)
 		case m := <-in:
-
-			ctx.Indf("    Recv dequeuing topic '%s' (vs '%s')", m.Topic, r.Topic)
-			ctx.Inddf("                   %s", m.Payload)
+			if !r.Suppress {
+				ctx.Indf("    Recv dequeuing topic '%s' (vs '%s')", m.Topic, r.Topic)
+				ctx.Inddf("                   %s", m.Payload)
+			}
 
 			var (
 				err error
@@ -717,7 +721,9 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					}
 					bss, err = RegexpMatch(r.Regexp, m.Payload)
 				} else {
-					ctx.Inddf("      pattern:       %s", JSON(r.Pattern))
+					if !r.Suppress {
+						ctx.Inddf("      pattern:       %s", JSON(r.Pattern))
+					}
 
 					// target will be the target (message) for matching.
 					var target interface{}
@@ -740,7 +746,9 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 						return Brokenf("bad Recv Target: '%s'", r.Target)
 					}
 
-					ctx.Inddf("      match target:  %s", JSON(target))
+					if !r.Suppress {
+						ctx.Inddf("      match target:  %s", JSON(target))
+					}
 
 					if r.Schema != "" {
 						if err := validateSchema(ctx, r.Schema, m.Payload); err != nil {
@@ -754,7 +762,10 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					if err != nil {
 						return err
 					}
-					ctx.Inddf("      bound pattern: %s", JSON(pattern))
+
+					if !r.Suppress {
+						ctx.Inddf("      bound pattern: %s", JSON(pattern))
+					}
 					bss, err = match.Match(pattern, target, match.NewBindings())
 				}
 
@@ -762,7 +773,10 @@ func (r *Recv) Exec(ctx *Ctx, t *Test) error {
 					return err
 				}
 				ctx.Indf("      result: %v", 0 < len(bss))
-				ctx.Inddf("      bss: %s", JSON(bss))
+
+				if !r.Suppress {
+					ctx.Inddf("      bss: %s", JSON(bss))
+				}
 
 				if 0 < len(bss) {
 
