@@ -58,19 +58,19 @@ func main() {
 
 	var (
 		trps = &dsl.TestRunParams{
-			Bindings:    make(plaxDsl.Bindings),
-			IncludeDirs: dsl.IncludeDirList{wd},
-			Filename:    flag.String("run", "spec.yaml", "Filename for test run specification"),
-			Dir:         flag.String("dir", ".", "Directory containing test files"),
+			Bindings:        make(plaxDsl.Bindings),
+			IncludeDirs:     dsl.IncludeDirList{wd},
+			Filename:        flag.String("run", "spec.yaml", "Filename for test run specification"),
+			Dir:             flag.String("dir", ".", "Directory containing test files"),
 			ReportPluginDir: flag.String("reportPluginDir", "plugins/report", "Directory containing the report plugins"),
-			EmitJSON:    flag.Bool("json", false, "Emit JSON test output; instead of JUnit XML"),
-			Groups:      dsl.TestGroupList{},
-			Verbose:     flag.Bool("v", true, "Verbosity"),
-			LogLevel:    flag.String("log", "info", "Log level (info, debug, none)"),
-			Labels:      flag.String("labels", "", "Labels for tests to run"),
-			SuiteName:   flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
-			Priority:    flag.Int("priority", -1, "Test priority"),
-			Redact:      flag.Bool("redact", false, "enable redactions when -log debug"),
+			EmitJSON:        flag.Bool("json", false, "Emit JSON test output; instead of JUnit XML"),
+			Groups:          dsl.TestGroupList{},
+			Verbose:         flag.Bool("v", true, "Verbosity"),
+			LogLevel:        flag.String("log", "info", "Log level (info, debug, none)"),
+			Labels:          flag.String("labels", "", "Labels for tests to run"),
+			SuiteName:       flag.String("s", "", "Suite name to execute; -t options represent the tests in the suite to execute"),
+			Priority:        flag.Int("priority", -1, "Test priority"),
+			Redact:          flag.Bool("redact", true, "enable redactions when -log debug"),
 		}
 		vers = flag.Bool("version", false, "Print version and then exit")
 	)

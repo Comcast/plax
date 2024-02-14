@@ -47,7 +47,6 @@ spec:
               Use the previous regexp that has a group. Suppress output.
             payload: '"I love really thin pancakes."'
         - recv:
-            suppress: true
             pattern: '"?*x"'
             guard: |
               return 0 < bs['?*x'].indexOf("pancakes")

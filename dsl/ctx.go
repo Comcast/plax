@@ -116,8 +116,12 @@ func (c *Ctx) SetLogLevel(level string) error {
 }
 
 // bindingRedactions adds redaction patterns for values of binding
-// variables that start with X_.
+// variables that start with X_ if redact is true
 func (ctx *Ctx) BindingsRedactions(bs Bindings) error {
+	if !ctx.Redact {
+		return nil
+	}
+
 	for p, v := range bs {
 		if WantsRedaction(p) {
 			var s string

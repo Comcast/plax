@@ -76,7 +76,7 @@ Usage of plax:
   -priority int
     	Optional lowest priority (where larger numbers mean lower priority!); negative means all (default -1)
   -redact
-    	Use redaction gear
+    	Use redaction gear (default true)
   -retry string
     	Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}
   -seed int
@@ -843,7 +843,9 @@ log redactions:
 
 1. Values with binding names that start with `X_` (ignoring
    non-alphabetic prefix characters like `?`) will be redacted from
-   `debug` log output.
+   `debug` log output if `-redact=true` (default is true).
+   If the redacted `X_` values are needed for debugging, use `-redact=false` 
+   locally.
    
 1. In a test, Javascript (usually executed via a `run` step) can add
    redactions using the functions `redactRegexp` and `redactString`.
