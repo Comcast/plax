@@ -89,6 +89,11 @@ const (
 func (inv *Invocation) Exec(ctx context.Context) (*junit.TestSuite, error) {
 	dslCtx := dsl.NewCtx(ctx)
 	dslCtx.Redact = inv.Redact
+	if inv.Redact {
+		//Add redactions for the X_ variables
+		dslCtx.Redactions.Add(".*{X_.*}=(.*)")
+		dslCtx.Redactions.Add(".*\"?X_.*\":(.*)}]")
+	}
 
 	if len(inv.LogLevel) > 0 {
 		if err := dslCtx.SetLogLevel(inv.LogLevel); err != nil {

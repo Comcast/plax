@@ -80,7 +80,7 @@ func main() {
 		testSuiteName     = flag.String("test-suite", "", "Name for JUnit test suite")
 		logLevel          = flag.String("log", "info", "log level (info, debug, none)")
 		retry             = flag.String("retry", "", `Specify retries: number or {"N":N,"Delay":"1s","DelayFactor":1.5}`)
-		redact            = flag.Bool("redact", false, "Use redaction gear")
+		redact            = flag.Bool("redact", true, "Use redaction gear")
 
 		testRedactPattern = flag.String("check-redact-regexp", "", "regular expression to use for checking redactions (with no test executed)")
 		testRedactString  = flag.String("check-redact", "", "input string to use for -check-redact-regexp")

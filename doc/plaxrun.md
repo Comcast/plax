@@ -50,7 +50,7 @@ Usage of plaxrun:
   -priority int
     	Test priority (default -1)
   -redact
-    	enable redactions when -log debug
+    	enable redactions when -log debug (default true)
   -run string
     	Filename for test run specification (default "spec.yaml")
   -s string
@@ -439,8 +439,10 @@ log redactions:
 
 1. Values with binding names that start with `X_` (ignoring
    non-alphabetic prefix characters like `?`) will be redacted from
-   `debug` log output.
-   
+   `debug` log output if `-redact=true` (default is true).
+   If the redacted `X_` values are needed for debugging, use `-redact=false` 
+   locally.
+
 1. In a test, Javascript (usually executed via a `run` step) can add
    redactions using the functions `redactRegexp` and `redactString`.
    See documentation above for usage information.
