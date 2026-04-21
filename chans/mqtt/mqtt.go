@@ -239,7 +239,7 @@ func dur(ms int64) time.Duration {
 
 // Opts constructions an mq.ClientOptions.
 func (o *MQTTOpts) Opts(ctx *dsl.Ctx) (*mq.ClientOptions, error) {
-	opts := mq.ClientOptions{}
+	opts := mq.NewClientOptions()
 
 	ctx.Logf("MQTT Opts broker: %s", o.BrokerURL)
 	opts.AddBroker(o.BrokerURL)
@@ -337,7 +337,7 @@ func (o *MQTTOpts) Opts(ctx *dsl.Ctx) (*mq.ClientOptions, error) {
 		ctx.Logf("MQTT %s connection lost", o.ClientID)
 	}
 
-	return &opts, nil
+	return opts, nil
 }
 
 func (c *MQTT) Kind() dsl.ChanKind {
