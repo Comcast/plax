@@ -1,5 +1,13 @@
 # Recent changes
 
+## cmd channel can read long lines
+
+The cmd channel used `bufio.Scanner` for subprocess stdout and stderr,
+which fails with `token too long` on lines larger than 64KiB. It now
+uses `bufio.Reader.ReadLine` and waits to reap the process until those
+readers finish, so a long line is not truncated when `Wait` would
+otherwise close the pipes.
+
 ## `recv` topic actually considered
 
 Due to a bug, a `recv` topic, if given, was not considered correctly.
