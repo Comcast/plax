@@ -79,6 +79,38 @@ func (p *Process) Substitute(ctx *Ctx, bs *Bindings) (*Process, error) {
 	}, nil
 }
 
+// readLines reads newline-delimited lines without the default Scanner token
+// limit. Keep the delimiter until framing is resolved, so exactly one trailing
+// CR is stripped at both LF and EOF, matching Scanner.Text(). Reuse scratch
+// for fragmented lines. emit should return false to stop.
+func readLines(r io.Reader, emit func(string) bool) error {
+	in := bufio.NewReader(r)
+	var pending []byte
+	for {
+		part, err := in.ReadSlice('\n')
+		if err == bufio.ErrBufferFull {
+			pending = append(pending, part...)
+			continue
+		}
+		if len(pending) > 0 || len(part) > 0 {
+			if len(pending) != 0 {
+				pending = append(pending, part...)
+				part = pending
+			}
+			if !emit(TrimEOL(string(part))) {
+				return nil
+			}
+			pending = pending[:0]
+		}
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+	}
+}
+
 // TrimEOL is a utility function that removes the last (if any)
 // newline character(s).
 //
@@ -126,20 +158,21 @@ func (p *Process) Start(ctx *Ctx) error {
 		return fmt.Errorf("Process %s Run error on StderrPipe: %s", p.Name, err)
 	}
 
+	stderrDone := make(chan struct{})
 	go func() {
-		in := bufio.NewScanner(errPipe)
-		for in.Scan() {
-			line := in.Text()
+		defer close(stderrDone)
+		err := readLines(errPipe, func(line string) bool {
 			ctx.Logf("Process %s stderr line: %s\n", p.Name, line)
 			select {
 			case <-ctx.Done():
-				return
+				return false
 			case <-p.ctl:
-				return
+				return false
 			case p.Stderr <- line:
+				return true
 			}
-		}
-		if err := in.Err(); err != nil {
+		})
+		if err != nil {
 			ctx.Logf("Process %s stderr error %s", p.Name, err)
 		}
 	}()
@@ -149,20 +182,21 @@ func (p *Process) Start(ctx *Ctx) error {
 		return fmt.Errorf("Process %s Run error on StdoutPipe: %s", p.Name, err)
 	}
 
+	stdoutDone := make(chan struct{})
 	go func() {
-		in := bufio.NewScanner(outPipe)
-		for in.Scan() {
-			line := in.Text()
+		defer close(stdoutDone)
+		err := readLines(outPipe, func(line string) bool {
 			ctx.Logf("Process %s stdout line: %s\n", p.Name, line)
 			select {
 			case <-ctx.Done():
-				return
+				return false
 			case <-p.ctl:
-				return
+				return false
 			case p.Stdout <- line:
+				return true
 			}
-		}
-		if err := in.Err(); err != nil {
+		})
+		if err != nil {
 			ctx.Logf("Process %s stdout error %s", p.Name, err)
 		}
 	}()
@@ -172,7 +206,12 @@ func (p *Process) Start(ctx *Ctx) error {
 		return err
 	}
 
+	// Wait only after the pipe readers finish. exec.Cmd closes the
+	// pipes when Wait returns, which would otherwise truncate a long
+	// line mid-read.
 	go func() {
+		<-stdoutDone
+		<-stderrDone
 		if err := p.cmd.Wait(); err != nil {
 			ctx.Logf("Process %s error on wait: %s", p.Name, err)
 		}
