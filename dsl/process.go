@@ -79,34 +79,35 @@ func (p *Process) Substitute(ctx *Ctx, bs *Bindings) (*Process, error) {
 	}, nil
 }
 
-// readLines reads newline-delimited lines from r without the default
-// bufio.Scanner token-size limit. Fragments from ReadLine are
-// accumulated until a complete line is available. The newline is not
-// included, matching Scanner.Text(). emit should return false to stop.
+// readLines reads newline-delimited lines without the default Scanner token
+// limit. Keep the delimiter until framing is resolved, so exactly one trailing
+// CR is stripped at both LF and EOF, matching Scanner.Text(). Reuse scratch
+// for fragmented lines. emit should return false to stop.
 func readLines(r io.Reader, emit func(string) bool) error {
 	in := bufio.NewReader(r)
-	var buf []byte
+	var pending []byte
 	for {
-		frag, isPrefix, err := in.ReadLine()
-		if len(frag) > 0 {
-			buf = append(buf, frag...)
-		}
-		if err != nil {
-			if err == io.EOF {
-				if len(buf) > 0 {
-					emit(string(buf))
-				}
-				return nil
-			}
-			return err
-		}
-		if isPrefix {
+		part, err := in.ReadSlice('\n')
+		if err == bufio.ErrBufferFull {
+			pending = append(pending, part...)
 			continue
 		}
-		if !emit(string(buf)) {
+		if len(pending) > 0 || len(part) > 0 {
+			if len(pending) != 0 {
+				pending = append(pending, part...)
+				part = pending
+			}
+			if !emit(TrimEOL(string(part))) {
+				return nil
+			}
+			pending = pending[:0]
+		}
+		if err == io.EOF {
 			return nil
 		}
-		buf = buf[:0]
+		if err != nil {
+			return err
+		}
 	}
 }
 
